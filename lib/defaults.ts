@@ -1,4 +1,4 @@
-import type { QuizState, Settings, StudyContext, TimerState } from './types';
+import type { QuizState, Settings, StudyContext, SyncState, TimerState } from './types';
 import { MIN } from './util';
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -16,7 +16,21 @@ export const DEFAULT_SETTINGS: Settings = {
   skin: 'auto',
   notify: false,
   wake: false,
+  displayName: '',
+  timezone: '',
+  weekStart: 1,
+  rollover: 0,
+  streakFreeze: false,
 };
+
+export function freshSync(): SyncState {
+  return {
+    ownerId: '', ownerAnon: false,
+    v: { settings: 0, context: 0, app: 0, tasks: 0 },
+    acked: { settings: 0, context: 0, app: 0, tasks: 0 },
+    pushed: {}, lastPull: 0, clearPending: false,
+  };
+}
 
 export const DEFAULT_CONTEXT: StudyContext = { subject: '', topic: '', level: 'intro', exam: '', goal: '', notes: '' };
 

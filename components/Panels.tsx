@@ -4,7 +4,8 @@ import { useStudy } from '@/lib/store';
 import { isVagueTopic, topicKey, topicLabel, weakConcepts } from '@/lib/context';
 import { aiErrorText } from '@/lib/quiz';
 import { AI } from '@/lib/ai-client';
-import { timeOf, todayKey } from '@/lib/util';
+import { timeOf } from '@/lib/util';
+import { todayFor } from '@/lib/dates';
 import type { StudyContext } from '@/lib/types';
 import { Icon } from './Icon';
 
@@ -234,7 +235,8 @@ export function TodayCard() {
   const context = useStudy((s) => s.context);
   const D = useStudy((s) => s.day);
   const aiStatus = useStudy((s) => s.aiStatus);
-  const today = todayKey();
+  const settingsTz = useStudy((s) => s.settings);
+  const today = todayFor(settingsTz);
   const list = history.filter((s) => s.date === today);
   const studied = list.reduce((a, s) => a + (s.studiedMin || 0), 0);
   const quizzed = list.filter((s) => s.quiz?.total);

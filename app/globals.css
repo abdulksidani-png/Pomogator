@@ -339,7 +339,7 @@ textarea { min-height: 92px; resize: vertical; line-height: 1.45; }
 /* ---------- dialogs ---------- */
 dialog {
   border: 1px solid var(--rule); border-radius: var(--r-lg); background: var(--card); color: var(--fg);
-  padding: 0; width: min(660px, calc(100vw - 24px)); max-height: calc(100dvh - 40px); box-shadow: 0 30px 80px -20px rgba(0,0,0,.45);
+  padding: 0; margin: auto; width: min(660px, calc(100vw - 24px)); max-height: calc(100dvh - 40px); box-shadow: 0 30px 80px -20px rgba(0,0,0,.45);
 }
 dialog[open] { display: flex; flex-direction: column; }
 dialog::backdrop { background: rgba(12, 16, 32, .5); }
@@ -382,7 +382,7 @@ kbd { font: 600 12px/1 var(--f-mono); padding: 5px 8px; border-radius: 6px; bord
 
 @media (max-width: 560px) {
   .stage { padding: 16px 16px 16px; }
-  .brand-tag { display: none; }
+  .brand-tag, .help-btn { display: none; }
   .chip-btn span { display: none; }
   .chip-btn { width: 40px; padding: 0; justify-content: center; }
   .mascot-wrap { width: 76px; }
@@ -402,3 +402,39 @@ kbd { font: 600 12px/1 var(--f-mono); padding: 5px 8px; border-radius: 6px; bord
 /* ---------- website additions ---------- */
 .boot-shell { min-height: 60vh; display: grid; place-items: center; color: var(--fg-3); font-size: 15px; }
 .mascot text { font-family: "Fredoka Variable", system-ui, sans-serif; font-weight: 700; }
+
+/* ---------- accounts ---------- */
+.signin-chip { color: var(--fg); }
+.acct { position: relative; }
+.avatar-btn {
+  width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--rule); background: var(--accent-soft);
+  color: var(--fg); font-weight: 700; font-size: 14px; display: grid; place-items: center; overflow: hidden; padding: 0;
+}
+.avatar-btn img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.menu {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 30; min-width: 240px; max-width: calc(100vw - 32px);
+  background: var(--card); border: 1px solid var(--rule); border-radius: var(--r-md); box-shadow: var(--shadow); padding: 6px; display: grid;
+}
+.menu-head { padding: 8px 10px 10px; border-bottom: 1px solid var(--rule); margin-bottom: 4px; display: grid; gap: 2px; min-width: 0; }
+.menu-head span { font-size: 13px; color: var(--fg-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu button { text-align: left; border: 0; background: none; padding: 9px 10px; border-radius: var(--r-sm); font-weight: 700; font-size: 14px; color: var(--fg); }
+.menu button:hover, .menu button:focus-visible { background: var(--sunk); }
+#signinDlg { width: min(470px, calc(100vw - 24px)); }
+.signin-body { gap: 14px; }
+.btn-wide { width: 100%; min-height: 48px; }
+.or { display: flex; align-items: center; gap: 10px; color: var(--fg-3); font-size: 13px; }
+.or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.email-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.email-row input { flex: 1 1 220px; width: auto; }
+input[type="email"] {
+  font-size: 15px; color: var(--fg); background: var(--bg); border: 1px solid var(--rule);
+  border-radius: var(--r-sm); padding: 9px 11px; min-width: 0;
+}
+input[type="email"]:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+.note { margin: 0; font-size: 14px; padding: 10px 12px; border-radius: var(--r-sm); background: var(--good-bg); color: var(--good); }
+.note.err { background: var(--bad-bg); color: var(--bad); }
+.sync-status { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--fg-3); flex: none; }
+.sync-dot.ok { background: var(--good); }
+.sync-dot.err { background: var(--bad); }
+.sync-dot.busy { background: var(--accent); }

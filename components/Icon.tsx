@@ -1,5 +1,5 @@
 export type IconName =
-  | 'play' | 'pause' | 'reset' | 'skip' | 'loop' | 'gear' | 'kbd' | 'x' | 'check' | 'plus' | 'flag' | 'file' | 'camera' | 'sound';
+  | 'user' | 'play' | 'pause' | 'reset' | 'skip' | 'loop' | 'gear' | 'kbd' | 'x' | 'check' | 'plus' | 'flag' | 'file' | 'camera' | 'sound';
 
 export function Icon({ name }: { name: IconName }) {
   return (
@@ -14,6 +14,7 @@ export function IconSprite() {
   return (
     <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
       <defs>
+        <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></symbol>
         <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z" fill="currentColor" stroke="none" /></symbol>
         <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="4.5" width="4" height="15" rx="1.2" fill="currentColor" stroke="none" /><rect x="14" y="4.5" width="4" height="15" rx="1.2" fill="currentColor" stroke="none" /></symbol>
         <symbol id="i-reset" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 2.6-6.4" /><path d="M3 4v5h5" /></symbol>

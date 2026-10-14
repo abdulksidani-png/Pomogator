@@ -88,9 +88,9 @@ describe('concepts and repeats', () => {
   });
   it('remembers only today\'s questions', () => {
     const a = { date: '2000-01-01', items: ['old'] };
-    expect(askedToday(a)).toEqual([]);
-    addAsked(a, ['new']);
-    expect(askedToday(a)).toEqual(['new']);
+    expect(askedToday(a, '2026-10-14')).toEqual([]);
+    addAsked(a, ['new'], '2026-10-14');
+    expect(askedToday(a, '2026-10-14')).toEqual(['new']);
   });
   it('changes the quiz key when the topic changes', () => {
     const k1 = ctxKey({ ...DEFAULT_CONTEXT, topic: 'Krebs' }, DEFAULT_SETTINGS);

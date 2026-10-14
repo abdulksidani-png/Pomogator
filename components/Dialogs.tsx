@@ -172,7 +172,7 @@ export function SettingsDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialogE
             }} />
           </div>
           <div className="set-row">
-            <span className="field-label">History<span className="sub">Sessions, quiz stats and plans saved on this device</span></span>
+            <span className="field-label">History<span className="sub">Sessions, quiz stats and plans, here and in your account</span></span>
             <button className="btn" type="button" onClick={() => press(clearHistory)}>{armed ? 'Click again to clear' : 'Clear history'}</button>
           </div>
         </fieldset>

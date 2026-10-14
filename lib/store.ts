@@ -9,16 +9,17 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { current } from 'immer';
 import type {
-  AiStatus, Asked, BreakKind, BreakReason, ConceptStat, DayState, PlanState, QuizOutcome, QuizResult,
-  QuizState, SessionRecord, Settings, StudyContext, Task, TimerState, Tier,
+  Account, AiStatus, Asked, BreakKind, BreakReason, ConceptStat, DayState, PlanState, QuizOutcome, QuizResult,
+  QuizState, SessionRecord, Settings, StudyContext, SyncState, Task, TimerState, Tier,
 } from './types';
-import { DEFAULT_CONTEXT, DEFAULT_SETTINGS, freshQuiz, freshTimer } from './defaults';
+import { DEFAULT_CONTEXT, DEFAULT_SETTINGS, freshQuiz, freshSync, freshTimer } from './defaults';
 import { breakFor } from './breaks';
 import { addAsked, askedToday, ctxKey, hasTopic, recordConcepts, topicKey, topicLabel, weakConcepts } from './context';
 import { aiErrorText } from './quiz';
 import { AI } from './ai-client';
 import { Sound } from './sound';
-import { MIN, clamp, mergeDeep, round1, timeOf, todayKey, uid } from './util';
+import { MIN, clamp, mergeDeep, round1, timeOf, uid } from './util';
+import { dayOf, detectTimeZone, todayFor } from './dates';
 
 export interface Data {
   settings: Settings;
@@ -31,9 +32,10 @@ export interface Data {
   history: SessionRecord[];
   stats: Record<string, ConceptStat>;
   asked: Asked;
+  sync: SyncState;
 }
 interface Flash { msg: string; id: number }
-interface Ui { toast: Flash | null; announce: Flash | null; aiStatus: AiStatus; booted: boolean }
+interface Ui { toast: Flash | null; announce: Flash | null; aiStatus: AiStatus; booted: boolean; account: Account }
 interface EndOpts { quiet?: boolean; auto?: boolean }
 
 interface Actions {
@@ -81,6 +83,12 @@ interface Actions {
   clearDone: () => void;
   resetTasks: () => void;
   clearHistory: () => void;
+  // sync plumbing
+  /** Change any part of the state directly (used by the sync engine). */
+  mutate: (fn: (d: Data & Ui) => void) => void;
+  setAccount: (patch: Partial<Account>) => void;
+  /** Forget everything on this device (after signing out, or before loading a different account). */
+  resetLocalData: () => void;
 }
 
 export type Store = Data & Ui & Actions;
@@ -95,7 +103,7 @@ const isCancel = (e: unknown) => (e as { code?: string })?.code === 'cancelled' 
 export const remainingAt = (T: TimerState, now: number) => (T.status === 'running' ? Math.max(0, T.endAt - now) : T.remainingMs);
 
 const quizReusable = (d: Data) =>
-  d.quiz.gen === 'ready' && d.quiz.ctxKey === ctxKey(d.context, d.settings) && !d.quiz.used && d.quiz.madeOn === todayKey();
+  d.quiz.gen === 'ready' && d.quiz.ctxKey === ctxKey(d.context, d.settings) && !d.quiz.used && d.quiz.madeOn === todayFor(d.settings);
 export const quizMatches = (d: Data) => d.quiz.gen === 'ready' && d.quiz.ctxKey === ctxKey(d.context, d.settings) && !d.quiz.used;
 export const quizReadyForTaking = (q: QuizState) => q.gen === 'ready' && !q.used && q.questions.length > 0;
 
@@ -111,11 +119,14 @@ function initialData(): Data {
     history: [],
     stats: {},
     asked: { date: '', items: [] },
+    sync: freshSync(),
   };
 }
 
-function mergePersisted(p: Partial<Data> | undefined, cur: Store): Store {
-  if (!p) return cur;
+/** Fill in defaults and undo half-finished states (requests that a reload interrupted). */
+export function normalizeData(p: Partial<Data> | undefined): Data {
+  const base = initialData();
+  if (!p) return base;
   const settings = mergeDeep(DEFAULT_SETTINGS, p.settings);
   const quiz: QuizState = { ...freshQuiz(), ...(p.quiz || {}) };
   if (quiz.gen === 'loading') quiz.gen = 'none'; // a reload dropped the request in flight
@@ -123,8 +134,8 @@ function mergePersisted(p: Partial<Data> | undefined, cur: Store): Store {
   if (plan.status === 'loading') { plan.status = 'failed'; plan.error = 'The plan was interrupted by a reload.'; }
   const day: DayState = { date: '', status: 'none', ...(p.day || {}) };
   if (day.status === 'loading') day.status = 'none';
+  const fs = freshSync();
   return {
-    ...cur,
     settings,
     context: mergeDeep(DEFAULT_CONTEXT, p.context),
     timer: { ...freshTimer(settings), ...(p.timer || {}) },
@@ -133,6 +144,9 @@ function mergePersisted(p: Partial<Data> | undefined, cur: Store): Store {
     history: p.history ?? [],
     stats: p.stats ?? {},
     asked: p.asked ?? { date: '', items: [] },
+    sync: p.sync
+      ? { ...fs, ...p.sync, v: { ...fs.v, ...p.sync.v }, acked: { ...fs.acked, ...p.sync.acked }, pushed: { ...(p.sync.pushed || {}) } }
+      : fs,
   };
 }
 
@@ -159,12 +173,13 @@ export const useStudy = create<Store>()(
         announce: null,
         aiStatus: 'checking',
         booted: false,
+        account: { status: 'local', syncing: false },
         showToast: toast,
         say,
 
         async boot() {
           if (get().booted) return;
-          set((d) => { d.booted = true; });
+          set((d) => { d.booted = true; if (!d.settings.timezone) d.settings.timezone = detectTimeZone(); });
           // Recover a timer that ran out while the page was closed.
           const T = get().timer;
           if (T.status === 'running' && T.endAt <= Date.now()) {
@@ -209,7 +224,7 @@ export const useStudy = create<Store>()(
             const T = d.timer;
             if (T.phase === 'study' && !T.session) {
               T.session = {
-                id: uid(), date: todayKey(), startedAt: Date.now(), plannedMin: d.settings.studyMin,
+                id: uid(), date: dayOf(Date.now(), d.settings), startedAt: Date.now(), plannedMin: d.settings.studyMin,
                 subject: d.context.subject, topic: d.context.topic, level: d.context.level, goal: d.context.goal,
               };
               T.refreshTried = false;
@@ -308,7 +323,7 @@ export const useStudy = create<Store>()(
             const c = d.context;
             const base: SessionRecord = T.session
               ? current(T.session)
-              : { id: uid(), date: todayKey(), startedAt: now - studiedMs, plannedMin: d.settings.studyMin, subject: '', topic: '', level: c.level, goal: '' };
+              : { id: uid(), date: dayOf(now - studiedMs, d.settings), startedAt: now - studiedMs, plannedMin: d.settings.studyMin, subject: '', topic: '', level: c.level, goal: '' };
             const s: SessionRecord = { ...base, endedAt: now, studiedMin: round1(studiedMs / MIN), subject: c.subject, topic: c.topic, level: c.level, goal: c.goal };
             T.session = s;
             const enough = studiedMs >= (s.plannedMin * MIN) / 2;
@@ -393,11 +408,11 @@ export const useStudy = create<Store>()(
             const tk = topicKey(s.context);
             const qs = await AI.quiz({
               ctx: { ...s.context }, n: s.settings.questions, difficulty: s.settings.difficulty,
-              weak: weakConcepts(s.stats, tk).map((c) => c.concept), asked: askedToday(s.asked).slice(-30),
+              weak: weakConcepts(s.stats, tk).map((c) => c.concept), asked: askedToday(s.asked, todayFor(s.settings)).slice(-30),
             }, ctl.signal);
             if (ctl !== quizCtl) return;
             if (!qs.length) throw { code: 'invalid_json' };
-            set((d) => { Object.assign(d.quiz, { questions: qs, gen: 'ready', madeOn: todayKey(), error: '' }); });
+            set((d) => { Object.assign(d.quiz, { questions: qs, gen: 'ready', madeOn: todayFor(d.settings), error: '' }); });
           } catch (e) {
             if (ctl !== quizCtl || isCancel(e)) return;
             set((d) => { d.quiz.gen = AI.available() ? 'failed' : 'off'; d.quiz.error = aiErrorText(e); d.aiStatus = AI.status(); });
@@ -433,7 +448,7 @@ export const useStudy = create<Store>()(
           const score = items.filter((x) => x.correct).length;
           const total = items.length;
           set((d) => {
-            if (total) { recordConcepts(d.stats, topicKey(d.context), items); addAsked(d.asked, items.map((x) => x.question)); }
+            if (total) { recordConcepts(d.stats, topicKey(d.context), items); addAsked(d.asked, items.map((x) => x.question), todayFor(d.settings)); }
             d.quiz.used = true; d.quiz.step = 'intro'; d.quiz.answers = [];
           });
           get().finishSession({ status: total === 0 ? 'skipped' : early && total < Q.questions.length ? 'partial' : 'done', score, total, items });
@@ -484,11 +499,12 @@ export const useStudy = create<Store>()(
         },
         async summarizeDay() {
           const s = get();
-          const today = s.history.filter((h) => h.date === todayKey());
+          const day = todayFor(s.settings);
+          const today = s.history.filter((h) => h.date === day);
           if (!today.length) return;
           dayCtl?.abort();
           const ctl = (dayCtl = new AbortController());
-          set((d) => { d.day = { date: todayKey(), status: 'loading' }; });
+          set((d) => { d.day = { date: day, status: 'loading' }; });
           try {
             await AI.ready();
             if (!AI.available()) throw { code: 'not_configured' };
@@ -504,10 +520,10 @@ export const useStudy = create<Store>()(
               weak,
             }, ctl.signal);
             if (ctl !== dayCtl) return;
-            set((d) => { d.day = { date: todayKey(), status: 'ready', data }; });
+            set((d) => { d.day = { date: day, status: 'ready', data }; });
           } catch (e) {
             if (ctl !== dayCtl || isCancel(e)) return;
-            set((d) => { d.day = { date: todayKey(), status: 'failed', error: aiErrorText(e) }; });
+            set((d) => { d.day = { date: day, status: 'failed', error: aiErrorText(e) }; });
           }
         },
 
@@ -521,8 +537,15 @@ export const useStudy = create<Store>()(
           set((d) => {
             d.history = []; d.stats = {}; d.asked = { date: '', items: [] };
             d.plan = { status: 'none' }; d.day = { date: '', status: 'none' };
+            d.sync.pushed = {}; d.sync.clearPending = true; // the sync engine also clears the copy in your account
           });
           toast('History cleared');
+        },
+        mutate(fn) { set((d) => { fn(d); }); },
+        setAccount(patch) { set((d) => { Object.assign(d.account, patch); }); },
+        resetLocalData() {
+          quizCtl?.abort(); planCtl?.abort(); dayCtl?.abort();
+          set((d) => { Object.assign(d, initialData()); d.settings.timezone = detectTimeZone(); });
         },
       };
     }),
@@ -532,9 +555,9 @@ export const useStudy = create<Store>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (s): Data => ({
         settings: s.settings, context: s.context, timer: s.timer, quiz: s.quiz, plan: s.plan, day: s.day,
-        tasks: s.tasks, history: s.history, stats: s.stats, asked: s.asked,
+        tasks: s.tasks, history: s.history, stats: s.stats, asked: s.asked, sync: s.sync,
       }),
-      merge: (persisted, cur) => mergePersisted(persisted as Partial<Data> | undefined, cur),
+      merge: (persisted, cur) => ({ ...cur, ...normalizeData(persisted as Partial<Data> | undefined) }),
     },
   ),
 );

@@ -1,5 +1,5 @@
 import type { Asked, ConceptStat, QuizItemResult, Settings, StudyContext } from './types';
-import { hash, todayKey } from './util';
+import { hash } from './util';
 
 export const LEVEL_NAMES: Record<StudyContext['level'], string> = {
   hs: 'High school',
@@ -47,11 +47,11 @@ export function weakConcepts(stats: Record<string, ConceptStat>, tk: string, lim
     .slice(0, limit);
 }
 
-export const askedToday = (a: Asked): string[] => (a.date === todayKey() ? a.items : []);
+export const askedToday = (a: Asked, today: string): string[] => (a.date === today ? a.items : []);
 
 /** Mutates `a` to remember today's questions so they aren't repeated. */
-export function addAsked(a: Asked, qs: string[]) {
-  if (a.date !== todayKey()) { a.date = todayKey(); a.items = []; }
+export function addAsked(a: Asked, qs: string[], today: string) {
+  if (a.date !== today) { a.date = today; a.items = []; }
   a.items.push(...qs);
   a.items = a.items.slice(-60);
 }

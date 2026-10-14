@@ -25,6 +25,48 @@ export interface Settings {
   skin: Skin;
   notify: boolean;
   wake: boolean;
+  // profile
+  displayName: string;
+  /** IANA time zone, e.g. "America/New_York". Empty means "detect on this device". */
+  timezone: string;
+  /** 0 = Sunday, 1 = Monday. */
+  weekStart: number;
+  /** Hour a new day starts (0 = midnight, 4 = 4 AM). */
+  rollover: number;
+  streakFreeze: boolean;
+}
+
+export interface SliceVersions { settings: number; context: number; app: number; tasks: number }
+
+/** Bookkeeping for cloud sync. Persisted with the rest of the data on this device. */
+export interface SyncState {
+  /** The account this device's data belongs to ('' = never synced). */
+  ownerId: string;
+  ownerAnon: boolean;
+  /** When each slice last changed here (ms). */
+  v: SliceVersions;
+  /** The newest version of each slice the server is known to have. */
+  acked: SliceVersions;
+  /** Session id → hash of the copy the server has. */
+  pushed: Record<string, string>;
+  lastPull: number;
+  /** History was cleared here and still needs clearing in the account. */
+  clearPending: boolean;
+}
+
+export type AccountStatus = 'local' | 'connecting' | 'guest' | 'user';
+
+export interface Account {
+  status: AccountStatus;
+  userId?: string;
+  email?: string;
+  name?: string;
+  avatarUrl?: string;
+  syncing: boolean;
+  error?: string;
+  lastSynced?: number;
+  /** Shown once after an email link is sent. */
+  pendingEmail?: string;
 }
 
 export interface StudyContext {

@@ -7,6 +7,9 @@ import { Icon, IconSprite } from './Icon';
 import { Stage, TitleSync } from './Stage';
 import { ContextCard, PlanCard, ResultBanner, TasksCard, TodayCard } from './Panels';
 import { HelpDialog, SettingsDialog } from './Dialogs';
+import { AccountButton, ProfileDialog, SignInDialog, SyncStatus } from './Account';
+import { startSync } from '@/lib/sync';
+import { signInWithGoogle } from '@/lib/auth';
 
 /** The ambience that should be playing for the current timer state. */
 const desiredAmbience = (s: Store) =>
@@ -19,9 +22,29 @@ export default function StudyBuddyApp() {
   const wantWake = useStudy((s) => s.settings.wake && s.timer.status === 'running');
   const settingsRef = useRef<HTMLDialogElement>(null);
   const helpRef = useRef<HTMLDialogElement>(null);
+  const signInRef = useRef<HTMLDialogElement>(null);
+  const profileRef = useRef<HTMLDialogElement>(null);
 
   // Boot once: recover an expired timer, check whether AI is available.
-  useEffect(() => { void useStudy.getState().boot(); }, []);
+  useEffect(() => {
+    void useStudy.getState().boot();
+    startSync();
+    // Messages left in the address bar by the sign-in callback.
+    const url = new URL(window.location.href);
+    const p = url.searchParams;
+    const err = p.get('auth_error'), next = p.get('auth_next'), ok = p.get('signed_in');
+    if (err !== null || next || ok) {
+      ['auth_error', 'auth_next', 'signed_in'].forEach((k) => p.delete(k));
+      window.history.replaceState(null, '', url.pathname + (p.size ? `?${p}` : '') + url.hash);
+    }
+    const { showToast } = useStudy.getState();
+    if (err) showToast(err);
+    if (ok) showToast('Signed in. Your progress is synced.');
+    if (next === 'google') {
+      showToast('That Google account already has StudyBuddy. Signing you in to it…');
+      signInWithGoogle({ link: false }).catch((e: Error) => showToast(e.message));
+    }
+  }, []);
 
   // One ticker drives the clock and phase changes.
   useEffect(() => {
@@ -109,10 +132,11 @@ export default function StudyBuddyApp() {
             <span className="brand-tag">Study, quiz yourself, earn your break</span>
           </div>
           <div className="top-actions">
+            <AccountButton onSignIn={() => signInRef.current?.showModal()} onProfile={() => profileRef.current?.showModal()} />
             <button className="chip-btn" type="button" aria-pressed={loop} title="Loop: start each phase automatically (L)" onClick={() => useStudy.getState().setLoop(!loop)}>
               <Icon name="loop" /><span>Loop</span>
             </button>
-            <button className="icon-btn" type="button" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)" onClick={() => helpRef.current?.showModal()}><Icon name="kbd" /></button>
+            <button className="icon-btn help-btn" type="button" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)" onClick={() => helpRef.current?.showModal()}><Icon name="kbd" /></button>
             <button className="icon-btn" type="button" aria-label="Settings" title="Settings" onClick={() => settingsRef.current?.showModal()}><Icon name="gear" /></button>
           </div>
         </header>
@@ -129,12 +153,14 @@ export default function StudyBuddyApp() {
           </aside>
         </main>
         <footer className="foot">
-          <span>Settings, tasks and history are saved on this device. Sign-in and sync are coming next.</span>
+          <SyncStatus />
           <span>Press <kbd>?</kbd> for shortcuts</span>
         </footer>
       </div>
       <SettingsDialog dialogRef={settingsRef} />
       <HelpDialog dialogRef={helpRef} />
+      <SignInDialog dialogRef={signInRef} />
+      <ProfileDialog dialogRef={profileRef} />
       <Toast />
       <Announcer />
     </>
