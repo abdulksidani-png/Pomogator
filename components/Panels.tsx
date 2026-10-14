@@ -1,0 +1,296 @@
+'use client';
+import { useRef, useState } from 'react';
+import { useStudy } from '@/lib/store';
+import { isVagueTopic, topicKey, topicLabel, weakConcepts } from '@/lib/context';
+import { aiErrorText } from '@/lib/quiz';
+import { AI } from '@/lib/ai-client';
+import { timeOf, todayKey } from '@/lib/util';
+import type { StudyContext } from '@/lib/types';
+import { Icon } from './Icon';
+
+/** A button that needs a second click within a few seconds, instead of a confirm() dialog. */
+function useArmed(ms = 3500) {
+  const [armed, setArmed] = useState(false);
+  const t = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const press = (action: () => void) => {
+    if (!armed) { setArmed(true); clearTimeout(t.current); t.current = setTimeout(() => setArmed(false), ms); return; }
+    clearTimeout(t.current); setArmed(false); action();
+  };
+  return [armed, press] as const;
+}
+export { useArmed };
+
+/* ---------------- result banner ---------------- */
+
+export function ResultBanner() {
+  const T = useStudy((s) => s.timer);
+  const longEvery = useStudy((s) => s.settings.longEvery);
+  const r = T.lastResult;
+  if (T.phase !== 'break' || !r || T.breakReason === 'manual') return null;
+  const kindWord = r.kind === 'long' ? 'long break' : 'break';
+  let title: string, msg: string;
+  if (r.total) {
+    const pct = (r.score ?? 0) / r.total;
+    title = `${r.mins}-minute ${kindWord} earned`;
+    msg = pct >= 1 ? 'Perfect round. Enjoy the full break.' : pct >= 0.5 ? 'Solid work. What you missed is in the plan below.' : 'Good that the gaps showed up now. Short reset, then a focused review.';
+    if (r.kind === 'long') msg += ` That finishes a cycle of ${longEvery} sessions.`;
+  } else {
+    title = `${r.mins}-minute ${kindWord}`;
+    msg = r.reason === 'short-session' ? 'You studied under half the planned time, so there was no quiz this round.'
+      : r.reason === 'skipped' ? 'Session skipped, so no quiz this round.' : 'No quiz this round.';
+  }
+  return (
+    <section className="card result" id="resultBanner" aria-live="polite">
+      {r.total > 0 && <div className="score">{r.score}/{r.total}</div>}
+      <div className="result-text"><h2>{title}</h2><p>{msg}</p></div>
+      {r.items.length > 0 && (
+        <div className="pills">
+          {r.items.map((x, i) => <span key={i} className={`pill ${x.correct ? 'good' : 'bad'}`}><Icon name={x.correct ? 'check' : 'x'} />{x.concept}</span>)}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ---------------- plan ---------------- */
+
+export function PlanCard() {
+  const P = useStudy((s) => s.plan);
+  const settings = useStudy((s) => s.settings);
+  const aiStatus = useStudy((s) => s.aiStatus);
+  const { retryPlan, applyPlan } = useStudy.getState();
+  const head = (meta?: string) => (
+    <div className="card-h"><h2>Next-session plan</h2>{meta && <span className="meta">{meta}</span>}</div>
+  );
+  let body: React.ReactNode;
+  if (P.status === 'loading') {
+    body = <>{head(P.topic)}<p className="loading-line"><span className="spin" aria-hidden="true" />Writing your plan from this quiz and your history…</p></>;
+  } else if (P.status === 'failed') {
+    body = <>{head()}<p className="muted">{P.error || 'The plan didn\'t load.'}</p>
+      <div className="btn-row" style={{ marginTop: 10 }}><button className="btn" type="button" onClick={retryPlan}>Try again</button></div></>;
+  } else if (P.status === 'ready' && P.data) {
+    const d = P.data;
+    const chips = (arr: string[], cls: string) => (arr.length ? arr.map((c, i) => <span key={i} className={`pill ${cls}`}>{c}</span>) : <span className="small muted">None yet</span>);
+    body = (
+      <>
+        {head(`${P.topic ? `${P.topic} · ` : ''}Suggested ${d.suggestedMinutes} min`)}
+        {d.summary && <p className="plan-summary">{d.summary}</p>}
+        <div className="plan-cols">
+          <div><h3>Solid</h3><div className="pills">{chips(d.strong, 'good')}</div></div>
+          <div><h3>Review next</h3><div className="pills">{chips(d.review, 'bad')}</div></div>
+        </div>
+        <ol className="actions">
+          {d.actions.map((a, i) => (
+            <li key={i} className="action"><span className="mins">{a.minutes} min</span><span><span className="tech">{a.technique}</span><span className="step">{a.step}</span></span></li>
+          ))}
+        </ol>
+        <div className="plan-foot">
+          <span className="plan-goal">{d.nextGoal && <>Next goal: <strong>{d.nextGoal}</strong></>}</span>
+          <button className={`btn${P.applied ? '' : ' btn-primary'}`} type="button" disabled={!!P.applied} onClick={applyPlan}>
+            {P.applied ? <><Icon name="check" />Applied</> : `Apply plan · ${d.suggestedMinutes}-min session`}
+          </button>
+        </div>
+      </>
+    );
+  } else {
+    const q = settings.questions;
+    body = (
+      <>
+        {head()}
+        <p className="muted" style={{ margin: '0 0 12px' }}>After each quiz, StudyBuddy writes a plan for your next session from what you got right, what you missed and your history on the topic.</p>
+        {aiStatus === 'off' && <p className="qchip warn" style={{ margin: '0 0 12px' }}>Quizzes and plans aren&apos;t switched on for this site yet. The timer works without them.</p>}
+        <div className="loop-steps">
+          <div className="loop-step"><span className="n">1</span><b>Study</b><span>{settings.studyMin} min on your topic</span></div>
+          <div className="loop-step"><span className="n">2</span><b>Quiz</b><span>{q} question{q === 1 ? '' : 's'}, with memory aids</span></div>
+          <div className="loop-step"><span className="n">3</span><b>Break</b><span>{settings.tiers.short.min}–{settings.tiers.short.max} min, set by your score</span></div>
+          <div className="loop-step"><span className="n">4</span><b>Plan</b><span>Steps for the next session</span></div>
+        </div>
+      </>
+    );
+  }
+  return <section className="card plan" id="planCard" aria-label="Next-session plan">{body}</section>;
+}
+
+/* ---------------- what you're studying ---------------- */
+
+export function ContextCard() {
+  const c = useStudy((s) => s.context);
+  const aiStatus = useStudy((s) => s.aiStatus);
+  const { setContext, appendNotes, showToast } = useStudy.getState();
+  const txtRef = useRef<HTMLInputElement>(null);
+  const photoRef = useRef<HTMLInputElement>(null);
+  const [reading, setReading] = useState(false);
+  const field = (k: keyof StudyContext) => ({
+    value: c[k],
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => setContext({ [k]: e.target.value } as Partial<StudyContext>),
+  });
+  const n = c.notes.length;
+
+  const onText = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    if (f.size > 2_000_000) { showToast('That file is over 2 MB. Paste the part you need instead.'); return; }
+    const r = new FileReader();
+    r.onload = () => appendNotes(String(r.result || ''), f.name);
+    r.onerror = () => showToast('Couldn\'t read that file.');
+    r.readAsText(f);
+  };
+  const onPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    setReading(true);
+    try { appendNotes(await AI.readPhoto(f), f.name); }
+    catch (err) { showToast(aiErrorText(err)); }
+    finally { setReading(false); }
+  };
+
+  return (
+    <section className="card side-card" id="ctxCard" aria-labelledby="ctxTitle">
+      <div className="card-h"><h2 id="ctxTitle">What you&apos;re studying</h2><span className="meta">Quizzes use this</span></div>
+      <form className="form" autoComplete="off" onSubmit={(e) => e.preventDefault()}>
+        <div className="row2">
+          <div className="field"><label htmlFor="ctxSubject">Subject</label><input type="text" id="ctxSubject" placeholder="e.g. Biology" maxLength={80} {...field('subject')} /></div>
+          <div className="field"><label htmlFor="ctxLevel">Level</label>
+            <select id="ctxLevel" {...field('level')}>
+              <option value="hs">High school</option>
+              <option value="intro">Intro college</option>
+              <option value="advanced">Advanced college</option>
+              <option value="exam">Exam prep</option>
+            </select>
+          </div>
+        </div>
+        {c.level === 'exam' && (
+          <div className="field"><label htmlFor="ctxExam">Which exam?</label><input type="text" id="ctxExam" placeholder="e.g. MCAT, AP Chemistry, Step 1" maxLength={60} {...field('exam')} /></div>
+        )}
+        <div className="field"><label htmlFor="ctxTopic">Topic</label>
+          <input type="text" id="ctxTopic" placeholder="e.g. Krebs cycle steps and products" maxLength={140} {...field('topic')} />
+          {isVagueTopic(c) && <p className="hint">Add detail for sharper questions, e.g. &quot;{c.topic.trim()}: the part you&apos;re on today&quot;.</p>}
+        </div>
+        <div className="field"><label htmlFor="ctxGoal">Goal for this session <span className="opt-tag">(optional)</span></label>
+          <input type="text" id="ctxGoal" placeholder="e.g. Memorize the 8 steps in order" maxLength={200} {...field('goal')} /></div>
+        <div className="field"><label htmlFor="ctxNotes">Your notes <span className="opt-tag">(optional)</span></label>
+          <textarea id="ctxNotes" placeholder="Paste notes, a textbook passage or slide text. Questions will stick to what's here." {...field('notes')} />
+          <div className="file-row">
+            <p className="hint">{n ? `${n.toLocaleString()} characters${n > 12000 ? ' · the first 12,000 are used' : ''}` : 'No notes yet'}</p>
+            <div className="btns">
+              <button className="btn-quiet" type="button" title="Add a .txt or .md file" onClick={() => txtRef.current?.click()}><Icon name="file" />Text file</button>
+              {aiStatus === 'on' && (
+                <button className="btn-quiet" type="button" title="Read a photo of your notes" disabled={reading} onClick={() => photoRef.current?.click()}>
+                  {reading ? <><span className="spin" aria-hidden="true" />Reading…</> : <><Icon name="camera" />Photo</>}
+                </button>
+              )}
+            </div>
+          </div>
+          <input ref={txtRef} type="file" accept=".txt,.md,.markdown,.csv,text/plain,text/markdown" hidden onChange={onText} />
+          <input ref={photoRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={onPhoto} />
+        </div>
+      </form>
+    </section>
+  );
+}
+
+/* ---------------- tasks ---------------- */
+
+export function TasksCard() {
+  const tasks = useStudy((s) => s.tasks);
+  const { addTask, toggleTask, deleteTask, clearDone, resetTasks } = useStudy.getState();
+  const [text, setText] = useState('');
+  const [armed, press] = useArmed();
+  const done = tasks.filter((t) => t.done).length;
+  return (
+    <section className="card side-card" id="tasksCard" aria-labelledby="tasksTitle">
+      <div className="card-h"><h2 id="tasksTitle">To-do</h2><span className="meta">{tasks.length ? `${done} of ${tasks.length} done` : ''}</span></div>
+      <form className="task-add" onSubmit={(e) => { e.preventDefault(); addTask(text); setText(''); }}>
+        <label className="sr-only" htmlFor="taskInput">New task</label>
+        <input type="text" id="taskInput" placeholder="Add a task (N)" maxLength={160} value={text} onChange={(e) => setText(e.target.value)} />
+        <button className="btn" type="submit">Add</button>
+      </form>
+      <ul className="task-list">
+        {tasks.length ? tasks.map((t) => (
+          <li key={t.id} className={`task${t.done ? ' done' : ''}`}>
+            <input type="checkbox" id={`task-${t.id}`} checked={t.done} onChange={(e) => toggleTask(t.id, e.target.checked)} />
+            <label className="t" htmlFor={`task-${t.id}`}>{t.text}</label>
+            <button className="x" type="button" aria-label="Delete task" onClick={() => deleteTask(t.id)}><Icon name="x" /></button>
+          </li>
+        )) : <li className="empty">Add what you want to get through today.</li>}
+      </ul>
+      <div className="task-foot">
+        <button className="btn-quiet" type="button" onClick={clearDone}>Clear completed</button>
+        <button className="btn-quiet" type="button" onClick={() => tasks.length && press(resetTasks)}>{armed ? 'Click again to reset' : 'Reset list'}</button>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------- today ---------------- */
+
+const RESULT_WORDS: Record<string, string> = { skipped: 'skipped', 'too-short': 'short', unavailable: 'no quiz', 'no-topic': 'no quiz' };
+
+export function TodayCard() {
+  const history = useStudy((s) => s.history);
+  const stats = useStudy((s) => s.stats);
+  const context = useStudy((s) => s.context);
+  const D = useStudy((s) => s.day);
+  const aiStatus = useStudy((s) => s.aiStatus);
+  const today = todayKey();
+  const list = history.filter((s) => s.date === today);
+  const studied = list.reduce((a, s) => a + (s.studiedMin || 0), 0);
+  const quizzed = list.filter((s) => s.quiz?.total);
+  const avg = quizzed.length ? Math.round((quizzed.reduce((a, s) => a + (s.quiz!.score ?? 0) / s.quiz!.total!, 0) / quizzed.length) * 100) : null;
+  const breaks = list.reduce((a, s) => a + (s.breakMin || 0), 0);
+  const weak = weakConcepts(stats, topicKey(context), 5);
+  const sumHere = D.date === today;
+  const ul = (a: string[]) => (a.length ? <ul>{a.map((x, i) => <li key={i}>{x}</li>)}</ul> : null);
+
+  return (
+    <section className="card side-card today" id="todayCard" aria-labelledby="todayTitle">
+      <div className="card-h"><h2 id="todayTitle">Today</h2><span className="meta">{new Date().toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}</span></div>
+      <div className="stats">
+        <div className="stat"><b>{list.length}</b><span>session{list.length === 1 ? '' : 's'}</span></div>
+        <div className="stat"><b>{Math.round(studied)}</b><span>minutes studied</span></div>
+        <div className="stat"><b>{avg == null ? '—' : `${avg}%`}</b><span>average quiz score</span></div>
+        <div className="stat"><b>{breaks}</b><span>break minutes earned</span></div>
+      </div>
+      {weak.length > 0 && (
+        <>
+          <h3>Review next{context.topic ? ` · ${context.topic}` : ''}</h3>
+          <div className="chips">{weak.map((c) => <span key={c.concept} className="pill bad" title={`Missed ${c.missed} of ${c.seen}`}>{c.concept} · {c.missed}/{c.seen}</span>)}</div>
+        </>
+      )}
+      {list.length ? (
+        <>
+          <h3>Log</h3>
+          <ul className="log">
+            {list.slice().reverse().slice(0, 8).map((s) => {
+              const res = s.quiz?.total ? `${s.quiz.score}/${s.quiz.total}` : RESULT_WORDS[s.quiz?.status || ''] || '—';
+              return (
+                <li key={s.id}>
+                  <span className="when">{timeOf(s.startedAt)}</span>
+                  <span className="what" title={topicLabel(s)}>{topicLabel(s) || 'Untitled session'} · {Math.round(s.studiedMin || 0)}m</span>
+                  <span className="res">{res}{s.breakMin ? ` · ${s.breakMin}m` : ''}</span>
+                </li>
+              );
+            })}
+          </ul>
+          {aiStatus !== 'off' && (
+            <button className="btn" type="button" disabled={sumHere && D.status === 'loading'} onClick={() => useStudy.getState().summarizeDay()}>
+              {sumHere && D.status === 'ready' ? 'Refresh day summary' : 'Summarize my day'}
+            </button>
+          )}
+        </>
+      ) : <p className="empty">No sessions yet today. Your first one shows up here.</p>}
+      {sumHere && D.status === 'loading' && <div className="day-sum"><p className="loading-line"><span className="spin" aria-hidden="true" />Summarizing your day…</p></div>}
+      {sumHere && D.status === 'failed' && <div className="day-sum"><p className="muted">{D.error}</p></div>}
+      {sumHere && D.status === 'ready' && D.data && (
+        <div className="day-sum">
+          <h4>{D.data.headline}</h4>
+          {D.data.wins.length > 0 && <div><h3>Went well</h3>{ul(D.data.wins)}</div>}
+          {D.data.gaps.length > 0 && <div><h3>Still shaky</h3>{ul(D.data.gaps)}</div>}
+          {D.data.tomorrow.length > 0 && <div><h3>Tomorrow</h3>{ul(D.data.tomorrow)}</div>}
+        </div>
+      )}
+    </section>
+  );
+}

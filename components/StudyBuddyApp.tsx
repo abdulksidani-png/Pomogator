@@ -1,0 +1,159 @@
+'use client';
+import { useEffect, useRef, useState } from 'react';
+import { useStudy, quizReadyForTaking, type Store } from '@/lib/store';
+import { useNow } from '@/lib/now';
+import { Sound } from '@/lib/sound';
+import { Icon, IconSprite } from './Icon';
+import { Stage, TitleSync } from './Stage';
+import { ContextCard, PlanCard, ResultBanner, TasksCard, TodayCard } from './Panels';
+import { HelpDialog, SettingsDialog } from './Dialogs';
+
+/** The ambience that should be playing for the current timer state. */
+const desiredAmbience = (s: Store) =>
+  s.timer.status !== 'running' ? 'none' : s.timer.phase === 'study' ? s.settings.ambStudy : s.timer.phase === 'break' ? s.settings.ambBreak : 'none';
+
+export default function StudyBuddyApp() {
+  const skin = useStudy((s) => s.settings.skin);
+  const loop = useStudy((s) => s.settings.loop);
+  const ambience = useStudy(desiredAmbience);
+  const wantWake = useStudy((s) => s.settings.wake && s.timer.status === 'running');
+  const settingsRef = useRef<HTMLDialogElement>(null);
+  const helpRef = useRef<HTMLDialogElement>(null);
+
+  // Boot once: recover an expired timer, check whether AI is available.
+  useEffect(() => { void useStudy.getState().boot(); }, []);
+
+  // One ticker drives the clock and phase changes.
+  useEffect(() => {
+    const beat = () => { useNow.setState({ now: Date.now() }); useStudy.getState().tick(); };
+    const id = setInterval(beat, 250);
+    document.addEventListener('visibilitychange', beat);
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', beat); };
+  }, []);
+
+  // Theme picker.
+  useEffect(() => {
+    const el = document.documentElement;
+    if (skin === 'auto') delete el.dataset.skin; else el.dataset.skin = skin;
+  }, [skin]);
+
+  // Audio: browsers need a first gesture, then ambience follows the timer.
+  useEffect(() => {
+    const resync = () => { const s = useStudy.getState(); Sound.sync(desiredAmbience(s), s.settings.ambVol); };
+    Sound.setOnResume(resync);
+    const unlock = () => { Sound.ensure(); resync(); };
+    document.addEventListener('pointerdown', unlock, { passive: true });
+    document.addEventListener('keydown', unlock);
+    return () => { document.removeEventListener('pointerdown', unlock); document.removeEventListener('keydown', unlock); };
+  }, []);
+  useEffect(() => { Sound.sync(ambience, useStudy.getState().settings.ambVol); }, [ambience]);
+
+  // Keep the screen awake while the timer runs, if asked and allowed.
+  useEffect(() => {
+    if (!wantWake || !('wakeLock' in navigator)) return;
+    let lock: WakeLockSentinel | null = null;
+    let cancelled = false;
+    const request = async () => {
+      if (document.visibilityState !== 'visible' || lock) return;
+      try { lock = await navigator.wakeLock.request('screen'); lock.addEventListener('release', () => { lock = null; }); if (cancelled) void lock.release(); } catch { lock = null; }
+    };
+    void request();
+    document.addEventListener('visibilitychange', request);
+    return () => { cancelled = true; document.removeEventListener('visibilitychange', request); void lock?.release().catch(() => {}); };
+  }, [wantWake]);
+
+  // Keyboard shortcuts.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      if (document.querySelector('dialog[open]')) return;
+      const s = useStudy.getState();
+      const k = e.key;
+      const onButton = t?.tagName === 'BUTTON';
+      if (s.timer.phase === 'quiz') {
+        if (s.quiz.step === 'question' && quizReadyForTaking(s.quiz) && k.length === 1) {
+          let i = '1234'.indexOf(k);
+          if (i < 0) i = 'abcd'.indexOf(k.toLowerCase());
+          if (i >= 0) { e.preventDefault(); s.answer(i); return; }
+        }
+        if (k === 'Enter' && s.quiz.step === 'feedback' && !onButton) { e.preventDefault(); s.nextQ(); return; }
+      }
+      if (k === ' ' || k === 'Spacebar') { if (onButton) return; e.preventDefault(); if (s.timer.phase !== 'quiz') s.toggle(); }
+      else if (k === 'r' || k === 'R') s.reset();
+      else if (k === 's' || k === 'S') s.skip();
+      else if (k === 'd' || k === 'D') s.markDone();
+      else if (k === '+' || k === '=') s.addFive();
+      else if (k === 'l' || k === 'L') s.setLoop(!s.settings.loop);
+      else if (k === '?') helpRef.current?.showModal();
+      else if (k === 'n' || k === 'N') { e.preventDefault(); document.getElementById('taskInput')?.focus(); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
+  return (
+    <>
+      <IconSprite />
+      <TitleSync />
+      <div className="app">
+        <header className="top">
+          <div className="brand">
+            <svg className="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
+              <circle cx="20" cy="21" r="15" fill="none" stroke="var(--rule)" strokeWidth="4" />
+              <path d="M20 6a15 15 0 0 1 14.6 18.3" fill="none" stroke="var(--accent)" strokeWidth="4" strokeLinecap="round" />
+              <path d="M13.5 21.5l4.5 4.5 8.5-9" fill="none" stroke="var(--fg)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span className="brand-name">StudyBuddy</span>
+            <span className="brand-tag">Study, quiz yourself, earn your break</span>
+          </div>
+          <div className="top-actions">
+            <button className="chip-btn" type="button" aria-pressed={loop} title="Loop: start each phase automatically (L)" onClick={() => useStudy.getState().setLoop(!loop)}>
+              <Icon name="loop" /><span>Loop</span>
+            </button>
+            <button className="icon-btn" type="button" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)" onClick={() => helpRef.current?.showModal()}><Icon name="kbd" /></button>
+            <button className="icon-btn" type="button" aria-label="Settings" title="Settings" onClick={() => settingsRef.current?.showModal()}><Icon name="gear" /></button>
+          </div>
+        </header>
+        <main className="desk">
+          <div className="col-main">
+            <Stage />
+            <ResultBanner />
+            <PlanCard />
+          </div>
+          <aside className="col-side">
+            <ContextCard />
+            <TasksCard />
+            <TodayCard />
+          </aside>
+        </main>
+        <footer className="foot">
+          <span>Settings, tasks and history are saved on this device. Sign-in and sync are coming next.</span>
+          <span>Press <kbd>?</kbd> for shortcuts</span>
+        </footer>
+      </div>
+      <SettingsDialog dialogRef={settingsRef} />
+      <HelpDialog dialogRef={helpRef} />
+      <Toast />
+      <Announcer />
+    </>
+  );
+}
+
+function Toast() {
+  const toast = useStudy((s) => s.toast);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    if (!toast) return;
+    setShown(true);
+    const t = setTimeout(() => setShown(false), 2800);
+    return () => clearTimeout(t);
+  }, [toast]);
+  return <div className={`toast${shown ? ' show' : ''}`} role="status" aria-live="polite">{toast?.msg}</div>;
+}
+
+function Announcer() {
+  const a = useStudy((s) => s.announce);
+  return <div className="sr-only" aria-live="assertive">{a?.msg}</div>;
+}
