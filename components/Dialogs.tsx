@@ -1,5 +1,5 @@
 'use client';
-import { useState, type RefObject } from 'react';
+import { useEffect, useState, type RefObject } from 'react';
 import { useStudy } from '@/lib/store';
 import { PRESETS, DEFAULT_SETTINGS } from '@/lib/defaults';
 import { AMBIENCE, CHIMES, Sound } from '@/lib/sound';
@@ -10,6 +10,8 @@ import { signOut } from '@/lib/sync';
 import { screenSupported, stopWatching } from '@/lib/docs/screen';
 import { Icon } from './Icon';
 import { useArmed } from './Panels';
+import { siteConfig } from '@/lib/config';
+import { connectSpotify, disconnectSpotify, useSpotify } from '@/lib/spotify';
 
 function DialogHead({ id, title, close }: { id: string; title: string; close: () => void }) {
   return (
@@ -216,6 +218,8 @@ export function SettingsDialog({ dialogRef, onSignIn, onAppearance }: {
           </div>
         </fieldset>
 
+        <MusicSettings />
+
         <fieldset>
           <legend>Extras</legend>
           <div className="set-row">
@@ -270,5 +274,29 @@ export function HelpDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialogEleme
         </dl>
       </div>
     </dialog>
+  );
+}
+
+/** Settings → Music: the Spotify widget and the connection. Hidden when the site has no Spotify app. */
+function MusicSettings() {
+  const show = useStudy((s) => s.settings.musicWidget);
+  const linked = useSpotify((s) => s.linked);
+  const [on, setOn] = useState(false);
+  useEffect(() => { void siteConfig().then((c) => setOn(!!c.spotifyClientId)); }, []);
+  if (!on) return null;
+  return (
+    <fieldset>
+      <legend>Music</legend>
+      <div className="set-row">
+        <label htmlFor="musicToggle">Spotify widget<span className="sub">Shows what&apos;s playing, with back, play-pause and next</span></label>
+        <input type="checkbox" className="switch" id="musicToggle" checked={show} onChange={(e) => { const v = e.target.checked; useStudy.getState().updateSettings((x) => { x.musicWidget = v; }); }} />
+      </div>
+      <div className="set-row">
+        <span className="field-label">Spotify account<span className="sub">{linked ? 'Connected on this device' : 'Not connected. Controls need Spotify Premium.'}</span></span>
+        {linked
+          ? <button className="btn" type="button" onClick={disconnectSpotify}>Disconnect</button>
+          : <button className="btn" type="button" onClick={() => { void connectSpotify(); }}>Connect Spotify</button>}
+      </div>
+    </fieldset>
   );
 }

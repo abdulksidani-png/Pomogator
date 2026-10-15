@@ -67,7 +67,7 @@ function TimerFace({ onToggle, onScreenConsent }: { onToggle: () => void; onScre
         ))}
       </div>
       <div className="clock-row">
-        <div className="mascot-wrap" aria-hidden="true"><Mascot mood={mood} /></div>
+        <div className="mascot-wrap" aria-hidden="true"><Mascot mood={mood} kind={settings.mascotKind} /></div>
         {style === 'ring' ? (
           <div className="timer-ring">
             <RingProgress />

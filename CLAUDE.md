@@ -43,6 +43,22 @@ document (whole deck if it fits 60k chars) and any lecture transcript. It answer
 ("Plan with AI" on the To-do card); proposals are added only on a click, as "Task · N sessions" text so tasks sync unchanged.
 The chat is local only (`studybuddy.chat`).
 
+Then (built, waiting on his test and his keys):
+- **Unsplash backgrounds** (`UNSPLASH_ACCESS_KEY`): Appearance → Photo backgrounds, by mood chip or search, "New photo every
+  day" (`bgDaily`), credit in the footer (`PhotoCredit`, UTM links), download tracking on choose. Server routes
+  `/api/unsplash/{search,random,track}` (`lib/unsplash-server.ts`), cached with `s-maxage` (demo keys get 50 calls/hour).
+  Photos are `settings.bgPhoto` (synced), always hotlinked from Unsplash, sized with `photoUrl()`.
+- **Glass cards** (`cardStyle`), and `--bg-photo-color` while a photo loads.
+- **Spotify widget** (`SPOTIFY_CLIENT_ID`, public): `lib/spotify.ts` does PKCE sign-in in the browser (no secret), tokens in
+  localStorage `studybuddy.spotify`, return page `app/spotify/page.tsx` (redirect URI `<origin>/spotify`, must be in the
+  Spotify app). `components/Music.tsx` polls `/me/player` every 5 s while visible; play/pause/next/previous need Premium
+  (403 → plain message); 404 = no active device. Spotify's 2026 dev-mode rules: the app owner needs Premium and only
+  accounts added under User Management (max 5) can connect.
+- **Study buddies** (`mascotKind`): tomato, robot (vector, accent-colored lights), and 2-bit pixel gorilla and UF-colored
+  gator (sprites + per-mood pixel overlays in `components/Mascot.tsx`; original designs, not UF's logo). "Automatic"
+  shows the tomato only in its theme but any other picked buddy always.
+- `/api/config` tells the browser which services are on (`lib/config.ts`).
+
 Earlier requests, all done (he hadn't confirmed they work yet):
 - sign out (Settings → Account, avatar menu), more file types, screen-share button under "Study material", appearance options
 - faster screen tracking (checks every 2 s by default, `screenSec` 1–15)
@@ -106,6 +122,7 @@ Earlier requests, all done (he hadn't confirmed they work yet):
   - `Dialogs.tsx`: settings, help
   - `Account.tsx`
   - `Assistant.tsx`: chat panel, corner button, reply formatting
+  - `Music.tsx` (Spotify widget), `PhotoPicker.tsx` (Unsplash), `Mascot.tsx` (all buddies)
 - `supabase/migrations/`: `…000000_core.sql`, `…010000_documents.sql`, `20261015000000_ai_usage.sql`. RLS restricts every table to
   `user_id = (select auth.uid())`. The owner pastes migrations into the SQL Editor by hand.
 
@@ -115,7 +132,7 @@ npm run dev          # http://localhost:3000 (copies vendor files first)
 npm run typecheck
 npm test             # Vitest unit tests (55)
 npm run test:e2e     # Playwright: loop, documents, goals, screen tracking, tab sound, sounds, appearance
-npm run test:ai      # Playwright: AI features against tests/fake-gemini (real /api/ai routes, fake Google)
+npm run test:ai      # Playwright: AI, Unsplash and Spotify against stand-ins (tests/fake-gemini; Spotify faked in-test)
 npm run test:sync    # two-device sync: needs local Postgres + PostgREST (PGHOST/PGPORT/PGUSER, POSTGREST_BIN)
 ```
 `tests/fake-supabase/server.mjs` runs the real migrations on Postgres behind PostgREST, with a fake auth server.

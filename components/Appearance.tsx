@@ -1,7 +1,11 @@
 'use client';
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useStudy } from '@/lib/store';
-import { ACCENTS, BACKGROUNDS, CLOCK_FONTS, CORNERS, THEMES, TIMER_STYLES, applyAppearance } from '@/lib/appearance';
+import { ACCENTS, BACKGROUNDS, CLOCK_FONTS, CORNERS, MASCOTS, THEMES, TIMER_STYLES, applyAppearance } from '@/lib/appearance';
+import { siteConfig } from '@/lib/config';
+import { refreshDailyPhoto } from '@/lib/unsplash-client';
+import { Mascot } from './Mascot';
+import { PhotoPicker } from './PhotoPicker';
 import { DEFAULT_SETTINGS } from '@/lib/defaults';
 import { idb } from '@/lib/docs/idb';
 import type { Settings } from '@/lib/types';
@@ -27,6 +31,13 @@ export function useAppearance() {
     return () => { alive = false; if (url) URL.revokeObjectURL(url); };
   }, [s.background, bgVersion]);
   useEffect(() => { applyAppearance(s, bgUrl); }, [s, bgUrl]);
+  // The daily Unsplash photo: check on load, when the mood changes, and when the tab comes back (maybe on a new day).
+  useEffect(() => { void refreshDailyPhoto(); }, [s.bgDaily, s.background]);
+  useEffect(() => {
+    const on = () => { if (document.visibilityState === 'visible') void refreshDailyPhoto(); };
+    document.addEventListener('visibilitychange', on);
+    return () => document.removeEventListener('visibilitychange', on);
+  }, []);
 }
 
 // A tiny signal so a newly uploaded photo shows up at once.
@@ -60,6 +71,8 @@ export function AppearanceDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialo
   const update = useStudy.getState().updateSettings;
   const { showToast } = useStudy.getState();
   const photoRef = useRef<HTMLInputElement>(null);
+  const [unsplash, setUnsplash] = useState(false);
+  useEffect(() => { void siteConfig().then((c) => setUnsplash(c.unsplash)); }, []);
   const close = () => dialogRef.current?.close();
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) => update((x) => { x[k] = v; });
 
@@ -74,7 +87,7 @@ export function AppearanceDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialo
     set('background', 'image');
   };
   const reset = () => update((x) => {
-    for (const k of ['skin', 'accent', 'clockFont', 'timerStyle', 'background', 'bgDim', 'mascot', 'corners', 'density'] as const) {
+    for (const k of ['skin', 'accent', 'clockFont', 'timerStyle', 'background', 'bgDim', 'bgDaily', 'mascot', 'mascotKind', 'cardStyle', 'corners', 'density'] as const) {
       (x as unknown as Record<string, unknown>)[k] = DEFAULT_SETTINGS[k];
     }
   });
@@ -118,19 +131,39 @@ export function AppearanceDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialo
           <legend>Timer</legend>
           <Seg label="Style" value={s.timerStyle} options={TIMER_STYLES} onPick={(v) => set('timerStyle', v)} />
           <Seg label="Clock font" value={s.clockFont} options={CLOCK_FONTS} onPick={(v) => set('clockFont', v)} fontFor={(id) => CLOCK_FONTS.find((f) => f.id === id)?.family} />
-          <Seg label="Tomato buddy" value={s.mascot} options={[{ id: 'auto', name: 'With its theme' }, { id: 'on', name: 'Always' }, { id: 'off', name: 'Never' }]} onPick={(v) => set('mascot', v)} />
+        </fieldset>
+
+        <fieldset>
+          <legend>Study buddy</legend>
+          <div className="buddy-grid" role="group" aria-label="Study buddy">
+            {MASCOTS.map((m) => (
+              <button key={m.id} type="button" className="buddy-card" aria-pressed={s.mascotKind === m.id}
+                onClick={() => update((x) => { x.mascotKind = m.id; if (x.mascot === 'off') x.mascot = 'auto'; })}>
+                <span className="buddy-prev"><Mascot mood={s.mascotKind === m.id ? 'happy' : 'idle'} kind={m.id} /></span>
+                {m.name}
+              </button>
+            ))}
+          </div>
+          <Seg label="Show it" value={s.mascot} options={[{ id: 'auto', name: 'Automatic' }, { id: 'on', name: 'Always' }, { id: 'off', name: 'Hidden' }]} onPick={(v) => set('mascot', v)} />
+          <p className="hint">Automatic: the tomato appears with the Tomato theme; any other buddy you pick always appears.</p>
         </fieldset>
 
         <fieldset>
           <legend>Page</legend>
-          <Seg label="Background" value={s.background} options={BACKGROUNDS.filter((b) => b.id !== 'image')} onPick={(v) => set('background', v)} />
+          <Seg label="Background" value={s.background} options={BACKGROUNDS.filter((b) => b.id !== 'image' && b.id !== 'unsplash')} onPick={(v) => set('background', v)} />
+          {unsplash && (
+            <div className="set-row stack">
+              <span className="field-label">Photo backgrounds<span className="sub">Free photos from Unsplash. Pick a mood or search.</span></span>
+              <PhotoPicker />
+            </div>
+          )}
           <div className="set-row">
             <span className="field-label">Your photo<span className="sub">Saved on this device only</span></span>
             <div className="bg-row">
               <button className="btn" type="button" aria-pressed={s.background === 'image'} onClick={() => photoRef.current?.click()}>
                 <Icon name="upload" />{s.background === 'image' ? 'Change photo' : 'Use a photo'}
               </button>
-              {s.background === 'image' && (
+              {(s.background === 'image' || s.background === 'unsplash') && (
                 <label className="inline small">Dim
                   <input type="range" min={0} max={0.8} step={0.05} value={s.bgDim} onChange={(e) => set('bgDim', Number(e.target.value))} aria-label="Dim the photo" />
                 </label>
@@ -138,6 +171,7 @@ export function AppearanceDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialo
             </div>
             <input ref={photoRef} type="file" accept="image/*" hidden onChange={onPhoto} />
           </div>
+          <Seg label="Cards" value={s.cardStyle} options={[{ id: 'solid', name: 'Solid' }, { id: 'glass', name: 'Glass' }]} onPick={(v) => set('cardStyle', v)} />
           <Seg label="Corners" value={s.corners} options={CORNERS} onPick={(v) => set('corners', v)} />
           <Seg label="Spacing" value={s.density} options={[{ id: 'comfortable', name: 'Comfortable' }, { id: 'compact', name: 'Compact' }]} onPick={(v) => set('density', v)} />
         </fieldset>

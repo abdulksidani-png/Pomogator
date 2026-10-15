@@ -7,7 +7,27 @@ export type Difficulty = 'gentle' | 'standard' | 'challenging';
 export type Skin = 'auto' | 'notebook' | 'chalkboard' | 'tomato' | 'midnight' | 'sakura' | 'matcha' | 'sunset';
 export type ClockFont = 'theme' | 'mono' | 'rounded' | 'serif' | 'condensed' | 'digital' | 'hand';
 export type TimerStyle = 'classic' | 'ring' | 'minimal';
-export type Background = 'theme' | 'plain' | 'dots' | 'grid' | 'lined' | 'gradient' | 'image';
+export type Background = 'theme' | 'plain' | 'dots' | 'grid' | 'lined' | 'gradient' | 'image' | 'unsplash';
+export type MascotKind = 'tomato' | 'robot' | 'gorilla' | 'gator';
+
+/** A photo from Unsplash, as the site keeps it. Images are always loaded from Unsplash's own servers. */
+export interface UnsplashPhoto {
+  id: string;
+  /** Base image address; sizes are added as parameters. */
+  raw: string;
+  thumb: string;
+  /** Average color, shown while the image loads. */
+  color: string;
+  alt: string;
+  author: string;
+  authorUrl: string;
+  /** The photo's page on Unsplash. */
+  link: string;
+  /** Unsplash's download-tracking address, called when a photo is chosen. */
+  downloadLocation: string;
+  /** For the daily photo: the day it was picked. */
+  day?: string;
+}
 export type Corners = 'theme' | 'sharp' | 'soft' | 'round';
 export type DocKind = 'pdf' | 'pptx' | 'docx' | 'text' | 'image';
 
@@ -65,6 +85,14 @@ export interface Settings {
   background: Background;
   bgDim: number;
   mascot: 'auto' | 'on' | 'off';
+  mascotKind: MascotKind;
+  /** The Unsplash photo used when background is 'unsplash'. */
+  bgPhoto: UnsplashPhoto | null;
+  /** A mood (search words) for a new Unsplash photo every day; '' = keep the chosen photo. */
+  bgDaily: string;
+  cardStyle: 'solid' | 'glass';
+  /** Show the Spotify "now playing" widget. */
+  musicWidget: boolean;
   corners: Corners;
   density: 'comfortable' | 'compact';
   // screen tracking

@@ -1,4 +1,5 @@
-import type { Background, ClockFont, Corners, Settings, Skin, TimerStyle } from './types';
+import type { Background, ClockFont, Corners, MascotKind, Settings, Skin, TimerStyle } from './types';
+import { photoUrl } from './unsplash';
 
 export interface ThemeInfo { id: Skin; name: string; dark: boolean; colors: [bg: string, card: string, accent: string, second: string] }
 
@@ -39,6 +40,28 @@ export const BACKGROUNDS: { id: Background; name: string }[] = [
   { id: 'lined', name: 'Lined paper' },
   { id: 'gradient', name: 'Glow' },
   { id: 'image', name: 'Your photo' },
+  { id: 'unsplash', name: 'Unsplash photo' },
+];
+
+/** Moods for photo backgrounds: a label and the words searched on Unsplash. */
+export const PHOTO_MOODS: { name: string; query: string }[] = [
+  { name: 'Cozy café', query: 'cozy cafe interior' },
+  { name: 'Rainy window', query: 'rain on window' },
+  { name: 'Library', query: 'library books' },
+  { name: 'Forest', query: 'misty forest' },
+  { name: 'Mountains', query: 'mountain landscape' },
+  { name: 'Ocean', query: 'calm ocean' },
+  { name: 'Night city', query: 'city lights night' },
+  { name: 'Lofi desk', query: 'aesthetic desk setup' },
+  { name: 'Space', query: 'night sky stars' },
+  { name: 'Florida', query: 'florida palm sunset' },
+];
+
+export const MASCOTS: { id: MascotKind; name: string }[] = [
+  { id: 'tomato', name: 'Tomato' },
+  { id: 'robot', name: 'Robot' },
+  { id: 'gorilla', name: 'Arcade gorilla' },
+  { id: 'gator', name: 'Arcade gator' },
 ];
 
 export const CORNERS: { id: Corners; name: string }[] = [
@@ -68,9 +91,14 @@ export function applyAppearance(s: Settings, bgUrl: string | null) {
   setAttr(el, 'clockfont', s.clockFont, 'theme');
   setAttr(el, 'corners', s.corners, 'theme');
   setAttr(el, 'density', s.density, 'comfortable');
-  setAttr(el, 'mascot', s.mascot, 'auto');
+  // "With its theme": the tomato shows in the Tomato theme; a buddy you picked yourself always shows.
+  setAttr(el, 'mascot', s.mascot === 'auto' && s.mascotKind !== 'tomato' ? 'on' : s.mascot, 'auto');
   setAttr(el, 'timer', s.timerStyle, 'classic');
-  setAttr(el, 'bg', s.background === 'image' && !bgUrl ? 'theme' : s.background, 'theme');
+  setAttr(el, 'cards', s.cardStyle, 'solid');
+  // Your photo and Unsplash photos share one look ("image"); without a photo, fall back to the theme.
+  const photo = s.background === 'unsplash' ? (s.bgPhoto ? photoUrl(s.bgPhoto, 2400) : null) : s.background === 'image' ? bgUrl : null;
+  const isPhoto = s.background === 'image' || s.background === 'unsplash';
+  setAttr(el, 'bg', isPhoto ? (photo ? 'image' : 'theme') : s.background, 'theme');
   if (HEX.test(s.accent)) {
     el.style.setProperty('--accent', s.accent);
     el.style.setProperty('--accent-soft', `color-mix(in srgb, ${s.accent} 18%, var(--card))`);
@@ -78,11 +106,12 @@ export function applyAppearance(s: Settings, bgUrl: string | null) {
   } else {
     for (const p of ['--accent', '--accent-soft', '--on-accent']) el.style.removeProperty(p);
   }
-  if (bgUrl && s.background === 'image') {
-    el.style.setProperty('--bg-image', `url("${bgUrl}")`);
+  if (photo) {
+    el.style.setProperty('--bg-image', `url("${photo.replace(/"/g, '%22')}")`);
     el.style.setProperty('--bg-dim', String(Math.min(0.85, Math.max(0, s.bgDim))));
+    if (s.background === 'unsplash' && s.bgPhoto) el.style.setProperty('--bg-photo-color', s.bgPhoto.color);
+    else el.style.removeProperty('--bg-photo-color');
   } else {
-    el.style.removeProperty('--bg-image');
-    el.style.removeProperty('--bg-dim');
+    for (const p of ['--bg-image', '--bg-dim', '--bg-photo-color']) el.style.removeProperty(p);
   }
 }

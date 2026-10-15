@@ -16,6 +16,8 @@ import { DocumentsDialog, ScreenConsentDialog } from './Documents';
 import { signInWithGoogle } from '@/lib/auth';
 import { SPRING } from './motion';
 import { AssistantButton, AssistantPanel } from './Assistant';
+import { MusicCard } from './Music';
+import { PhotoCredit } from './PhotoPicker';
 import { openAssistant } from '@/lib/assistant';
 
 /** The ambience that should be playing for the current timer state. */
@@ -175,6 +177,7 @@ export default function StudyBuddyApp() {
             <PlanCard />
           </div>
           <aside className="col-side">
+            <MusicCard />
             <ContextCard onManageDocs={() => docsRef.current?.showModal()} />
             <TasksCard />
             <TodayCard />
@@ -182,6 +185,7 @@ export default function StudyBuddyApp() {
         </main>
         <footer className="foot">
           <SyncStatus />
+          <BgCredit />
           <span>Press <kbd>?</kbd> for shortcuts · <span className="build" title="Version">v{process.env.NEXT_PUBLIC_BUILD}</span></span>
         </footer>
       </div>
@@ -222,4 +226,10 @@ function Toast() {
 function Announcer() {
   const a = useStudy((s) => s.announce);
   return <div className="sr-only" aria-live="assertive">{a?.msg}</div>;
+}
+
+/** Unsplash asks that the photographer be credited wherever their photo shows. */
+function BgCredit() {
+  const photo = useStudy((s) => (s.settings.background === 'unsplash' ? s.settings.bgPhoto : null));
+  return photo ? <PhotoCredit photo={photo} /> : null;
 }

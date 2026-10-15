@@ -1,6 +1,7 @@
-// A stand-in for Google's Gemini API, for the AI browser tests (playwright.ai.config.ts).
-// Answers generateContent with canned JSON for each kind of prompt, and remembers what it was sent:
-// GET /__requests returns every request body, so tests can check what reached the AI.
+// Stand-ins for Google's Gemini API and Unsplash, for the browser tests in playwright.ai.config.ts.
+// Gemini: answers generateContent with canned JSON for each kind of prompt, and remembers what it was sent
+// (GET /__requests returns every request body, so tests can check what reached the AI).
+// Unsplash: /search/photos, /photos/random, /photos/:id/download, and tiny colored images under /img/.
 import http from 'node:http';
 
 const PORT = Number(process.env.FAKE_GEMINI_PORT || 4010);
@@ -39,9 +40,42 @@ function assistant(system, turns) {
   return { reply: `You asked: "${last}". ${doc ? `I can see ${doc}.` : 'No document is open.'} Turns so far: ${turns.length}.`, tasks: [] };
 }
 
+const COLORS = ['#7A9E7E', '#C98B5E', '#5E7FC9', '#B65E8F', '#5EB3B3', '#C9B85E'];
+function unsplashPhoto(i, q) {
+  const id = `${q.replace(/\W+/g, '-')}-${i}`;
+  return {
+    id, color: COLORS[i % COLORS.length], alt_description: `${q} photo ${i}`,
+    urls: { raw: `http://localhost:${PORT}/img/${id}.svg?ixid=test`, small: `http://localhost:${PORT}/img/${id}.svg?w=400` },
+    user: { name: `Photographer ${i}`, links: { html: `https://unsplash.com/@photographer${i}` } },
+    links: { html: `https://unsplash.com/photos/${id}`, download_location: `http://localhost:${PORT}/photos/${id}/download?ixid=test` },
+  };
+}
+const unsplashCalls = [];
+
+function unsplash(req, res) {
+  const url = new URL(req.url, `http://localhost:${PORT}`);
+  if (url.pathname.startsWith('/img/')) {
+    const i = Number(url.pathname.match(/-(\d+)\.svg$/)?.[1] || 0);
+    res.writeHead(200, { 'content-type': 'image/svg+xml' });
+    return res.end(`<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200"><rect width="300" height="200" fill="${COLORS[i % COLORS.length]}"/><circle cx="220" cy="60" r="30" fill="#fff8"/></svg>`);
+  }
+  if (req.headers.authorization !== 'Client-ID test-unsplash') return reply(res, 401, { errors: ['OAuth error: The access token is invalid'] });
+  unsplashCalls.push(url.pathname + url.search);
+  const q = url.searchParams.get('query') || 'photo';
+  if (url.pathname === '/search/photos') {
+    const page = Number(url.searchParams.get('page') || 1);
+    return reply(res, 200, { total: 24, total_pages: 2, results: Array.from({ length: 12 }, (_, i) => unsplashPhoto((page - 1) * 12 + i, q)) });
+  }
+  if (url.pathname === '/photos/random') return reply(res, 200, unsplashPhoto(99, q));
+  if (/^\/photos\/[\w-]+\/download$/.test(url.pathname)) return reply(res, 200, { url: 'https://images.unsplash.com/x' });
+  return reply(res, 404, { errors: ['Not found'] });
+}
+
 http.createServer((req, res) => {
   if (req.method === 'GET' && req.url === '/__requests') return reply(res, 200, requests);
-  if (req.method === 'POST' && req.url === '/__reset') { requests.length = 0; return reply(res, 200, {}); }
+  if (req.method === 'GET' && req.url === '/__unsplash') return reply(res, 200, unsplashCalls);
+  if (req.method === 'GET' && /^\/(img|search|photos)\//.test(req.url)) return unsplash(req, res);
+  if (req.method === 'POST' && req.url === '/__reset') { requests.length = 0; unsplashCalls.length = 0; return reply(res, 200, {}); }
   let raw = '';
   req.on('data', (c) => { raw += c; });
   req.on('end', () => {
