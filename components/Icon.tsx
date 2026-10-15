@@ -1,5 +1,5 @@
 export type IconName =
-  | 'user' | 'palette' | 'monitor' | 'upload' | 'download' | 'trash' | 'play' | 'pause' | 'reset' | 'skip' | 'loop' | 'gear' | 'kbd' | 'x' | 'check' | 'plus' | 'flag' | 'file' | 'camera' | 'sound' | 'sparkle' | 'send' | 'prev' | 'next' | 'music' | 'external';
+  | 'user' | 'palette' | 'monitor' | 'upload' | 'download' | 'trash' | 'play' | 'pause' | 'reset' | 'skip' | 'loop' | 'gear' | 'kbd' | 'x' | 'check' | 'plus' | 'flag' | 'file' | 'camera' | 'sound' | 'sparkle' | 'send' | 'prev' | 'next' | 'music' | 'external' | 'chart';
 
 export function Icon({ name }: { name: IconName }) {
   return (
@@ -33,6 +33,7 @@ export function IconSprite() {
         <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4" /><path d="M5 4h11l-2 4 2 4H5" /></symbol>
         <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" /><path d="M14 3v6h6" /></symbol>
         <symbol id="i-camera" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></symbol>
+        <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></symbol>
         <symbol id="i-prev" viewBox="0 0 24 24"><path d="M18 5v14L8 12z" fill="currentColor" stroke="none" /><rect x="5" y="5" width="2.6" height="14" rx="1" fill="currentColor" stroke="none" /></symbol>
         <symbol id="i-next" viewBox="0 0 24 24"><path d="M6 5v14l10-7z" fill="currentColor" stroke="none" /><rect x="16.4" y="5" width="2.6" height="14" rx="1" fill="currentColor" stroke="none" /></symbol>
         <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l11-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="17" cy="16" r="3" /></symbol>

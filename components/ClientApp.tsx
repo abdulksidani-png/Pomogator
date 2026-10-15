@@ -8,6 +8,6 @@ const StudyBuddyApp = dynamic(() => import('./StudyBuddyApp'), {
   loading: () => <div className="boot-shell">Loading StudyBuddy…</div>,
 });
 
-export default function ClientApp() {
-  return <StudyBuddyApp />;
+export default function ClientApp({ view = 'timer' }: { view?: 'timer' | 'stats' }) {
+  return <StudyBuddyApp initialView={view} />;
 }

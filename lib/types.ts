@@ -4,11 +4,11 @@ export type BreakKind = 'short' | 'long';
 export type BreakReason = '' | 'quiz' | 'quiz-skipped' | 'short-session' | 'skipped' | 'manual';
 export type Level = 'hs' | 'intro' | 'advanced' | 'exam';
 export type Difficulty = 'gentle' | 'standard' | 'challenging';
-export type Skin = 'auto' | 'notebook' | 'chalkboard' | 'tomato' | 'midnight' | 'sakura' | 'matcha' | 'sunset';
+export type Skin = 'auto' | 'notebook' | 'chalkboard' | 'tomato' | 'midnight' | 'sakura' | 'matcha' | 'sunset' | 'jungle' | 'gator' | 'panther' | 'robotlab';
 export type ClockFont = 'theme' | 'mono' | 'rounded' | 'serif' | 'condensed' | 'digital' | 'hand';
 export type TimerStyle = 'classic' | 'ring' | 'minimal';
 export type Background = 'theme' | 'plain' | 'dots' | 'grid' | 'lined' | 'gradient' | 'image' | 'unsplash';
-export type MascotKind = 'tomato' | 'robot' | 'gorilla' | 'gator';
+export type MascotKind = 'tomato' | 'robot' | 'gorilla' | 'gator' | 'panther';
 
 /** A photo from Unsplash, as the site keeps it. Images are always loaded from Unsplash's own servers. */
 export interface UnsplashPhoto {

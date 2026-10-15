@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { MotionConfig, motion } from 'motion/react';
-import { useStudy, quizReadyForTaking, type Store } from '@/lib/store';
+import { useStudy, quizReadyForTaking, remainingAt, type Store } from '@/lib/store';
 import { useNow } from '@/lib/now';
 import { Sound } from '@/lib/sound';
 import { Icon, IconSprite } from './Icon';
@@ -17,6 +17,8 @@ import { signInWithGoogle } from '@/lib/auth';
 import { SPRING } from './motion';
 import { AssistantButton, AssistantPanel } from './Assistant';
 import { MusicCard } from './Music';
+import { StatsView } from './Stats';
+import { fmt } from '@/lib/util';
 import { PhotoCredit } from './PhotoPicker';
 import { openAssistant } from '@/lib/assistant';
 
@@ -24,7 +26,25 @@ import { openAssistant } from '@/lib/assistant';
 const desiredAmbience = (s: Store) =>
   s.timer.status !== 'running' ? 'none' : s.timer.phase === 'study' ? s.settings.ambStudy : s.timer.phase === 'break' ? s.settings.ambBreak : 'none';
 
-export default function StudyBuddyApp() {
+type View = 'timer' | 'stats';
+const viewFromUrl = (): View => (window.location.pathname.startsWith('/stats') ? 'stats' : 'timer');
+
+export default function StudyBuddyApp({ initialView = 'timer' }: { initialView?: View }) {
+  // Timer and Stats are two pages of one app, so a running session carries on while you look at stats.
+  const [view, setView] = useState<View>(initialView);
+  const viewRef = useRef(view);
+  viewRef.current = view;
+  const go = useRef((v: View) => {
+    if (v === viewRef.current) return;
+    window.history.pushState(null, '', v === 'stats' ? '/stats' : '/');
+    setView(v);
+    window.scrollTo({ top: 0 });
+  }).current;
+  useEffect(() => {
+    const back = () => setView(viewFromUrl());
+    window.addEventListener('popstate', back);
+    return () => window.removeEventListener('popstate', back);
+  }, []);
   const loop = useStudy((s) => s.settings.loop);
   const ambience = useStudy(desiredAmbience);
   const wantWake = useStudy((s) => s.settings.wake && s.timer.status === 'running');
@@ -123,6 +143,11 @@ export default function StudyBuddyApp() {
       const s = useStudy.getState();
       const k = e.key;
       const onButton = t?.tagName === 'BUTTON';
+      if (viewRef.current !== 'timer') { // on the Stats page only the help and assistant keys apply
+        if (k === '?') helpRef.current?.showModal();
+        else if (k === 'a' || k === 'A') { e.preventDefault(); openAssistant(); }
+        return;
+      }
       if (s.timer.phase === 'quiz') {
         if (s.quiz.step === 'question' && quizReadyForTaking(s.quiz) && k.length === 1) {
           let i = '1234'.indexOf(k);
@@ -161,6 +186,9 @@ export default function StudyBuddyApp() {
             <span className="brand-tag">Study, quiz yourself, earn your break</span>
           </div>
           <div className="top-actions">
+            {view === 'stats' ? <TimerPill onClick={() => go('timer')} /> : (
+              <button className="chip-btn" type="button" onClick={() => go('stats')} title="Your stats"><Icon name="chart" /><span>Stats</span></button>
+            )}
             <AccountButton onSignIn={() => signInRef.current?.showModal()} onProfile={() => profileRef.current?.showModal()} />
             <button className="chip-btn" type="button" aria-pressed={loop} title="Loop: start each phase automatically (L)" onClick={() => useStudy.getState().setLoop(!loop)}>
               <Icon name="loop" /><span>Loop</span>
@@ -170,6 +198,7 @@ export default function StudyBuddyApp() {
             <button className="icon-btn" type="button" aria-label="Settings" title="Settings" onClick={() => settingsRef.current?.showModal()}><Icon name="gear" /></button>
           </div>
         </header>
+        {view === 'stats' ? <main className="stats-main"><StatsView onBack={() => go('timer')} /></main> : (
         <main className="desk">
           <div className="col-main">
             <Stage onToggle={togglePlay} onScreenConsent={() => screenRef.current?.showModal()} />
@@ -183,6 +212,7 @@ export default function StudyBuddyApp() {
             <TodayCard />
           </aside>
         </main>
+        )}
         <footer className="foot">
           <SyncStatus />
           <BgCredit />
@@ -232,4 +262,17 @@ function Announcer() {
 function BgCredit() {
   const photo = useStudy((s) => (s.settings.background === 'unsplash' ? s.settings.bgPhoto : null));
   return photo ? <PhotoCredit photo={photo} /> : null;
+}
+
+/** On the Stats page: the running timer in a small pill that leads back to it. */
+function TimerPill({ onClick }: { onClick: () => void }) {
+  const T = useStudy((s) => s.timer);
+  const now = useNow((s) => s.now);
+  const live = T.phase === 'quiz' || T.status !== 'idle';
+  const what = T.phase === 'quiz' ? 'Quiz time' : `${fmt(remainingAt(T, now))} ${T.phase === 'study' ? 'study' : 'break'}${T.status === 'paused' ? ' (paused)' : ''}`;
+  return (
+    <button className={`chip-btn timer-pill${live ? ' live' : ''}`} type="button" onClick={onClick} title="Back to the timer">
+      <Icon name={T.status === 'running' ? 'play' : 'reset'} /><span>{live ? what : 'Timer'}</span>
+    </button>
+  );
 }

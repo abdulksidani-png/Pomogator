@@ -182,18 +182,33 @@ test('tab sound: a shared lecture tab\'s speech becomes notes for the session', 
   await expect(page.locator('.heard-text')).not.toContainText('[Music]');
 });
 
-test('study buddies: pick the robot or an arcade gator, and it shows by the timer', async ({ page }) => {
+test('study buddies: pick Albert or the robot, and they study at a desk while the timer runs', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('.mascot-wrap')).toBeHidden(); // the tomato only shows in its theme
   await page.getByRole('button', { name: 'Appearance', exact: true }).click();
-  await page.locator('#lookDlg').getByRole('button', { name: /Arcade gator/ }).click();
+  await page.locator('#lookDlg').getByRole('button', { name: /Albert/ }).click();
   await page.locator('#lookDlg').getByRole('button', { name: 'Done' }).click();
   await expect(page.locator('.mascot-wrap .mascot.gator')).toBeVisible();
+  await expect(page.locator('.mascot-wrap .type-a')).toHaveCount(0);
   await page.getByRole('button', { name: /Start studying/ }).click();
   await expect(page.locator('.mascot-wrap .mascot')).toHaveAttribute('data-mood', 'focus');
+  await expect(page.locator('.mascot-wrap .type-a')).toHaveCount(1); // typing on a laptop
   await page.getByRole('button', { name: 'Appearance', exact: true }).click();
-  await page.locator('#lookDlg').getByRole('button', { name: /Robot/ }).click();
+  await page.locator('#lookDlg').getByRole('button', { name: 'Robot', exact: true }).click();
   await page.locator('#lookDlg').getByRole('button', { name: 'Hidden' }).click();
   await page.locator('#lookDlg').getByRole('button', { name: 'Done' }).click();
   await expect(page.locator('.mascot-wrap')).toBeHidden();
+});
+
+test('buddy themes bring their buddy: Jungle → gorilla, Panther → Panfer', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Appearance', exact: true }).click();
+  await page.locator('#lookDlg').getByRole('button', { name: 'Jungle' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-skin', 'jungle');
+  await expect(page.locator('.mascot-wrap .mascot.gorilla')).toBeVisible();
+  await page.locator('#lookDlg').getByRole('button', { name: 'Panther', exact: true }).click();
+  await expect(page.locator('.mascot-wrap .mascot.panther')).toBeVisible();
+  await page.locator('#lookDlg').getByRole('button', { name: 'Done' }).click();
+  await page.getByRole('button', { name: /Start studying/ }).click();
+  await expect(page.locator('.mascot-wrap .pencil')).toHaveCount(1); // taking notes
 });

@@ -8,7 +8,7 @@ const INK = '#3A1D22';
 /** The study buddy beside the timer. Its face follows the timer: focused, quizzing, happy, resting. */
 export function Mascot({ mood, kind = 'tomato' }: { mood: Mood; kind?: MascotKind }) {
   if (kind === 'robot') return <Robot mood={mood} />;
-  if (kind === 'gorilla' || kind === 'gator') return <Pixel mood={mood} sprite={SPRITES[kind]} name={kind} />;
+  if (kind === 'gorilla' || kind === 'gator' || kind === 'panther') return <Pixel mood={mood} sprite={SPRITES[kind]} name={kind} />;
   return <Tomato mood={mood} />;
 }
 
@@ -40,6 +40,12 @@ function Tomato({ mood }: { mood: Mood }) {
         <path className="v v-happy" d="M49 83q11 15 22 0z" fill={INK} />
         <path className="v v-rest" d="M55 87q5 3 10 0" fill="none" stroke={INK} strokeWidth="3.5" strokeLinecap="round" />
         <g className="v v-rest" fill="var(--fg-3)"><text x="96" y="30" fontSize="14">z</text><text x="106" y="18" fontSize="10">z</text></g>
+        <g className="v v-focus" fill="#FFFFFF" fillOpacity=".28" stroke={INK} strokeWidth="3"><circle cx="46" cy="72" r="9.5" /><circle cx="74" cy="72" r="9.5" /><path d="M55.5 71q4.5-3 9 0" fill="none" /></g>
+      </g>
+      <g className="v v-focus">
+        <rect x="4" y="104" width="112" height="7" rx="2" fill="#8A5A3B" /><rect x="10" y="111" width="5" height="12" fill="#6B4329" /><rect x="105" y="111" width="5" height="12" fill="#6B4329" />
+        <rect x="34" y="94" width="44" height="11" rx="1.5" fill="#FBF7EE" stroke="#D8D2C2" /><path d="M39 98.5h30M39 101.5h22" stroke="#BFC6D6" strokeWidth="1.5" />
+        <g className="pencil"><path d="M76 99l14-17 4 3.4-14 17z" fill="#F2C14E" /><path d="M90 82l4 3.4 2-2.6-4-3.4z" fill="#E07A7A" /><path d="M76 99l4 3.4-5 1.6z" fill="#3A3A3A" /></g>
       </g>
     </svg>
   );
@@ -75,6 +81,16 @@ function Robot({ mood }: { mood: Mood }) {
         <rect x="26" y="88" width="9" height="16" rx="4.5" fill={shade} />
         <rect x="85" y="88" width="9" height="16" rx="4.5" fill={shade} />
         <g className="v v-rest" fill="var(--fg-3)"><text x="98" y="26" fontSize="14">z</text><text x="108" y="14" fontSize="10">z</text></g>
+        <g className="v v-focus" fill="none" stroke={glow} strokeWidth="2" opacity=".85"><circle cx="47.5" cy="50.5" r="9" /><circle cx="72.5" cy="50.5" r="9" /><path d="M56.5 50h7" /></g>
+      </g>
+      <g className="v v-focus">
+        <rect x="4" y="112" width="112" height="6" rx="2" fill="#8A5A3B" />
+        <rect x="30" y="82" width="60" height="28" rx="4" fill="#3E4756" /><rect x="30" y="82" width="60" height="28" rx="4" fill="none" stroke="#2A313D" strokeWidth="2" />
+        <path d="M34 86h52" stroke="#5A6577" strokeWidth="2" strokeLinecap="round" />
+        <circle cx="60" cy="96" r="4" fill="var(--accent)" />
+        <rect x="20" y="108" width="80" height="5" rx="2" fill="#2A313D" />
+        <g className="type-a" fill={metal} stroke={shade} strokeWidth="1.5"><rect x="22" y="100" width="12" height="8" rx="4" /><rect x="86" y="103" width="12" height="8" rx="4" /></g>
+        <g className="type-b" fill={metal} stroke={shade} strokeWidth="1.5"><rect x="22" y="103" width="12" height="8" rx="4" /><rect x="86" y="100" width="12" height="8" rx="4" /></g>
       </g>
     </svg>
   );
@@ -82,10 +98,30 @@ function Robot({ mood }: { mood: Mood }) {
 
 /* ---------------- pixel buddies ---------------- */
 
-interface Sprite { w: number; pal: Record<string, string>; base: string[]; moods: Partial<Record<Mood, Record<number, [number, string]>>> }
+interface Layer { x: number; y: number; rows: string[]; cls?: string }
+interface Sprite { w: number; pal: Record<string, string>; base: string[]; moods: Partial<Record<Mood, Record<number, [number, string]>>>; study: Layer[] }
+
+/** Colors for the study props (desk, paper, pencil, laptop, typing hands). */
+const PROPS: Record<string, string> = { D: '#8A5A3B', d: '#6B4329', P: '#FBF7EE', L: '#BFC6D6', Y: '#F2C14E', R: '#E07A7A', G: '#3A3A3A', S: '#9AD1FF', g: '#3F9B4A' };
+
+/** Rows of pixel letters → one <rect> per horizontal run of the same color. */
+function toRuns(rows: string[][] | string[], pal: Record<string, string>, ox = 0, oy = 0) {
+  const out: { x: number; y: number; w: number; c: string }[] = [];
+  rows.forEach((r, y) => {
+    const row = typeof r === 'string' ? r.split('') : r;
+    for (let x = 0; x < row.length;) {
+      const c = row[x];
+      let e = x + 1;
+      while (e < row.length && row[e] === c) e++;
+      if (c !== '.' && pal[c]) out.push({ x: x + ox, y: y + oy, w: e - x, c: pal[c] });
+      x = e;
+    }
+  });
+  return out;
+}
 
 /** 2-bit-style arcade sprites: the base picture plus the pixels that change for each mood. */
-const SPRITES: Record<'gorilla' | 'gator', Sprite> = {
+const SPRITES: Record<'gorilla' | 'gator' | 'panther', Sprite> = {
   gorilla: {
     w: 24,
     pal: {"k": "#1E1410", "b": "#5B3A29", "f": "#C9946A", "w": "#F4E9DC"},
@@ -117,12 +153,17 @@ const SPRITES: Record<'gorilla' | 'gator', Sprite> = {
     ],
     moods: {
       idle: { 6: [7, "ww....ww"], 7: [7, "wk....kw"], 10: [9, "k....k"], 11: [10, "kkkk"] },
-      focus: { 5: [7, "kk....kk"], 6: [7, ".kk..kk."], 7: [7, "wk....kw"], 10: [10, "kkkk"] },
+      focus: { 5: [6, "kkkkk..kkkkk"], 6: [6, "kwwk.kk.kwwk"], 7: [6, "kwkkk..kkwkk"], 8: [6, "kkkk....kkkk"], 10: [10, "kkkk"] },
       quiz: { 6: [7, "ww....ww"], 7: [7, "kk....kk"], 10: [11, "kk"], 11: [11, "kk"] },
       happy: { 6: [7, ".k....k."], 7: [7, "k.k..k.k"], 10: [9, "kwwwwk"], 11: [10, "kkkk"] },
       rest: { 7: [7, "kk....kk"], 10: [11, "kk"], 0: [20, "kkkk"], 1: [22, "k"], 2: [21, "k"], 3: [20, "kkkk"] },
       cheer: { 6: [7, "ww....ww"], 7: [7, "kw....wk"], 10: [9, "kwwwwk"], 11: [10, "kkkk"] },
     },
+    study: [
+      { x: 0, y: 19, rows: ["DDDDDDDDDDDDDDDDDDDDDDDD", "dddddddddddddddddddddddd", "d......................d", "d......................d", "d......................d"] },
+      { x: 7, y: 17, rows: ["PPPPPPPPPP", "PLLLLLPPPP"] },
+      { x: 15, y: 14, rows: ["..R", "..Y", ".Y.", "Y..", "G.."], cls: "pencil" },
+    ],
   },
   gator: {
     w: 28,
@@ -155,12 +196,61 @@ const SPRITES: Record<'gorilla' | 'gator', Sprite> = {
     ],
     moods: {
       idle: { 3: [7, "ww"], 4: [7, "wk"] },
-      focus: { 2: [6, "kkkk"], 3: [7, "kk"], 4: [7, "wk"] },
+      focus: { 2: [6, "kkkk"], 3: [6, "kwwkkkk"], 4: [6, "kwkk"], 5: [6, "kkkk"] },
       quiz: { 3: [7, "ww"], 4: [7, "kk"], 10: [12, "kkkk"], 11: [12, "kkkk"] },
       happy: { 3: [7, "k."], 4: [6, "k.k"] },
       rest: { 4: [7, "kk"], 0: [15, "kkkk"], 1: [17, "k"], 2: [16, "k"], 3: [15, "kkkk"] },
       cheer: { 3: [7, "ww"], 4: [7, "wk"], 10: [9, "lwwwwwwwwwwwl"] },
     },
+    study: [
+      { x: 0, y: 19, rows: ["DDDDDDDDDDDDDDDDDDDDDDDDDDDD", "dddddddddddddddddddddddddddd", "d..........................d", "d..........................d", "d..........................d"] },
+      { x: 15, y: 13, rows: ["GGGGGGGGG", "GLLLLLLLG", "GLLLSLLLG", "GLLLLLLLG", "GLLLLLLLG", "GGGGGGGGGGG"] },
+      { x: 15, y: 17, rows: ["..g...g.."], cls: "type-a" },
+      { x: 15, y: 17, rows: ["...g.g..."], cls: "type-b" },
+    ],
+  },
+  panther: {
+    w: 24,
+    pal: {"k": "#3A230F", "y": "#D9A13B", "c": "#F7E2B0", "p": "#E58BA0", "n": "#0B2A63", "o": "#E3B23C", "w": "#FFFFFF"},
+    base: [
+      '....kk..........kk......',
+      '...kyyk........kyyk.....',
+      '...kypyk......kypyk.....',
+      '...kyyyykkkkkkyyyyk.....',
+      '...kyyyyyyyyyyyyyyk.....',
+      '..kyyyyyyyyyyyyyyyyk....',
+      '..kyyyyyyyyyyyyyyyyk....',
+      '..kyyyyyyyyyyyyyyyyk....',
+      '..kyyyccccccccccyyyk....',
+      '..kyycccccppcccccyyk....',
+      '...kyccccckkcccccyk.....',
+      '....kyyccccccccyyk......',
+      '.....kkyyyyyyyykk.......',
+      '....knnnnnnnnnnnnk......',
+      '...knnnnnnoonnnnnnk.....',
+      '..kynnnnnnoonnnnnnyk.kk.',
+      '..kynnnnnnoonnnnnnykkyk.',
+      '..kyknnnnnnnnnnnnkykyk..',
+      '...kknnnnnnnnnnnnkkyk...',
+      '....koooooooooooookyk...',
+      '....kyyyyk..kyyyyk.k....',
+      '....kyyyyk..kyyyyk......',
+      '...kccccck..kccccck.....',
+      '...kkkkkkk..kkkkkkk.....',
+    ],
+    moods: {
+      idle: { 6: [6, "ww......ww"], 7: [6, "wk......kw"] },
+      focus: { 5: [5, "kkkkk..kkkkk"], 6: [5, "kwwk.kk.kwwk"], 7: [5, "kwkkk..kkwkk"], 8: [5, "kkkk....kkkk"] },
+      quiz: { 6: [6, "ww......ww"], 7: [6, "kk......kk"], 10: [10, "kk"], 11: [10, "kk"] },
+      happy: { 6: [5, ".k........k."], 7: [5, "k.k......k.k"], 11: [9, "kccccc"] },
+      rest: { 7: [6, "kk......kk"], 0: [19, "kkkk"], 1: [21, "k"], 2: [20, "k"], 3: [19, "kkkk"] },
+      cheer: { 6: [6, "ww......ww"], 7: [6, "kw......wk"], 11: [9, "kkkkkk"] },
+    },
+    study: [
+      { x: 0, y: 19, rows: ["DDDDDDDDDDDDDDDDDDDDDDDD", "dddddddddddddddddddddddd", "d......................d", "d......................d", "d......................d"] },
+      { x: 6, y: 17, rows: ["PPPPPPPPPPPP", "PLLLLLLLLPPP"] },
+      { x: 15, y: 14, rows: ["..R", "..Y", ".Y.", "Y..", "G.."], cls: "pencil" },
+    ],
   },
 };
 
@@ -171,23 +261,16 @@ function Pixel({ mood, sprite, name }: { mood: Mood; sprite: Sprite; name: strin
     for (const [y, [x, s]] of Object.entries(sprite.moods[mood] ?? {})) {
       [...s].forEach((c, i) => { if (c !== '.') rows[Number(y)][x + i] = c; });
     }
-    const out: { x: number; y: number; w: number; c: string }[] = [];
-    rows.forEach((r, y) => {
-      for (let x = 0; x < r.length;) {
-        const c = r[x];
-        let e = x + 1;
-        while (e < r.length && r[e] === c) e++;
-        if (c !== '.') out.push({ x, y, w: e - x, c: sprite.pal[c] });
-        x = e;
-      }
-    });
-    return out;
+    return toRuns(rows, sprite.pal);
   }, [mood, sprite]);
+  // While studying: a desk, paper or a laptop, and a pencil or typing hands that move.
+  const props = useMemo(() => (mood === 'focus' ? sprite.study.map((l) => ({ cls: l.cls ?? '', runs: toRuns(l.rows, { ...PROPS, ...sprite.pal }, l.x, l.y) })) : []), [mood, sprite]);
   const h = sprite.base.length;
   return (
     <svg className={`mascot pixel ${name}`} viewBox={`-2 -2 ${sprite.w + 4} ${h + 5}`} data-mood={mood} shapeRendering="crispEdges">
       <rect x={sprite.w / 2 - 8} y={h + 1} width="16" height="1" fill="var(--sunk)" />
       <g className="m-bob">{runs.map((r, i) => <rect key={i} x={r.x} y={r.y} width={r.w} height="1" fill={r.c} />)}</g>
+      {props.map((l, j) => <g key={j} className={l.cls || undefined}>{l.runs.map((r, i) => <rect key={i} x={r.x} y={r.y} width={r.w} height="1" fill={r.c} />)}</g>)}
     </svg>
   );
 }

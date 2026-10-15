@@ -31,8 +31,8 @@ optional screen tracking, sign-in with cloud sync, and appearance customization.
 | 5 | Screen tracking: opt-in, on-device OCR, slide matching, "slides seen" log | Done |
 | + | Appearance: themes, accent, clock fonts, timer styles, backgrounds | Done |
 | 3 | AI (Gemini free tier): quiz from covered pages, plan, day summary, study assistant, daily limits | Done (confirmed; migration 3 optional) |
-| **6** | **Stats engine (pure, tested) + Stats page** | **Next** |
-| 7 | Weekly report | |
+| 6 | Stats engine (pure, tested) + Stats page | Built, waiting on his test |
+| **7** | **Weekly report** | **Next** |
 | 8 | Check-in streaks + celebrations (MyFitnessPal style) | |
 | 9 | Polish, export / delete account, full README guide | |
 
@@ -42,6 +42,21 @@ document (whole deck if it fits 60k chars) and any lecture transcript. It answer
 ("Summarize with AI" under the document), quizzes in chat, and proposes to-do lists sized in study sessions
 ("Plan with AI" on the To-do card); proposals are added only on a click, as "Task · N sessions" text so tasks sync unchanged.
 The chat is local only (`studybuddy.chat`).
+
+**Phase 6 (built):** `lib/stats.ts` is pure (`computeStats`, `streakOf` with freezes, `DEFINITIONS` shown as "?" tooltips),
+tested in `tests/unit/stats.test.ts` (empty week, skipped quizzes, midnight, 4 AM rollover, time zone change, freezes).
+Days come from each session's stored `date`. The Stats page (`components/Stats.tsx`) is the same app at `/stats`
+(`app/stats/page.tsx` → `ClientApp view="stats"`; `StudyBuddyApp` switches views with `history.pushState`, so a running
+timer keeps going and shows as a pill in the header; timer shortcuts only work on the timer view). Charts follow the
+dataviz skill: single-series accent columns with hover/focus tooltips + table view, a 12-week one-hue heatmap, accuracy
+bars, per-page document coverage (not yet / studied / studied + quizzed).
+
+**Buddies, round 2 (built with Phase 6):** Panfer (FIU-style gold panther in a navy jersey, original pixel art; the owner
+shared FIU's loading sprite only as a style reference) and the gator is now named Albert. While studying (`focus` mood)
+every buddy wears glasses at a desk: gorilla and Panfer write (pencil layer, class `pencil`), Albert and the robot type
+on a laptop (`type-a`/`type-b`), the tomato writes. Pixel props are `study` layers in the sprite data. Buddy themes:
+`jungle` (gorilla), `gator` (UF orange/blue), `panther` (FIU navy/gold), `robotlab` (robot, Orbitron clock); picking a
+theme with a `buddy` also picks that buddy.
 
 Then (he confirmed these work on the live site, 2026-10-15):
 - **Unsplash backgrounds** (`UNSPLASH_ACCESS_KEY`): Appearance → Photo backgrounds, by mood chip or search, "New photo every
@@ -122,7 +137,7 @@ Earlier requests, all done and confirmed:
   - `Dialogs.tsx`: settings, help
   - `Account.tsx`
   - `Assistant.tsx`: chat panel, corner button, reply formatting
-  - `Music.tsx` (Spotify widget), `PhotoPicker.tsx` (Unsplash), `Mascot.tsx` (all buddies)
+  - `Music.tsx` (Spotify widget), `PhotoPicker.tsx` (Unsplash), `Mascot.tsx` (all buddies), `Stats.tsx` (Stats page)
 - `supabase/migrations/`: `…000000_core.sql`, `…010000_documents.sql`, `20261015000000_ai_usage.sql`. RLS restricts every table to
   `user_id = (select auth.uid())`. The owner pastes migrations into the SQL Editor by hand.
 
@@ -130,8 +145,8 @@ Earlier requests, all done and confirmed:
 ```bash
 npm run dev          # http://localhost:3000 (copies vendor files first)
 npm run typecheck
-npm test             # Vitest unit tests (55)
-npm run test:e2e     # Playwright: loop, documents, goals, screen tracking, tab sound, sounds, appearance
+npm test             # Vitest unit tests (71)
+npm run test:e2e     # Playwright: loop, documents, goals, screen tracking, tab sound, sounds, appearance, buddies, stats
 npm run test:ai      # Playwright: AI, Unsplash and Spotify against stand-ins (tests/fake-gemini; Spotify faked in-test)
 npm run test:sync    # two-device sync: needs local Postgres + PostgREST (PGHOST/PGPORT/PGUSER, POSTGREST_BIN)
 ```

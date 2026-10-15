@@ -35,6 +35,8 @@ interface SpotifyState {
   playback: Playback | null;
   checked: boolean;
   error: string;
+  /** 'status' errors clear when a check succeeds; 'control' errors (a refused button) stay a few seconds. */
+  errorKind: '' | 'status' | 'control';
 }
 
 interface Tokens { access: string; refresh: string; expiresAt: number }
@@ -43,8 +45,15 @@ const readTokens = (): Tokens | null => { try { return JSON.parse(localStorage.g
 const writeTokens = (t: Tokens | null) => { try { if (t) localStorage.setItem(TOKENS, JSON.stringify(t)); else localStorage.removeItem(TOKENS); } catch { /* storage blocked */ } };
 
 export const useSpotify = create<SpotifyState>(() => ({
-  linked: typeof window !== 'undefined' && !!readTokens(), playback: null, checked: false, error: '',
+  linked: typeof window !== 'undefined' && !!readTokens(), playback: null, checked: false, error: '', errorKind: '',
 }));
+
+let errorTimer: ReturnType<typeof setTimeout> | undefined;
+function controlError(error: string) {
+  clearTimeout(errorTimer);
+  useSpotify.setState({ error, errorKind: error ? 'control' : '' });
+  if (error) errorTimer = setTimeout(() => { if (useSpotify.getState().errorKind === 'control') useSpotify.setState({ error: '', errorKind: '' }); }, 8000);
+}
 
 const redirectUri = () => `${window.location.origin}/spotify`;
 
@@ -92,7 +101,7 @@ export async function finishSpotifyLogin(params: URLSearchParams): Promise<strin
   try {
     const t = await tokenRequest({ grant_type: 'authorization_code', code, redirect_uri: redirectUri(), client_id: spotifyClientId, code_verifier: pending.verifier });
     writeTokens(t);
-    useSpotify.setState({ linked: true, error: '' });
+    useSpotify.setState({ linked: true, error: '', errorKind: '' });
     return '';
   } catch {
     return 'Spotify sign-in didn\'t work. If you aren\'t on the app\'s user list, ask the site owner to add you.';
@@ -101,7 +110,7 @@ export async function finishSpotifyLogin(params: URLSearchParams): Promise<strin
 
 export function disconnectSpotify() {
   writeTokens(null);
-  useSpotify.setState({ linked: false, playback: null, checked: false, error: '' });
+  useSpotify.setState({ linked: false, playback: null, checked: false, error: '', errorKind: '' });
 }
 
 async function accessToken(): Promise<string | null> {
@@ -115,7 +124,7 @@ async function accessToken(): Promise<string | null> {
     return fresh.access;
   } catch {
     disconnectSpotify();
-    useSpotify.setState({ error: 'Spotify signed you out. Connect again to see your music.' });
+    useSpotify.setState({ error: 'Spotify signed you out. Connect again to see your music.', errorKind: 'status' });
     return null;
   }
 }
@@ -161,9 +170,10 @@ export async function refreshPlayback() {
     if (!r) return;
     if (r.status === 204) { useSpotify.setState({ playback: null, checked: true }); return; }
     if (r.status === 429) return; // busy: try again on the next check
-    if (r.status === 403) { useSpotify.setState({ checked: true, error: 'This Spotify account isn\'t on the app\'s user list yet. The site owner can add it in the Spotify developer dashboard.' }); return; }
+    if (r.status === 403) { useSpotify.setState({ checked: true, errorKind: 'status', error: 'This Spotify account isn\'t on the app\'s user list yet. The site owner can add it in the Spotify developer dashboard.' }); return; }
     if (!r.ok) return;
-    useSpotify.setState({ playback: toPlayback(await r.json()), checked: true, error: '' });
+    const playback = toPlayback(await r.json());
+    useSpotify.setState((st) => ({ playback, checked: true, ...(st.errorKind === 'status' ? { error: '', errorKind: '' as const } : {}) }));
   } catch { /* offline: keep the last state */ }
 }
 
@@ -181,14 +191,12 @@ export async function control(action: 'play' | 'pause' | 'next' | 'previous') {
   if (r && !r.ok) {
     const j = (await r.json().catch(() => null)) as { error?: { reason?: string } } | null;
     const reason = j?.error?.reason;
-    useSpotify.setState({
-      playback: before,
-      error: r.status === 403 || reason === 'PREMIUM_REQUIRED' ? 'Spotify only lets Premium accounts control playback from other apps.'
-        : r.status === 404 || reason === 'NO_ACTIVE_DEVICE' ? 'Open Spotify on any device and start a song first.'
-          : 'Spotify didn\'t respond. Try again.',
-    });
+    useSpotify.setState({ playback: before });
+    controlError(r.status === 403 || reason === 'PREMIUM_REQUIRED' ? 'Spotify only lets Premium accounts control playback from other apps.'
+      : r.status === 404 || reason === 'NO_ACTIVE_DEVICE' ? 'Open Spotify on any device and start a song first.'
+        : 'Spotify didn\'t respond. Try again.');
     return;
   }
-  useSpotify.setState({ error: '' });
+  controlError('');
   setTimeout(() => void refreshPlayback(), action === 'next' || action === 'previous' ? 700 : 400);
 }

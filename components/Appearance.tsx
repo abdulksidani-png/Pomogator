@@ -101,7 +101,8 @@ export function AppearanceDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialo
           <legend>Theme</legend>
           <div className="theme-grid" role="group" aria-label="Theme">
             {THEMES.map((t) => (
-              <button key={t.id} type="button" className="theme-card" aria-pressed={s.skin === t.id} onClick={() => set('skin', t.id)}>
+              <button key={t.id} type="button" className="theme-card" aria-pressed={s.skin === t.id}
+                onClick={() => update((x) => { x.skin = t.id; if (t.buddy) { x.mascotKind = t.buddy; if (x.mascot === 'off') x.mascot = 'auto'; } })}>
                 <span className="theme-prev" style={{ background: t.id === 'auto' ? `linear-gradient(110deg, ${t.colors[0]} 50%, #131C19 50%)` : t.colors[0] }}>
                   <span className="pc" style={{ background: t.id === 'auto' ? 'transparent' : t.colors[1], border: `1px solid ${t.dark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)'}` }} />
                   <span className="pa" style={{ background: t.colors[2] }} />
