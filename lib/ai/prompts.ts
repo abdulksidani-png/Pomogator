@@ -38,7 +38,29 @@ function contextLines(ctx: StudyContext): string[] {
   ];
 }
 
-export function quizPrompt({ ctx, n, difficulty, weak, asked, heard, material }: QuizInput): string {
+/** Read a whole document once, when it's uploaded, and keep compact study notes about it. */
+export function digestPrompt(m: Material): string {
+  return [
+    'A student just uploaded a document to study from. Read it and write compact study notes about it, so later quizzes and questions can use them.',
+    '',
+    `DOCUMENT: "${m.name}" (${m.pageCount} ${m.unit}s)`,
+    '<<<MATERIAL',
+    materialText(m),
+    'MATERIAL>>>',
+    '',
+    'RULES',
+    '- "topic": what the document is about, 2-7 words, like a course topic (not the file name).',
+    '- "summary": 2-4 plain sentences on what it covers and its main argument or idea.',
+    '- "concepts": 5-10 key terms, people, formulas or ideas a student should know, each 1-5 words.',
+    `- "sections": up to 12 parts in order. "from" and "to" are ${m.unit} numbers; "title" up to 8 words; "summary" one sentence.`,
+    '- Use only what the document says.',
+    '',
+    'Reply with only this JSON and no other text:',
+    '{"topic":"...","summary":"...","concepts":["..."],"sections":[{"from":1,"to":3,"title":"...","summary":"..."}]}',
+  ].join('\n');
+}
+
+export function quizPrompt({ ctx, n, difficulty, weak, asked, heard, material, digest }: QuizInput): string {
   const notes = (ctx.notes || '').trim().slice(0, LIMITS.notes);
   const doc = materialText(material);
   const spoken = (heard || '').trim().slice(-LIMITS.heard);
@@ -52,6 +74,7 @@ export function quizPrompt({ ctx, n, difficulty, weak, asked, heard, material }:
     'STUDY CONTEXT',
     ...contextLines(ctx),
     `Difficulty: ${DIFF_TEXT[difficulty] || DIFF_TEXT.standard}`,
+    digest?.concepts.length ? `Key concepts of this document (from reading all of it): ${digest.concepts.join('; ')}.` : '',
     sources.length
       ? `${sources.join('\n\n')}\nEvery question must be answerable from this material.${doc ? ` When a question comes from the document, end its "explanation" with "(See ${material!.unit} N.)" using the ${material!.unit} number.` : ''}`
       : 'No notes were given. Write questions from standard material for this topic at this level.',
@@ -127,7 +150,7 @@ export function dayPrompt({ sessions, weak }: DayInput): string {
 
 /** The assistant's standing instructions, with everything it knows about the student right now. */
 export function assistantSystem(a: AssistantInput): string {
-  const { ctx, timer, tasks, material, heard, now } = a;
+  const { ctx, timer, tasks, material, heard, now, library } = a;
   const notes = (ctx.notes || '').trim().slice(0, 8000);
   const doc = materialText(material);
   const spoken = (heard || '').trim().slice(-LIMITS.heard);
@@ -149,7 +172,8 @@ export function assistantSystem(a: AssistantInput): string {
     ...contextLines(ctx),
     `Timer: study sessions are ${timer.studyMin} min, short breaks ${timer.shortBreak} min, a ${timer.longBreak}-min long break after every ${timer.longEvery} sessions. ${timer.state}.`,
     tasks.length ? `Current to-do list:\n${tasks.map((t) => `- [${t.done ? 'x' : ' '}] ${t.text}`).join('\n')}` : 'The to-do list is empty.',
-    doc ? `\nThe document "${material!.name}" (${material!.pageCount} ${material!.unit}s; excerpt below):\n<<<MATERIAL\n${doc}\nMATERIAL>>>` : 'No document is selected.',
+    library?.length ? `\nDocuments the student has uploaded (you read each one when it was uploaded):\n${library.slice(0, 8).map((d) => `- "${d.name}" (${d.pageCount} ${d.unit}s): ${d.topic}. ${d.summary} Key concepts: ${d.concepts.join('; ')}.`).join('\n')}` : '',
+    doc ? `\nThe document open now, "${material!.name}" (${material!.pageCount} ${material!.unit}s; excerpt below):\n<<<MATERIAL\n${doc}\nMATERIAL>>>` : 'No document is open right now.',
     notes ? `\nThe student's notes:\n<<<NOTES\n${notes}\nNOTES>>>` : '',
     spoken ? `\nWhat the lecture said so far (automatic transcript):\n<<<LECTURE\n${spoken}\nLECTURE>>>` : '',
     '',

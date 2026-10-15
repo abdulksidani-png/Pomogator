@@ -28,7 +28,6 @@ test('a guest studies, takes the quiz and earns a break that matches the score',
   await fakeClaude(page);
   await page.clock.install();
   await page.goto('/');
-  await page.fill('#ctxSubject', 'Biology');
   await page.fill('#ctxTopic', 'Krebs cycle');
   await page.getByRole('button', { name: /Start studying/ }).click();
   await expect(page.getByText('Quiz ready · 3 questions')).toBeVisible();
@@ -63,7 +62,7 @@ test('a guest studies, takes the quiz and earns a break that matches the score',
 
   // Applying the plan sets the next session.
   await page.getByRole('button', { name: /Apply plan/ }).click();
-  await expect(page.locator('#ctxGoal')).toHaveValue('Memorize the yields per turn');
+  await expect(page.locator('#ctxGoal')).toContainText('Memorize the yields per turn');
 });
 
 test('without AI the timer still works and ends in a no-quiz break', async ({ page }) => {

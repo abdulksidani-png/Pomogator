@@ -322,6 +322,8 @@ export interface QuizInput {
   heard?: string;
   /** The document pages covered this session, if a document is being studied. */
   material?: Material;
+  /** The AI's notes on that document (key concepts), if it has read it. */
+  digest?: Pick<DocDigest, 'summary' | 'concepts'>;
 }
 
 /** Pages of a document sent to the AI. */
@@ -331,6 +333,15 @@ export interface Material {
   unit: string;
   pageCount: number;
   pages: { n: number; title: string; text: string }[];
+}
+
+/** What the AI took away from a document when it was uploaded, kept so quizzes and the assistant remember it. */
+export interface DocDigest {
+  /** A short topic label, e.g. "Pythagoras and early Greek philosophy". */
+  topic: string;
+  summary: string;
+  concepts: string[];
+  sections: { from: number; to: number; title: string; summary: string }[];
 }
 
 export interface ChatMessage {
@@ -353,6 +364,8 @@ export interface AssistantInput {
   timer: { studyMin: number; shortBreak: number; longBreak: number; longEvery: number; state: string };
   tasks: { text: string; done: boolean }[];
   material?: Material;
+  /** Every uploaded document the AI has read: name and notes, so it can talk about any of them. */
+  library?: { name: string; pageCount: number; unit: string; topic: string; summary: string; concepts: string[] }[];
   heard?: string;
   /** The student's local date and time, e.g. "Tue 14 Oct, 3:05 PM". */
   now?: string;

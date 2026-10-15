@@ -36,7 +36,7 @@ function assistant(system, turns) {
       tasks: [{ text: 'Read chapter 4', sessions: 1 }, { text: 'Outline the history essay', sessions: 2 }],
     };
   }
-  const doc = system.match(/The document "([^"]+)"/)?.[1];
+  const doc = system.match(/The document open now, "([^"]+)"/)?.[1];
   return { reply: `You asked: "${last}". ${doc ? `I can see ${doc}.` : 'No document is open.'} Turns so far: ${turns.length}.`, tasks: [] };
 }
 
@@ -89,6 +89,10 @@ http.createServer((req, res) => {
     if (system.includes('You are StudyBuddy')) {
       const a = assistant(system, body.contents);
       return a ? answer(res, a) : reply(res, 429, { error: { code: 429, message: 'Quota exceeded', status: 'RESOURCE_EXHAUSTED' } });
+    }
+    if (prompt.includes('write compact study notes')) {
+      const n = Number(prompt.match(/\((\d+) slides\)/)?.[1] || 1);
+      return answer(res, { topic: 'Ancient Greek philosophy', summary: 'Plato and Aristotle on forms and virtue.', concepts: ['Theory of Forms', 'Allegory of the cave', 'Eudaimonia'], sections: [{ from: 1, to: n, title: 'The whole deck', summary: 'From Plato to Aristotle.' }] });
     }
     if (prompt.includes('retrieval-practice quizzes')) return answer(res, quiz(prompt));
     if (prompt.includes('Write an actionable plan')) {

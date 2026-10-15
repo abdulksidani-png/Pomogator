@@ -9,7 +9,7 @@ import { docDownloadUrl } from '@/lib/sync';
 import type { DocMeta, DocPage, SeenEvent } from '@/lib/types';
 import { Icon } from './Icon';
 import { useArmed } from './Panels';
-import { openAssistant, sendToAssistant } from '@/lib/assistant';
+import { ensureDigest, useDigests } from '@/lib/ai/digest';
 
 // A shared empty list: a fresh [] in a store selector would re-render forever.
 const NO_EVENTS: SeenEvent[] = [];
@@ -49,23 +49,48 @@ export function StudyMaterial({ onManage }: { onManage: () => void }) {
     finally { setBusy(''); }
   };
 
+  // The AI reads a document once; a document from another device gets read the first time it's opened here.
+  useEffect(() => { if (docId) void ensureDigest(docId); }, [docId]);
+
   return (
-    <div className="field" id="materialField">
-      <label htmlFor="docSelect">Study material <span className="opt-tag">(optional)</span></label>
+    <div className="material" id="materialField">
       <div className="mat-row">
-        <select id="docSelect" value={docId} onChange={(e) => selectDoc(e.target.value)}>
-          <option value="">None, just a topic</option>
-          {docs.map((d) => <option key={d.id} value={d.id}>{d.name} · {d.pageCount} {unitWord(d, d.pageCount)}</option>)}
-        </select>
-        <button className="btn" type="button" disabled={!!busy} onClick={() => fileRef.current?.click()}><Icon name="upload" />Upload</button>
+        {docs.length > 0 && (
+          <>
+            <label className="sr-only" htmlFor="docSelect">Document</label>
+            <select id="docSelect" value={docId} onChange={(e) => selectDoc(e.target.value)}>
+              <option value="">No document</option>
+              {docs.map((d) => <option key={d.id} value={d.id}>{d.name} · {d.pageCount} {unitWord(d, d.pageCount)}</option>)}
+            </select>
+          </>
+        )}
+        <button className="btn" type="button" disabled={!!busy} title="PDF, PowerPoint, Word, text or photos of your notes" onClick={() => fileRef.current?.click()}>
+          <Icon name="upload" />{docs.length ? 'Upload' : 'Upload slides or notes'}
+        </button>
+        {docs.length > 0 && <button className="icon-btn" type="button" aria-label="Manage documents" title="Manage documents" onClick={onManage}><Icon name="file" /></button>}
       </div>
       <input ref={fileRef} id="docInput" type="file" accept={ACCEPT} multiple hidden onChange={onFiles} />
       {busy && <p className="hint loading-line"><span className="spin" aria-hidden="true" />{busy}</p>}
       {err && <p className="hint warn" role="alert">{err}</p>}
-      <p className="hint">PDF, PowerPoint, Word, text, or photos of your notes.{docs.length > 0 && <> <button className="btn-link" type="button" onClick={onManage}>Manage documents</button></>}</p>
+      {doc && <DigestLine docId={doc.id} />}
       {doc && <DocPlan key={doc.id} doc={doc} />}
       <ScreenShareRow />
     </div>
+  );
+}
+
+/** What the AI took from the document: a one-line status, with the key ideas a click away. */
+function DigestLine({ docId }: { docId: string }) {
+  const d = useDigests((s) => s[docId]);
+  if (!d || d.status === 'failed') return null;
+  if (d.status === 'reading') return <p className="digest-line"><span className="spin" aria-hidden="true" />Reading it with AI…</p>;
+  const g = d.data!;
+  return (
+    <details className="digest-line ready">
+      <summary><Icon name="sparkle" />Read by AI{g.topic ? <>: <strong>{g.topic}</strong></> : null}</summary>
+      <p>{g.summary}</p>
+      {g.concepts.length > 0 && <ul className="digest-concepts">{g.concepts.map((c) => <li key={c}>{c}</li>)}</ul>}
+    </details>
   );
 }
 
@@ -90,7 +115,7 @@ function ScreenShareRow() {
   const [ok, setOk] = useState<boolean | null>(null);
   useEffect(() => { setOk(screenSupported()); }, []);
   if (ok === null) return null;
-  if (!ok) return <p className="hint share-row"><Icon name="monitor" /> Screen tracking works in a computer browser (Chrome, Edge, Firefox or Safari).</p>;
+  if (!ok) return null; // phones and tablets can't share a screen
   if (scr.status === 'watching') {
     return (
       <div className="share-row on">
@@ -102,12 +127,13 @@ function ScreenShareRow() {
   }
   return (
     <div className="share-row">
-      <button className="btn" type="button" id="shareScreenBtn" disabled={scr.status === 'starting'} onClick={beginScreenShare}>
-        <Icon name="monitor" />{scr.status === 'starting' ? 'Choose a window…' : 'Share screen to track slides'}
+      <button className="btn-quiet" type="button" id="shareScreenBtn" aria-label="Share screen to track slides" title="Follows which slide you're on while you study"
+        disabled={scr.status === 'starting'} onClick={beginScreenShare}>
+        <Icon name="monitor" />{scr.status === 'starting' ? 'Choose a window…' : 'Share screen'}
       </button>
-      <label className="check-inline" htmlFor="shareSound">
+      <label className="check-inline" htmlFor="shareSound" title="For video lectures: what's said becomes notes for your quiz">
         <input type="checkbox" id="shareSound" checked={withSound} onChange={(e) => { const v = e.target.checked; useStudy.getState().updateSettings((x) => { x.screenAudio = v; }); }} />
-        Also capture the tab&apos;s sound <span className="muted">(video lectures)</span>
+        with sound
       </label>
     </div>
   );
@@ -180,12 +206,6 @@ function DocPlan({ doc }: { doc: DocMeta }) {
           <button className="btn-quiet" type="button" onClick={() => { setText(''); setDocGoal('', 0); }}>Clear goal</button>
         </div>
       )}
-      <div className="ask-row">
-        <button className="btn-quiet" type="button" onClick={() => { openAssistant(); void sendToAssistant(`Summarize "${doc.name}": the main ideas ${unit} by ${unit}, then the 5 concepts most likely to be tested.`); }}>
-          <Icon name="sparkle" />Summarize with AI
-        </button>
-        <button className="btn-quiet" type="button" onClick={() => openAssistant(`About "${doc.name}": `)}><Icon name="sparkle" />Ask about this {unit === 'slide' ? 'deck' : 'document'}</button>
-      </div>
     </div>
   );
 }

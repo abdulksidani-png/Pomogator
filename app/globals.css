@@ -167,9 +167,10 @@ svg.i { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor;
   font-size: clamp(62px, 15vw, 128px); color: var(--fg); margin: 10px 0 8px; white-space: nowrap;
 }
 html:root[data-skin="tomato"] .clock { font-weight: 700; }
-/* Each digit gets the width of a "0" in the current font, so the clock never jiggles. */
-.clock .d { display: inline-block; width: 1ch; text-align: center; }
-.clock .c { display: inline-block; width: .55ch; text-align: center; opacity: .75; }
+/* Each digit gets the width of a "0" in the current font, so the clock never jiggles. Flex centering keeps a
+   glyph centered even when it's wider than its box (a monospace colon is a full digit wide). */
+.clock .d { display: inline-flex; justify-content: center; width: 1ch; }
+.clock .c { display: inline-flex; justify-content: center; width: .55ch; opacity: .75; }
 .stage[data-status="paused"] .clock { opacity: .55; }
 .clock-sub { margin: 0; color: var(--fg-2); font-size: 15px; }
 
@@ -418,6 +419,31 @@ kbd { font: 600 12px/1 var(--f-mono); padding: 5px 8px; border-radius: 6px; bord
   .row2 { grid-template-columns: 1fr; }
   .mode { padding: 9px 11px; font-size: 13.5px; }
 }
+/* ---------- settings bits ---------- */
+.copy-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.copy-row code { padding: 7px 10px; border-radius: 8px; background: var(--sunk); font: 500 12.5px/1.3 var(--f-mono); overflow-wrap: anywhere; }
+
+/* ---------- the study panel ---------- */
+.material { display: grid; gap: 8px; }
+.material .mat-row:has(> .btn:only-child) .btn { width: 100%; justify-content: center; }
+.digest-line { margin: 0; font-size: 13px; color: var(--fg-2); display: flex; align-items: center; gap: 6px; }
+details.digest-line { display: block; }
+.digest-line summary { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; list-style: none; }
+.digest-line summary::-webkit-details-marker { display: none; }
+.digest-line summary svg.i { width: 15px; height: 15px; color: var(--accent); }
+.digest-line strong { color: var(--fg); font-weight: 700; }
+.digest-line p { margin: 6px 0 4px; line-height: 1.45; }
+.digest-concepts { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 5px; }
+.digest-concepts li { padding: 3px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--fg); font-size: 12px; font-weight: 600; }
+.goal-tag { margin: 0; display: flex; align-items: center; gap: 8px; padding: 7px 8px 7px 12px; border-radius: var(--r-md); background: var(--sunk); font-size: 13.5px; }
+.goal-tag > svg.i { width: 15px; height: 15px; color: var(--accent); }
+.goal-tag span { flex: 1; min-width: 0; }
+.goal-tag button { border: 0; background: none; color: var(--fg-3); display: grid; place-items: center; width: 26px; height: 26px; border-radius: 6px; }
+.goal-tag button:hover { background: var(--card); color: var(--fg); }
+.goal-tag button svg.i { width: 14px; height: 14px; }
+.material .share-row { margin-top: 2px; gap: 4px 12px; }
+.material .share-row .btn-quiet { padding-left: 0; }
+
 /* ---------- Stats page ---------- */
 .stats-main { display: block; }
 .stats-page { display: grid; gap: 20px; }

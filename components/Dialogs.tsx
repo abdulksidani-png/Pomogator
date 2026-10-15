@@ -4,7 +4,7 @@ import { useStudy } from '@/lib/store';
 import { PRESETS, DEFAULT_SETTINGS } from '@/lib/defaults';
 import { AMBIENCE, CHIMES, Sound } from '@/lib/sound';
 import { clamp } from '@/lib/util';
-import type { Difficulty, Tier } from '@/lib/types';
+import type { Difficulty, Level, Tier } from '@/lib/types';
 import { supabaseConfigured } from '@/lib/supabase/env';
 import { signOut } from '@/lib/sync';
 import { screenSupported, stopWatching } from '@/lib/docs/screen';
@@ -29,8 +29,9 @@ export function SettingsDialog({ dialogRef, onSignIn, onAppearance }: {
 }) {
   const s = useStudy((st) => st.settings);
   const account = useStudy((st) => st.account);
+  const ctx = useStudy((st) => st.context);
   const [logArmed, pressLog] = useArmed();
-  const { updateSettings, setStudyMin, setLoop, clearHistory, showToast } = useStudy.getState();
+  const { updateSettings, setStudyMin, setLoop, clearHistory, showToast, setContext } = useStudy.getState();
   const [previewing, setPreviewing] = useState(false);
   const [notifyNote, setNotifyNote] = useState('Pop up a notice when a phase ends');
   const [armed, press] = useArmed();
@@ -128,6 +129,19 @@ export function SettingsDialog({ dialogRef, onSignIn, onAppearance }: {
 
         <fieldset>
           <legend>Quiz</legend>
+          <div className="set-row"><label htmlFor="ctxLevel">Your level<span className="sub">Questions are pitched at this level</span></label>
+            <select id="ctxLevel" style={{ width: 'auto', minWidth: 180 }} value={ctx.level} onChange={(e) => setContext({ level: e.target.value as Level })}>
+              <option value="hs">High school</option>
+              <option value="intro">Intro college</option>
+              <option value="advanced">Advanced college</option>
+              <option value="exam">Exam prep</option>
+            </select>
+          </div>
+          {ctx.level === 'exam' && (
+            <div className="set-row"><label htmlFor="ctxExam">Which exam?</label>
+              <input type="text" id="ctxExam" style={{ width: 'auto', minWidth: 180 }} placeholder="e.g. MCAT, AP Chemistry" maxLength={60} value={ctx.exam} onChange={(e) => setContext({ exam: e.target.value })} />
+            </div>
+          )}
           <div className="set-row"><span className="field-label" id="qnLabel">Questions per quiz</span>
             <div className="seg" role="group" aria-labelledby="qnLabel">
               {[1, 2, 3].map((q) => <button key={q} type="button" aria-pressed={s.questions === q} onClick={() => updateSettings((x) => { x.questions = q; })}>{q}</button>)}
@@ -297,6 +311,22 @@ function MusicSettings() {
           ? <button className="btn" type="button" onClick={disconnectSpotify}>Disconnect</button>
           : <button className="btn" type="button" onClick={() => { void connectSpotify(); }}>Connect Spotify</button>}
       </div>
+      {!linked && <RedirectUri />}
     </fieldset>
+  );
+}
+
+/** The exact address to paste into the Spotify app's "Redirect URIs" (it must match character for character). */
+function RedirectUri() {
+  const uri = typeof window === 'undefined' ? '' : `${window.location.origin}/spotify`;
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="set-row stack">
+      <span className="field-label">Redirect URI for your Spotify app<span className="sub">If Spotify says &ldquo;redirect_uri: Not matching configuration&rdquo;, paste this into your app&apos;s Redirect URIs.</span></span>
+      <span className="inline copy-row">
+        <code id="spotifyRedirect">{uri}</code>
+        <button className="btn" type="button" onClick={() => { void navigator.clipboard?.writeText(uri).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1800); }); }}>{copied ? 'Copied' : 'Copy'}</button>
+      </span>
+    </div>
   );
 }

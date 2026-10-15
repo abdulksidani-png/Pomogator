@@ -1,13 +1,10 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useStudy } from '@/lib/store';
-import { isVagueTopic, topicKey, topicLabel, weakConcepts } from '@/lib/context';
-import { aiErrorText } from '@/lib/quiz';
-import { parseFiles, ACCEPT } from '@/lib/docs/parse';
+import { topicKey, topicLabel, weakConcepts } from '@/lib/context';
 import { timeOf } from '@/lib/util';
 import { todayFor } from '@/lib/dates';
-import type { StudyContext } from '@/lib/types';
 import { Icon } from './Icon';
 import { ReachPicker, StudyMaterial } from './Documents';
 import { EASE, SOFT, SPRING } from './motion';
@@ -123,65 +120,28 @@ export function PlanCard() {
 
 export function ContextCard({ onManageDocs }: { onManageDocs: () => void }) {
   const c = useStudy((s) => s.context);
-  const { setContext, appendNotes, showToast } = useStudy.getState();
-  const txtRef = useRef<HTMLInputElement>(null);
-  const [reading, setReading] = useState('');
-  const field = (k: keyof StudyContext) => ({
-    value: c[k],
-    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => setContext({ [k]: e.target.value } as Partial<StudyContext>),
-  });
-  const n = c.notes.length;
+  const { setContext } = useStudy.getState();
 
-  // Any readable file (PDF, Word, PowerPoint, text, photos) can be added to the notes as text.
-  const onImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    e.target.value = '';
-    if (!files.length) return;
-    setReading('Reading…');
-    try {
-      const { pages } = await parseFiles(files, setReading);
-      appendNotes(pages.map((p) => p.text).join('\n\n'), files.length > 1 ? `${files.length} photos` : files[0].name);
-    } catch (err) { showToast((err as Error).message || aiErrorText(err)); }
-    finally { setReading(''); }
-  };
+  // One "what are you studying" box now: fold a subject typed in the old separate box into it.
+  useEffect(() => {
+    const sub = c.subject.trim();
+    if (sub) setContext({ subject: '', topic: c.topic.trim() ? `${sub} · ${c.topic.trim()}` : sub });
+  }, [c.subject, c.topic, setContext]);
 
   return (
     <section className="card side-card" id="ctxCard" aria-labelledby="ctxTitle">
-      <div className="card-h"><h2 id="ctxTitle">What you&apos;re studying</h2><span className="meta">Quizzes use this</span></div>
+      <div className="card-h"><h2 id="ctxTitle">What you&apos;re studying</h2></div>
       <form className="form" autoComplete="off" onSubmit={(e) => e.preventDefault()}>
-        <div className="row2">
-          <div className="field"><label htmlFor="ctxSubject">Subject</label><input type="text" id="ctxSubject" placeholder="e.g. Biology" maxLength={80} {...field('subject')} /></div>
-          <div className="field"><label htmlFor="ctxLevel">Level</label>
-            <select id="ctxLevel" {...field('level')}>
-              <option value="hs">High school</option>
-              <option value="intro">Intro college</option>
-              <option value="advanced">Advanced college</option>
-              <option value="exam">Exam prep</option>
-            </select>
-          </div>
-        </div>
-        {c.level === 'exam' && (
-          <div className="field"><label htmlFor="ctxExam">Which exam?</label><input type="text" id="ctxExam" placeholder="e.g. MCAT, AP Chemistry, Step 1" maxLength={60} {...field('exam')} /></div>
-        )}
-        <div className="field"><label htmlFor="ctxTopic">Topic</label>
-          <input type="text" id="ctxTopic" placeholder="e.g. Krebs cycle steps and products" maxLength={140} {...field('topic')} />
-          {isVagueTopic(c) && <p className="hint">Add detail for sharper questions, e.g. &quot;{c.topic.trim()}: the part you&apos;re on today&quot;.</p>}
-        </div>
+        <label className="sr-only" htmlFor="ctxTopic">Topic</label>
+        <input type="text" id="ctxTopic" placeholder="Topic, e.g. Krebs cycle" maxLength={140} value={c.topic} onChange={(e) => setContext({ topic: e.target.value })} />
         <StudyMaterial onManage={onManageDocs} />
-        <div className="field"><label htmlFor="ctxGoal">Goal for this session <span className="opt-tag">(optional)</span></label>
-          <input type="text" id="ctxGoal" placeholder="e.g. Memorize the 8 steps in order" maxLength={200} {...field('goal')} /></div>
-        <div className="field"><label htmlFor="ctxNotes">Your notes <span className="opt-tag">(optional)</span></label>
-          <textarea id="ctxNotes" placeholder="Paste notes, a textbook passage or slide text. Questions will stick to what's here." {...field('notes')} />
-          <div className="file-row">
-            <p className="hint">{n ? `${n.toLocaleString()} characters${n > 12000 ? ' · the first 12,000 are used' : ''}` : 'No notes yet'}</p>
-            <div className="btns">
-              <button className="btn-quiet" type="button" title="Add the text of a PDF, Word, PowerPoint, text file or photo" disabled={!!reading} onClick={() => txtRef.current?.click()}>
-                {reading ? <><span className="spin" aria-hidden="true" />{reading}</> : <><Icon name="file" />Add text from a file</>}
-              </button>
-            </div>
-          </div>
-          <input ref={txtRef} id="notesInput" type="file" accept={ACCEPT} multiple hidden onChange={onImport} />
-        </div>
+        {c.goal.trim() && (
+          <p className="goal-tag" id="ctxGoal"><Icon name="flag" /><span>{c.goal}</span>
+            <button type="button" aria-label="Clear this goal" onClick={() => setContext({ goal: '' })}><Icon name="x" /></button></p>
+        )}
+        {c.notes.trim() && (
+          <p className="hint">Notes you pasted earlier are still used in quizzes. <button className="btn-link" type="button" onClick={() => setContext({ notes: '' })}>Remove them</button></p>
+        )}
       </form>
     </section>
   );

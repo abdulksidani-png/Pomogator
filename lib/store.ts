@@ -484,12 +484,14 @@ export const useStudy = create<Store>()(
             const tk = topicKey(s.context);
             const pages = quizPages(s);
             const material = pages ? await (await import('./ai/material')).materialFor(s.context.docId, pages[0], pages[1]) : undefined;
+            const digest = s.context.docId ? (await import('./ai/digest')).useDigests.getState()[s.context.docId]?.data : undefined;
             if (ctl !== quizCtl) return;
             const qs = await AI.quiz({
               ctx: { ...s.context }, n: s.settings.questions, difficulty: s.settings.difficulty,
               weak: weakConcepts(s.stats, tk).map((c) => c.concept), asked: askedToday(s.asked, todayFor(s.settings)).slice(-30),
               ...(s.timer.session?.heard ? { heard: s.timer.session.heard.slice(-6000) } : {}),
               ...(material ? { material } : {}),
+              ...(digest ? { digest: { summary: digest.summary, concepts: digest.concepts } } : {}),
             }, ctl.signal);
             if (ctl !== quizCtl) return;
             if (!qs.length) throw { code: 'invalid_json' };

@@ -30,8 +30,7 @@ test('guest progress survives sign-in, follows you to a second device, and stays
   await a.clock.install();
   await a.goto('/');
   await expect(footer(a)).toContainText('studying as a guest', { timeout: 15_000 });
-  await a.fill('#ctxSubject', 'Philosophy');
-  await a.fill('#ctxTopic', 'Plato and Aristotle');
+  await a.fill('#ctxTopic', 'Philosophy · Plato and Aristotle');
   await addTask(a, 'Read lecture 3');
 
   await a.getByRole('button', { name: /Start studying/ }).click();
@@ -79,13 +78,13 @@ test('guest progress survives sign-in, follows you to a second device, and stays
     .toEqual(['Make flashcards', 'Read lecture 3']);
 
   /* ---------- a change on B shows up on A ---------- */
-  await b.fill('#ctxGoal', 'Get up to the Aristotle slide');
+  await b.fill('#ctxTopic', 'Aristotle on virtue');
   await expect.poll(async () => {
-    const p = (await rows('profiles')).find((r) => r.id === guestId) as { context?: { goal?: string } } | undefined;
-    return p?.context?.goal;
-  }, { timeout: 15_000 }).toBe('Get up to the Aristotle slide');
+    const p = (await rows('profiles')).find((r) => r.id === guestId) as { context?: { topic?: string } } | undefined;
+    return p?.context?.topic;
+  }, { timeout: 15_000 }).toBe('Aristotle on virtue');
   await a.reload();
-  await expect(a.locator('#ctxGoal')).toHaveValue('Get up to the Aristotle slide', { timeout: 15_000 });
+  await expect(a.locator('#ctxTopic')).toHaveValue('Aristotle on virtue', { timeout: 15_000 });
 
   /* ---------- signing out on B (from Settings) leaves nothing behind for the next person ---------- */
   await b.getByRole('button', { name: 'Settings', exact: true }).click();

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { askJson, errorFrom, parseJson, replyText } from '@/lib/ai/gemini';
-import { assistantSystem, materialText, quizPrompt } from '@/lib/ai/prompts';
-import { cleanAssistant, taskLine } from '@/lib/quiz';
+import { assistantSystem, digestPrompt, materialText, quizPrompt } from '@/lib/ai/prompts';
+import { cleanAssistant, cleanDigest, taskLine } from '@/lib/quiz';
 import { DEFAULT_CONTEXT } from '@/lib/defaults';
 import type { Material } from '@/lib/types';
 
@@ -45,7 +45,7 @@ describe('prompts', () => {
     });
     expect(s).toContain('study sessions are 25 min, short breaks 5 min, a 15-min long break after every 4 sessions');
     expect(s).toContain('- [x] Read ch. 4');
-    expect(s).toContain('The document "lecture.pptx" (3 slides');
+    expect(s).toContain('The document open now, "lecture.pptx" (3 slides');
     expect(s).toContain('Current time: Tue, Oct 14, 3:05 PM');
   });
 });
@@ -129,5 +129,33 @@ describe('assistant replies', () => {
   it('rejects an empty reply', () => {
     expect(() => cleanAssistant({ reply: '', tasks: [] })).toThrow();
     expect(() => cleanAssistant('nope')).toThrow();
+  });
+});
+
+describe('document digests', () => {
+  it('asks for study notes on the whole document', () => {
+    const p = digestPrompt(deck);
+    expect(p).toContain('DOCUMENT: "lecture.pptx" (3 slides)');
+    expect(p).toContain('[Slide 5] Plato vs Aristotle');
+    expect(p).toContain('"from" and "to" are slide numbers');
+  });
+  it('cleans the notes: keeps sections inside the document and caps the lists', () => {
+    const d = cleanDigest({
+      topic: 'Plato and Aristotle', summary: 'Two views of forms.', concepts: ['Forms', '', 'Virtue', ...Array(12).fill('x')],
+      sections: [{ from: 0, to: 99, title: 'All', summary: 'Everything' }, { from: 2, to: 1, title: 'Back to front' }, 'junk'],
+    }, 8);
+    expect(d.topic).toBe('Plato and Aristotle');
+    expect(d.concepts).toHaveLength(10);
+    expect(d.concepts.slice(0, 2)).toEqual(['Forms', 'Virtue']);
+    expect(d.sections).toEqual([{ from: 1, to: 8, title: 'All', summary: 'Everything' }, { from: 2, to: 2, title: 'Back to front', summary: '' }]);
+    expect(() => cleanDigest({ topic: 'x', summary: '' }, 3)).toThrow();
+  });
+  it('tells the assistant about every document it has read', () => {
+    const s = assistantSystem({
+      messages: [], ctx: { ...DEFAULT_CONTEXT }, timer: { studyMin: 25, shortBreak: 5, longBreak: 15, longEvery: 4, state: '' }, tasks: [],
+      library: [{ name: 'bio.pdf', pageCount: 12, unit: 'page', topic: 'Cell respiration', summary: 'How cells make ATP.', concepts: ['Krebs cycle', 'ATP'] }],
+    });
+    expect(s).toContain('- "bio.pdf" (12 pages): Cell respiration. How cells make ATP. Key concepts: Krebs cycle; ATP.');
+    expect(s).toContain('No document is open right now.');
   });
 });

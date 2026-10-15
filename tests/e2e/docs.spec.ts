@@ -55,14 +55,28 @@ test('PDF and Word files are split into pages and sections with their titles', a
   await expect(page.locator('#docsDlg .doc-outline li')).toHaveCount(7);
 });
 
-test('photos are read on the device, and any file can fill the notes', async ({ page }) => {
+test('photos of notes are read on the device', async ({ page }) => {
   test.setTimeout(120_000);
   await page.goto('/');
   await upload(page, 'notes-photo.png');
   await expect(page.locator('#startPage option').first()).toContainText('Aristotle', { timeout: 60_000 });
+});
 
-  await page.locator('#notesInput').setInputFiles(fixture('lecture.pdf'));
-  await expect(page.locator('#ctxNotes')).toHaveValue(/Eudaimonia is the highest good/, { timeout: 30_000 });
+test('the study panel is one topic box plus documents; an old subject folds into the topic', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (!localStorage.getItem('studybuddy.v1')) localStorage.setItem('studybuddy.v1', JSON.stringify({ state: { context: { subject: 'Biology', topic: 'Krebs cycle', goal: 'Memorize the 8 steps' } }, version: 1 }));
+  });
+  await page.goto('/');
+  await expect(page.locator('#ctxTopic')).toHaveValue('Biology · Krebs cycle');
+  await expect(page.locator('#ctxCard input[type="text"]')).toHaveCount(1); // just the topic
+  await expect(page.locator('#ctxCard textarea, #ctxCard select')).toHaveCount(0); // no notes box, no subject or level
+  await expect(page.locator('#ctxGoal')).toContainText('Memorize the 8 steps');
+  await page.getByRole('button', { name: 'Clear this goal' }).click();
+  await expect(page.locator('#ctxGoal')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.locator('#ctxLevel').selectOption('exam');
+  await page.locator('#ctxExam').fill('MCAT');
+  await expect(page.locator('#ctxExam')).toHaveValue('MCAT');
 });
 
 test('screen tracking reads the shared slides window and follows along', async ({ page }) => {

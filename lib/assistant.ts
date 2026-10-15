@@ -60,6 +60,7 @@ export async function sendToAssistant(text: string) {
     const st = useStudy.getState();
     const { materialForChat } = await import('./ai/material');
     const material = st.context.docId ? await materialForChat(st.context.docId, st.context.startPage) : undefined;
+    const library = (await import('./ai/digest')).libraryForAssistant();
     const history = useChat.getState().messages.filter((m) => !m.error).map((m) => ({ role: m.role, text: m.text }));
     const input: AssistantInput = {
       messages: history,
@@ -67,6 +68,7 @@ export async function sendToAssistant(text: string) {
       timer: timerState(),
       tasks: st.tasks.map((x) => ({ text: x.text, done: x.done })),
       ...(material ? { material } : {}),
+      ...(library.length ? { library } : {}),
       ...(st.timer.session?.heard ? { heard: st.timer.session.heard.slice(-6000) } : {}),
       now: new Date().toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }),
     };

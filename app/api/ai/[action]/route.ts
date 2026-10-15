@@ -1,10 +1,10 @@
 // Every AI feature: quiz, plan, day summary and the study assistant.
 // Checks sign-in and the daily allowance, asks Gemini (lib/ai/gemini.ts), and validates the reply.
 import { askJson, geminiConfigured } from '@/lib/ai/gemini';
-import { LIMITS, assistantSystem, dayPrompt, planPrompt, quizPrompt } from '@/lib/ai/prompts';
+import { LIMITS, assistantSystem, dayPrompt, digestPrompt, planPrompt, quizPrompt } from '@/lib/ai/prompts';
 import { spendAiCall } from '@/lib/ai/quota';
-import { cleanAssistant, cleanDay, cleanPlan, cleanQuiz } from '@/lib/quiz';
-import type { AiError, AssistantInput, DayInput, PlanInput, QuizInput } from '@/lib/types';
+import { cleanAssistant, cleanDay, cleanDigest, cleanPlan, cleanQuiz } from '@/lib/quiz';
+import type { AiError, AssistantInput, DayInput, Material, PlanInput, QuizInput } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -19,10 +19,11 @@ const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 
 
 export async function POST(req: Request, { params }: { params: Promise<{ action: string }> }) {
   const { action } = await params;
-  if (!['quiz', 'plan', 'day-summary', 'assistant'].includes(action)) return fail({ code: 'not_found' });
+  if (!['quiz', 'plan', 'day-summary', 'assistant', 'digest'].includes(action)) return fail({ code: 'not_found' });
   if (!geminiConfigured()) return fail({ code: 'not_configured', message: 'AI features are not set up on this site yet.' });
   const body = await req.json().catch(() => null);
-  if (!isObj(body) || (action !== 'day-summary' && !isObj(body.ctx))) return fail({ code: 'bad_request' });
+  const needsCtx = action !== 'day-summary' && action !== 'digest';
+  if (!isObj(body) || (needsCtx && !isObj(body.ctx)) || (action === 'digest' && !(isObj(body.material) && Array.isArray(body.material.pages)))) return fail({ code: 'bad_request' });
   const over = await spendAiCall();
   if (over) return fail(over);
 
@@ -38,6 +39,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ action:
     if (action === 'plan') {
       const raw = await askJson({ turns: [{ role: 'user', text: planPrompt(body as unknown as PlanInput) }], signal: req.signal });
       return Response.json(cleanPlan(raw));
+    }
+    if (action === 'digest') {
+      const m = body.material as unknown as Material;
+      const raw = await askJson({ turns: [{ role: 'user', text: digestPrompt(m) }], temperature: 0.3, signal: req.signal });
+      return Response.json(cleanDigest(raw, Number(m.pageCount) || m.pages.length));
     }
     if (action === 'day-summary') {
       const raw = await askJson({ turns: [{ role: 'user', text: dayPrompt(body as unknown as DayInput) }], signal: req.signal });

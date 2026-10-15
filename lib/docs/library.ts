@@ -33,6 +33,8 @@ export async function importDocument(files: File[], onProgress: Progress = () =>
     meta.storagePath = await uploadDocFile(id, files[0]).catch(() => undefined);
   }
   useStudy.getState().addDoc(meta);
+  // The AI reads it in the background, so quizzes and the assistant know it without being asked.
+  void import('../ai/digest').then((m) => m.ensureDigest(id));
   return meta;
 }
 
@@ -54,6 +56,7 @@ export async function hasLocalPages(id: string) { return memo.has(id) || !!(awai
 export async function deleteDocument(doc: DocMeta) {
   memo.delete(doc.id);
   await idb.del(key(doc.id));
+  void import('../ai/digest').then((m) => m.forgetDigest(doc.id));
   useStudy.getState().removeDoc(doc.id);
   if (doc.storagePath) void deleteDocFiles([doc.storagePath]).catch(() => undefined);
 }

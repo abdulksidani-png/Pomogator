@@ -1,4 +1,4 @@
-import type { AiError, AssistantReply, DaySummary, Plan, ProposedTask, QuizQuestion } from './types';
+import type { AiError, AssistantReply, DaySummary, DocDigest, Plan, ProposedTask, QuizQuestion } from './types';
 import { clamp, shuffle, uid } from './util';
 
 type Obj = Record<string, unknown>;
@@ -63,6 +63,18 @@ export function cleanPlan(d: unknown): Plan {
 export function cleanDay(d: unknown): DaySummary {
   if (!isObj(d)) throw { code: 'invalid_json' } satisfies AiError;
   return { headline: str(d.headline), wins: list(d.wins, 5), gaps: list(d.gaps, 5), tomorrow: list(d.tomorrow, 5) };
+}
+
+/** Validate a document digest: a topic, a summary, key concepts and section notes. */
+export function cleanDigest(d: unknown, pageCount: number): DocDigest {
+  if (!isObj(d)) throw { code: 'invalid_json' } satisfies AiError;
+  const summary = str(d.summary).slice(0, 900);
+  if (!summary) throw { code: 'empty_completion' } satisfies AiError;
+  const sections = (Array.isArray(d.sections) ? d.sections : []).filter(isObj).map((x) => {
+    const from = clamp(Math.round(Number(x.from) || 1), 1, Math.max(1, pageCount));
+    return { from, to: clamp(Math.round(Number(x.to) || from), from, Math.max(1, pageCount)), title: str(x.title).slice(0, 80), summary: str(x.summary).slice(0, 300) };
+  }).filter((x) => x.title || x.summary).slice(0, 12);
+  return { topic: str(d.topic).slice(0, 80), summary, concepts: list(d.concepts, 10).map((c) => c.slice(0, 60)), sections };
 }
 
 /** Validate the assistant's reply: a message, plus any to-do items it proposed. */

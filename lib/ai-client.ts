@@ -2,8 +2,8 @@
  * Browser side of the AI features. Every call goes to this site's own /api/ai/* routes,
  * which hold the Gemini API key on the server.
  */
-import type { AiError, AiStatus, AssistantInput, AssistantReply, DayInput, DaySummary, Plan, PlanInput, QuizInput, QuizQuestion } from './types';
-import { cleanAssistant, cleanDay, cleanPlan, cleanQuiz } from './quiz';
+import type { AiError, AiStatus, AssistantInput, AssistantReply, DayInput, DaySummary, DocDigest, Material, Plan, PlanInput, QuizInput, QuizQuestion } from './types';
+import { cleanAssistant, cleanDay, cleanDigest, cleanPlan, cleanQuiz } from './quiz';
 
 let status: AiStatus = 'checking';
 let readyP: Promise<AiStatus> | null = null;
@@ -45,6 +45,9 @@ export const AI = {
   },
   async day(input: DayInput, signal?: AbortSignal): Promise<DaySummary> {
     return cleanDay(await post('day-summary', input, signal));
+  },
+  async digest(material: Material, signal?: AbortSignal): Promise<DocDigest> {
+    return cleanDigest(await post('digest', { material }, signal), material.pageCount);
   },
   async assistant(input: AssistantInput, signal?: AbortSignal): Promise<AssistantReply> {
     return cleanAssistant(await post('assistant', input, signal));

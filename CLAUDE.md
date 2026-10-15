@@ -51,6 +51,19 @@ timer keeps going and shows as a pill in the header; timer shortcuts only work o
 dataviz skill: single-series accent columns with hover/focus tooltips + table view, a 12-week one-hue heatmap, accuracy
 bars, per-page document coverage (not yet / studied / studied + quizzed).
 
+**Simpler study panel (his request):** "What you're studying" is one topic box (an old `subject` folds into `topic`
+on load), the document picker + Upload + manage icon, Start at / Goal, and a compact Share screen row. Level and exam
+moved to Settings → Quiz; the notes box and "Add text from a file" are gone (old notes still count, with a Remove link);
+a goal from "Apply plan" shows as a removable tag (`#ctxGoal`). No more "Summarize with AI" buttons: every upload is
+read by the AI in the background (`lib/ai/digest.ts`, action `digest`): topic, summary, key concepts, sections, saved in
+IndexedDB `digest:<id>` (per device; another device reads it again on first open). The digest replaces a file-name topic,
+feeds the quiz (`digest.concepts`) and the assistant (`library` of every read document).
+
+**Setup gotchas he hit:** sign-in landing on an old version = Supabase Auth → URL Configuration "Site URL" pointing at an
+old immutable Vercel deployment URL; it must be `https://studybuddy-bay.vercel.app` with `https://studybuddy-bay.vercel.app/**`
+in Redirect URLs. Spotify "redirect_uri: Not matching configuration" = the app's Redirect URIs must contain exactly
+`https://studybuddy-bay.vercel.app/spotify` (Settings → Music shows it with a Copy button).
+
 **Buddies, round 2 (built with Phase 6):** Panfer (FIU-style gold panther in a navy jersey, original pixel art; the owner
 shared FIU's loading sprite only as a style reference) and the gator is now named Albert. While studying (`focus` mood)
 every buddy wears glasses at a desk: gorilla and Panfer write (pencil layer, class `pencil`), Albert and the robot type
@@ -145,7 +158,7 @@ Earlier requests, all done and confirmed:
 ```bash
 npm run dev          # http://localhost:3000 (copies vendor files first)
 npm run typecheck
-npm test             # Vitest unit tests (71)
+npm test             # Vitest unit tests (74)
 npm run test:e2e     # Playwright: loop, documents, goals, screen tracking, tab sound, sounds, appearance, buddies, stats
 npm run test:ai      # Playwright: AI, Unsplash and Spotify against stand-ins (tests/fake-gemini; Spotify faked in-test)
 npm run test:sync    # two-device sync: needs local Postgres + PostgREST (PGHOST/PGPORT/PGUSER, POSTGREST_BIN)

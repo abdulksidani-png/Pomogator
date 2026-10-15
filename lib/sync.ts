@@ -137,6 +137,7 @@ async function onSignedOut() {
   userId = '';
   state().resetLocalData();
   await idb.clearPrefix('doc:'); // documents belonged to the signed-out account
+  await idb.clearPrefix('digest:');
   setAccount({ status: 'connecting', userId: undefined, email: undefined, name: undefined, avatarUrl: undefined, error: undefined });
   const user = await startGuest();
   if (user) await adoptUser(user);

@@ -89,15 +89,34 @@ test('the assistant answers questions about the document and plans a to-do list'
   await expect(panel).toBeHidden();
 });
 
-test('"Plan with AI" and "Summarize with AI" open the assistant', async ({ page }) => {
+test('"Plan with AI" opens the assistant ready for a to-do list', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Plan with AI' }).click();
   await expect(page.locator('#assistantBox')).toHaveValue(/Here's everything I need to do: $/);
-  await page.keyboard.press('Escape');
+});
 
+test('an upload is read by the AI in the background: topic, key ideas, and the assistant remembers it', async ({ page }) => {
+  await page.goto('/');
   await page.locator('#docInput').setInputFiles(fixture('lecture.pptx'));
   await expect(page.locator('#docSelect')).toContainText('lecture.pptx', { timeout: 60_000 });
-  await page.getByRole('button', { name: 'Summarize with AI' }).click();
-  await expect(page.locator('.assistant .bubble.me')).toContainText('Summarize "lecture.pptx"');
-  await expect(page.locator('.assistant .bubble.bot')).toContainText('I can see lecture.pptx');
+  await expect(page.locator('.digest-line')).toContainText('Read by AI: Ancient Greek philosophy', { timeout: 15_000 });
+  await expect(page.locator('#ctxTopic')).toHaveValue('Ancient Greek philosophy'); // the file-name topic was replaced
+  await page.locator('.digest-line summary').click();
+  await expect(page.locator('.digest-concepts')).toContainText('Allegory of the cave');
+  const digestCall = (await sent(page)).find((s) => textOf(s).includes('write compact study notes'))!;
+  expect(textOf(digestCall)).toContain('[Slide 7]');
+
+  // Saved on this device: a reload doesn't read it again.
+  await page.reload();
+  await expect(page.locator('.digest-line')).toContainText('Ancient Greek philosophy');
+  expect((await sent(page)).filter((s) => textOf(s).includes('write compact study notes'))).toHaveLength(1);
+
+  // The assistant knows every document read so far, even when none is open.
+  await page.locator('#docSelect').selectOption('');
+  await page.getByRole('button', { name: /Ask the study assistant/ }).click();
+  await page.locator('#assistantBox').fill('What did I upload?');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.assistant .bubble.bot').last()).toContainText('No document is open');
+  const chat = (await sent(page)).at(-1)!;
+  expect(chat.body.systemInstruction!.parts[0].text).toContain('"lecture.pptx" (7 slides): Ancient Greek philosophy.');
 });

@@ -82,6 +82,7 @@ export default function StudyBuddyApp({ initialView = 'timer' }: { initialView?:
   useEffect(() => {
     void useStudy.getState().boot();
     startSync();
+    void import('@/lib/ai/digest').then((m) => m.loadSavedDigests());
     // Messages left in the address bar by the sign-in callback.
     const url = new URL(window.location.href);
     const p = url.searchParams;
