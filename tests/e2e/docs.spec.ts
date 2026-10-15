@@ -1,0 +1,134 @@
+import { test, expect, type Page } from '@playwright/test';
+import path from 'node:path';
+
+const fixture = (name: string) => path.join(__dirname, '..', 'fixtures', name);
+
+async function upload(page: Page, name: string) {
+  await page.locator('#docInput').setInputFiles(fixture(name));
+  await expect(page.locator('#docSelect')).toContainText(name, { timeout: 60_000 });
+}
+
+test('PowerPoint: plain-language goal, progress, goal met, and resuming next time', async ({ page }) => {
+  await page.clock.install();
+  await page.goto('/');
+  await upload(page, 'lecture.pptx');
+  await expect(page.locator('#docSelect option:checked')).toHaveText(/lecture\.pptx · 7 slides/);
+  await expect(page.locator('#ctxTopic')).toHaveValue('lecture');
+
+  await page.fill('#docGoal', 'study up until the Aristotle slide');
+  await expect(page.locator('.goal-box')).toContainText('slides 1–5, ending at “Plato vs Aristotle on the Forms” (slide 5). Correct?');
+  await page.getByRole('button', { name: 'Yes, set goal' }).click();
+  await expect(page.locator('.goal-box.set')).toContainText('Goal: up to slide 5');
+
+  await page.getByRole('button', { name: /Start studying/ }).click();
+  await expect(page.locator('.doc-progress')).toContainText('Slide 1 of 7');
+  await expect(page.locator('.doc-progress')).toContainText('Goal: slide 5 · 4 to go');
+  await page.selectOption('#nowOn', '5');
+  await expect(page.locator('.toast')).toContainText('Goal reached: slide 5');
+
+  await page.clock.fastForward('25:02');
+  await page.getByRole('button', { name: /Take a 5-min break/ }).click();
+  await expect(page.locator('.reach')).toContainText('Goal met');
+  await expect(page.locator('#reached')).toHaveValue('5');
+
+  // Next session picks up right after where this one stopped.
+  await page.getByRole('button', { name: 'Skip to the next phase' }).click();
+  await expect(page.locator('#startPage')).toHaveValue('6');
+  await expect(page.locator('#materialField')).toContainText('Resume at slide 6: Aristotle: Virtue Ethics');
+  await expect(page.locator('#docGoal')).toHaveValue('');
+});
+
+test('PDF and Word files are split into pages and sections with their titles', async ({ page }) => {
+  await page.goto('/');
+  await upload(page, 'lecture.pdf');
+  await expect(page.locator('#startPage option')).toHaveCount(7);
+  await expect(page.locator('#startPage option').nth(5)).toHaveText('Page 6 · Aristotle: Virtue Ethics');
+
+  await upload(page, 'lecture.docx');
+  await expect(page.locator('#startPage option')).toHaveCount(7);
+  await expect(page.locator('#startPage option').nth(3)).toHaveText('Section 4 · Plato: The Theory of Forms');
+
+  // The library lists both, with outlines.
+  await page.getByRole('button', { name: 'Manage documents' }).click();
+  await expect(page.locator('#docsDlg .doc-item')).toHaveCount(2);
+  await page.locator('#docsDlg .doc-item').filter({ hasText: 'lecture.pdf' }).getByRole('button', { name: 'Outline' }).click();
+  await expect(page.locator('#docsDlg .doc-outline li')).toHaveCount(7);
+});
+
+test('photos are read on the device, and any file can fill the notes', async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto('/');
+  await upload(page, 'notes-photo.png');
+  await expect(page.locator('#startPage option').first()).toContainText('Aristotle', { timeout: 60_000 });
+
+  await page.locator('#notesInput').setInputFiles(fixture('lecture.pdf'));
+  await expect(page.locator('#ctxNotes')).toHaveValue(/Eudaimonia is the highest good/, { timeout: 30_000 });
+});
+
+test('screen tracking reads the shared slides window and follows along', async ({ page }) => {
+  test.setTimeout(150_000);
+  // Stand in for the browser's screen-share picker: a canvas "window" showing lecture slides.
+  await page.addInitScript(() => {
+    const slides: Record<number, [string, string[]]> = {
+      4: ['Plato: The Theory of Forms', ['Forms are perfect abstract realities', 'The allegory of the cave', 'Justice in the Republic']],
+      6: ['Aristotle: Virtue Ethics', ['Eudaimonia is the highest good', 'Virtue is a mean between extremes', 'Habituation builds character']],
+    };
+    (window as unknown as { __slide: number }).__slide = 4;
+    navigator.mediaDevices.getDisplayMedia = async () => {
+      const c = document.createElement('canvas');
+      c.width = 1280; c.height = 720;
+      const ctx = c.getContext('2d')!;
+      const paint = () => {
+        const [title, lines] = slides[(window as unknown as { __slide: number }).__slide];
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 1280, 720);
+        ctx.fillStyle = '#111'; ctx.font = 'bold 64px sans-serif'; ctx.fillText(title, 70, 130);
+        ctx.font = '40px sans-serif';
+        lines.forEach((l, i) => ctx.fillText('• ' + l, 90, 260 + i * 80));
+      };
+      paint();
+      setInterval(paint, 200);
+      return c.captureStream(5);
+    };
+  });
+  await page.goto('/');
+  await upload(page, 'lecture.pptx');
+
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.locator('#scrToggle').check();
+  await page.locator('#scrEvery').fill('10');
+  await page.locator('#settingsDlg').getByRole('button', { name: 'Done' }).click();
+
+  await page.getByRole('button', { name: /Start studying/ }).click();
+  await expect(page.locator('#screenDlg')).toBeVisible();          // first time: explain before sharing
+  await page.getByRole('button', { name: 'Choose window to share' }).click();
+  await expect(page.locator('.watch-pill')).toContainText('Watching');
+  await expect(page.locator('.doc-progress')).toContainText('Slide 4 of 7', { timeout: 60_000 });
+
+  await page.evaluate(() => { (window as unknown as { __slide: number }).__slide = 6; });
+  await expect(page.locator('.doc-progress')).toContainText('Slide 6 of 7', { timeout: 60_000 });
+  await page.locator('.seen-log summary').click();
+  await expect(page.locator('.seen-log')).toContainText('Aristotle: Virtue Ethics');
+
+  // Ending the session stops the sharing.
+  await page.getByRole('button', { name: /Finish session now/ }).click();
+  await expect(page.locator('.watch-pill')).toHaveCount(0);
+  await expect(page.locator('#reached')).toHaveValue('6');
+});
+
+test('appearance: theme, accent, timer style and background stick after a reload', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Appearance', exact: true }).click();
+  await page.locator('#lookDlg').getByRole('button', { name: 'Midnight' }).click();
+  await page.locator('#lookDlg').getByRole('button', { name: 'Accent #7C4DDB' }).click();
+  await page.locator('#lookDlg').getByRole('button', { name: 'Ring' }).click();
+  await page.locator('#lookDlg').getByRole('button', { name: 'Grid paper' }).click();
+  await page.locator('#lookDlg').getByRole('button', { name: 'Tall' }).click();
+  await page.locator('#lookDlg').getByRole('button', { name: 'Done' }).click();
+  await page.reload();
+  const html = page.locator('html');
+  await expect(html).toHaveAttribute('data-skin', 'midnight');
+  await expect(html).toHaveAttribute('data-bg', 'grid');
+  await expect(html).toHaveAttribute('data-clockfont', 'condensed');
+  await expect(page.locator('.timer-ring')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.style.getPropertyValue('--accent'))).toBe('#7C4DDB');
+});

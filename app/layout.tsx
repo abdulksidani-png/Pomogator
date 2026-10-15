@@ -5,6 +5,10 @@ import '@fontsource/atkinson-hyperlegible/400-italic.css';
 import '@fontsource-variable/bricolage-grotesque/opsz.css';
 import '@fontsource-variable/fredoka';
 import '@fontsource-variable/martian-mono';
+import '@fontsource/bebas-neue';
+import '@fontsource/dm-serif-display';
+import '@fontsource-variable/orbitron';
+import '@fontsource-variable/caveat';
 import './globals.css';
 
 export const metadata: Metadata = {

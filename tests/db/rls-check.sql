@@ -53,3 +53,26 @@ select 'signed-out visitors blocked', true as ok;
 
 reset role;
 select 'hack attempt had no effect', (select display_name = '' from public.profiles where id = '11111111-1111-1111-1111-111111111111') as ok;
+
+-- Part 2: documents, pages, progress and file storage
+set role authenticated;
+set request.jwt.claims = '{"sub": "11111111-1111-1111-1111-111111111111", "role": "authenticated"}';
+insert into public.documents (user_id, id, name, kind, page_count, titles) values ('11111111-1111-1111-1111-111111111111', 'd1', 'Lecture 3.pdf', 'pdf', 2, '["Intro","Aristotle"]');
+insert into public.document_pages (user_id, document_id, page_index, title, text) values ('11111111-1111-1111-1111-111111111111', 'd1', 1, 'Intro', 'x'), ('11111111-1111-1111-1111-111111111111', 'd1', 2, 'Aristotle', 'y');
+update public.study_sessions set document_id = 'd1', start_page = 1, end_page = 2, goal_page = 2, goal_met = true, progress_source = 'screen' where id = 's1';
+insert into public.progress_events (user_id, id, session_id, at, page_index, title, source, confidence) values ('11111111-1111-1111-1111-111111111111', 's1:0', 's1', now(), 2, 'Aristotle', 'screen', 0.8);
+insert into storage.objects (bucket_id, name) values ('documents', '11111111-1111-1111-1111-111111111111/d1/Lecture 3.pdf');
+select 'own document, pages, progress, file', (select count(*) from public.documents) = 1 and (select count(*) from public.document_pages) = 2 and (select count(*) from public.progress_events) = 1 and (select count(*) from storage.objects) = 1 as ok;
+do $$ begin
+  insert into storage.objects (bucket_id, name) values ('documents', '22222222-2222-2222-2222-222222222222/evil.pdf');
+  raise exception 'uploaded into another user''s folder';
+exception when insufficient_privilege then null; end $$;
+select 'cannot upload into another folder', true as ok;
+
+set request.jwt.claims = '{"sub": "22222222-2222-2222-2222-222222222222", "role": "authenticated"}';
+select 'other user sees no documents, pages, progress or files', (select count(*) from public.documents) = 0 and (select count(*) from public.document_pages) = 0 and (select count(*) from public.progress_events) = 0 and (select count(*) from storage.objects) = 0 as ok;
+
+set request.jwt.claims = '{"sub": "11111111-1111-1111-1111-111111111111", "role": "authenticated"}';
+delete from public.documents where id = 'd1';
+select 'deleting a document deletes its pages', (select count(*) from public.document_pages) = 0 as ok;
+reset role;

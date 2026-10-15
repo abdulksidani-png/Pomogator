@@ -21,6 +21,17 @@ export const DEFAULT_SETTINGS: Settings = {
   weekStart: 1,
   rollover: 0,
   streakFreeze: false,
+  accent: '',
+  clockFont: 'theme',
+  timerStyle: 'classic',
+  background: 'theme',
+  bgDim: 0.35,
+  mascot: 'auto',
+  corners: 'theme',
+  density: 'comfortable',
+  screenTrack: false,
+  screenEvery: 20,
+  screenAskOnStart: true,
 };
 
 export function freshSync(): SyncState {
@@ -28,11 +39,11 @@ export function freshSync(): SyncState {
     ownerId: '', ownerAnon: false,
     v: { settings: 0, context: 0, app: 0, tasks: 0 },
     acked: { settings: 0, context: 0, app: 0, tasks: 0 },
-    pushed: {}, lastPull: 0, clearPending: false,
+    pushed: {}, lastPull: 0, clearPending: false, docsPushed: {}, docsDeleted: [],
   };
 }
 
-export const DEFAULT_CONTEXT: StudyContext = { subject: '', topic: '', level: 'intro', exam: '', goal: '', notes: '' };
+export const DEFAULT_CONTEXT: StudyContext = { subject: '', topic: '', level: 'intro', exam: '', goal: '', notes: '', docId: '', docGoal: '', goalPage: 0, startPage: 1 };
 
 export const PRESETS = [25, 30, 35, 40, 45];
 

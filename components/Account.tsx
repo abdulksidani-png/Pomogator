@@ -72,6 +72,7 @@ export function SignInDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialogEle
     setBusy('email'); setNote(null);
     try {
       const kind = await sendEmailLink(email);
+      useStudy.getState().setAccount({ pendingEmail: email.trim() });
       setNote({ ok: true, text: kind === 'confirm'
         ? `Check ${email.trim()} and click the link to finish. Everything you did as a guest stays.`
         : `Check ${email.trim()} for a sign-in link. Open it in this browser, and your guest progress joins your account.` });
@@ -173,6 +174,7 @@ export function SyncStatus() {
   else if (a.status === 'connecting') { dot = 'busy'; text = 'Connecting…'; }
   else if (a.error) { dot = 'err'; text = a.error; }
   else if (a.syncing) { dot = 'busy'; text = 'Saving…'; }
+  else if (a.notice) { dot = 'err'; text = a.notice; }
   else if (a.status === 'guest') { dot = 'ok'; text = 'You\'re studying as a guest. Sign in to keep your progress on every device.'; }
   else { dot = 'ok'; text = `Synced to ${a.email || a.name || 'your account'}.`; }
   return <span className="sync-status" role="status">{dot && <span className={`sync-dot ${dot}`} aria-hidden="true" />}{text}</span>;

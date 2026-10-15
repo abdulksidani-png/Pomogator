@@ -6,6 +6,8 @@ A Pomodoro study timer that quizzes you on what you studied, sets your break fro
 - When the timer ends, answer 1–3 multiple-choice questions. Every answer shows an explanation and a memory aid.
 - Your score sets your break: 3/3 → 15 min, 2/3 → 10 min, 1/3 or 0/3 → 5 min. Every 4th session ends in a long break.
 - During the break you get a plan for the next session.
+- Upload what you're studying (PDF, PowerPoint, Word, text or photos of notes), set a goal in plain words ("up to the Aristotle slide"), and it tracks which slide you reached, by hand or by watching your slides window.
+- Make it yours: 8 themes, any accent color, 6 clock fonts, ring or minimal timers, patterned or photo backgrounds.
 
 ## Build status
 
@@ -13,9 +15,10 @@ A Pomodoro study timer that quizzes you on what you studied, sets your break fro
 | --- | --- | --- |
 | 1 | Next.js app: timer, quiz flow, settings, sounds, themes, tasks, saved on this device | **Done** |
 | 2 | Supabase: guest and Google/email sign-in, database, sync across devices | **Done** |
-| 3 | Claude API routes for quizzes, plans, day summaries and photo notes, with daily limits | Next |
-| 4 | Document upload, outlines, plain-language goals ("up to the Aristotle slide"), resume point | |
-| 5 | Optional screen monitoring that tracks which slide you're on | |
+| 3 | Claude API routes for quizzes, plans, day summaries, with daily limits | Next |
+| 4 | Document upload (PDF, PowerPoint, Word, text, photos), outlines, plain-language goals, resume point | **Done** |
+| 5 | Optional screen tracking that follows which slide you're on (on-device text recognition) | **Done** |
+| + | Appearance: themes, accent color, clock fonts, timer styles, backgrounds, corners, spacing | **Done** |
 | 6 | Stats engine and Stats page | |
 | 7 | Weekly report | |
 | 8 | Check-in streaks and celebrations | |
@@ -45,6 +48,8 @@ Without these steps the site still works, saving everything on each device.
 ### B. Create the tables
 3. In the left sidebar, open **SQL Editor** and click **+ New query**.
 4. Open [`supabase/migrations/20261014000000_core.sql`](supabase/migrations/20261014000000_core.sql) on GitHub, click **Raw**, copy everything, paste it into the editor, and click **Run**. You should see "Success. No rows returned".
+5. Click **+ New query** again and do the same with [`supabase/migrations/20261014010000_documents.sql`](supabase/migrations/20261014010000_documents.sql). This adds documents, slide progress and private file storage.
+   If you set up StudyBuddy before this file existed, just run this one. Until you do, the site keeps syncing everything else and the footer reminds you.
 
 ### C. Switch on the sign-in options
 5. Go to **Authentication → Sign In / Providers**. Under *User Signups*, turn on **Allow anonymous sign-ins** (this is how guests work) and **Allow manual linking** (this is how a guest keeps their data when they sign in). Click **Save**. Email sign-in is on by default.
@@ -85,7 +90,7 @@ Then open http://localhost:3000.
 
 ```bash
 npm test            # unit tests: break rules, quiz validation, dates, sync merging
-npm run test:e2e    # browser tests of the full study → quiz → break loop
+npm run test:e2e    # browser tests: study → quiz → break loop, documents, goals, screen tracking, appearance
 npm run test:sync   # two-device sync tests (needs PostgreSQL and PostgREST, see below)
 ```
 
@@ -101,5 +106,10 @@ The sync tests run the real migrations on a local PostgreSQL, serve them with
 - **Pure logic with tests:** `lib/breaks.ts` (break rules), `lib/quiz.ts` (validating AI replies), `lib/context.ts` (topics, missed concepts).
 - **Sound:** `lib/sound.ts` synthesizes chimes and ambience with the Web Audio API, so there are no audio files.
 - **Accounts and sync:** `lib/sync.ts`. Guests are anonymous Supabase users; signing in links Google or an email to the same user, so nothing moves. Settings, the study panel, the running timer and tasks sync as versioned slices (newest wins); finished sessions merge by id. Every table has Row Level Security (`supabase/migrations`).
+- **Documents:** `lib/docs/parse.ts` reads PDFs (pdf.js), PowerPoint (slide XML), Word (mammoth) and text in the browser; photos and scanned pages go through on-device OCR (`lib/docs/ocr.ts`, Tesseract.js). Pages are kept in IndexedDB and synced to `documents` / `document_pages`; originals go to a private storage bucket.
+- **Goals and matching:** `lib/docs/match.ts` turns "up to the Aristotle slide" into a page and matches screen text to slides (weighted word overlap, title bonus, slide counters).
+- **Screen tracking:** `lib/docs/screen.ts` uses the browser's screen-share API, looks only while a study session runs, skips unchanged frames, reads text on the device and keeps only page/title/confidence.
+- **Appearance:** `lib/appearance.ts` and the theme blocks at the end of `app/globals.css`. A photo background stays in this browser's IndexedDB.
+- **Vendor files:** `scripts/copy-vendor.mjs` copies the pdf.js worker and Tesseract engine into `public/vendor` before every build, so they're served from this site.
 - **AI:** the browser calls this site's own `/api/ai/*` routes (`lib/ai-client.ts`). The Claude API key will live only on the server.
 - **Fonts** are bundled from npm (`@fontsource`), so nothing loads from Google at runtime.

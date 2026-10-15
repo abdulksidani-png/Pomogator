@@ -10,7 +10,7 @@ import { immer } from 'zustand/middleware/immer';
 import { current } from 'immer';
 import type {
   Account, AiStatus, Asked, BreakKind, BreakReason, ConceptStat, DayState, PlanState, QuizOutcome, QuizResult,
-  QuizState, SessionRecord, Settings, StudyContext, SyncState, Task, TimerState, Tier,
+  DocMeta, QuizState, SessionRecord, Settings, StudyContext, SyncState, Task, TimerState, Tier,
 } from './types';
 import { DEFAULT_CONTEXT, DEFAULT_SETTINGS, freshQuiz, freshSync, freshTimer } from './defaults';
 import { breakFor } from './breaks';
@@ -33,6 +33,7 @@ export interface Data {
   stats: Record<string, ConceptStat>;
   asked: Asked;
   sync: SyncState;
+  docs: DocMeta[];
 }
 interface Flash { msg: string; id: number }
 interface Ui { toast: Flash | null; announce: Flash | null; aiStatus: AiStatus; booted: boolean; account: Account }
@@ -89,6 +90,18 @@ interface Actions {
   setAccount: (patch: Partial<Account>) => void;
   /** Forget everything on this device (after signing out, or before loading a different account). */
   resetLocalData: () => void;
+  // documents and progress
+  addDoc: (doc: DocMeta) => void;
+  removeDoc: (id: string) => void;
+  selectDoc: (id: string) => void;
+  setDocGoal: (text: string, page: number) => void;
+  setStartPage: (page: number) => void;
+  /** During a session: the page now on screen (or picked by hand). */
+  recordProgress: (page: number, title: string, source: 'screen' | 'manual', conf?: number) => void;
+  /** After a session: how far it really got. */
+  setReached: (sessionId: string, page: number) => void;
+  /** Delete the screen-tracking log for the current session, or for every session. */
+  clearSeen: (scope: 'session' | 'all') => void;
 }
 
 export type Store = Data & Ui & Actions;
@@ -120,6 +133,7 @@ function initialData(): Data {
     stats: {},
     asked: { date: '', items: [] },
     sync: freshSync(),
+    docs: [],
   };
 }
 
@@ -144,10 +158,33 @@ export function normalizeData(p: Partial<Data> | undefined): Data {
     history: p.history ?? [],
     stats: p.stats ?? {},
     asked: p.asked ?? { date: '', items: [] },
+    docs: p.docs ?? [],
     sync: p.sync
       ? { ...fs, ...p.sync, v: { ...fs.v, ...p.sync.v }, acked: { ...fs.acked, ...p.sync.acked }, pushed: { ...(p.sync.pushed || {}) } }
       : fs,
   };
+}
+
+/** "slide" for PowerPoint, "page" for everything else. */
+export const unitWord = (doc: Pick<DocMeta, 'kind'>, n: number) => (doc.kind === 'pptx' ? 'slide' : doc.kind === 'docx' || doc.kind === 'text' ? 'section' : 'page') + (n === 1 ? '' : 's');
+
+/** Make `doc` the one being studied, resuming after the furthest page reached. */
+function pointAt(d: Data, doc: DocMeta) {
+  const changed = d.context.docId !== doc.id;
+  d.context.docId = doc.id;
+  d.context.startPage = clamp(doc.furthest ? doc.furthest + 1 : 1, 1, doc.pageCount);
+  if (changed) { d.context.docGoal = ''; d.context.goalPage = 0; }
+  if (!d.context.topic.trim()) d.context.topic = doc.name.replace(/\.[a-z0-9]+$/i, '').replace(/[_-]+/g, ' ').trim().slice(0, 140);
+}
+
+/** After a session: move the document's resume point, and clear a goal that was met. */
+function applyReached(d: Data, doc: DocMeta, rec: SessionRecord) {
+  const end = rec.endPage ?? 0;
+  doc.furthest = Math.max(doc.furthest, end);
+  if (d.context.docId !== doc.id) return;
+  d.context.startPage = clamp(end + 1, 1, doc.pageCount);
+  if (rec.goalMet) { d.context.docGoal = ''; d.context.goalPage = 0; }
+  else if (rec.goalPage && !d.context.goalPage) d.context.goalPage = rec.goalPage;
 }
 
 export const useStudy = create<Store>()(
@@ -227,6 +264,13 @@ export const useStudy = create<Store>()(
                 id: uid(), date: dayOf(Date.now(), d.settings), startedAt: Date.now(), plannedMin: d.settings.studyMin,
                 subject: d.context.subject, topic: d.context.topic, level: d.context.level, goal: d.context.goal,
               };
+              const doc = d.docs.find((x) => x.id === d.context.docId);
+              if (doc) {
+                Object.assign(T.session, {
+                  docId: doc.id, docName: doc.name, startPage: clamp(d.context.startPage || 1, 1, doc.pageCount),
+                  goalPage: d.context.goalPage ? clamp(d.context.goalPage, 1, doc.pageCount) : undefined, seen: [],
+                });
+              }
               T.refreshTried = false;
               needQuiz = !quizReusable(d);
             }
@@ -352,6 +396,12 @@ export const useStudy = create<Store>()(
             const s = d.timer.session;
             if (!s) return;
             const rec: SessionRecord = { ...current(s), quiz, endedAt: s.endedAt || Date.now() };
+            const doc = rec.docId ? d.docs.find((x) => x.id === rec.docId) : undefined;
+            if (doc) {
+              if (rec.endPage === undefined) { rec.endPage = rec.goalPage ?? rec.startPage; rec.progressSource = 'assumed'; }
+              rec.goalMet = rec.goalPage ? (rec.endPage ?? 0) >= rec.goalPage : undefined;
+              applyReached(d, doc, rec);
+            }
             d.history.push(rec);
             if (d.history.length > 400) d.history.splice(0, d.history.length - 400);
             d.timer.lastSessionId = rec.id;
@@ -547,6 +597,84 @@ export const useStudy = create<Store>()(
           quizCtl?.abort(); planCtl?.abort(); dayCtl?.abort();
           set((d) => { Object.assign(d, initialData()); d.settings.timezone = detectTimeZone(); });
         },
+
+        /* ---------- documents ---------- */
+        addDoc(doc) {
+          set((d) => {
+            d.docs = [doc, ...d.docs.filter((x) => x.id !== doc.id)];
+            pointAt(d, doc);
+          });
+          toast(`${doc.name} is ready: ${doc.pageCount} ${unitWord(doc, doc.pageCount)}`);
+        },
+        removeDoc(id) {
+          set((d) => {
+            d.docs = d.docs.filter((x) => x.id !== id);
+            if (!d.sync.docsDeleted.includes(id)) d.sync.docsDeleted.push(id);
+            delete d.sync.docsPushed[id];
+            if (d.context.docId === id) Object.assign(d.context, { docId: '', docGoal: '', goalPage: 0, startPage: 1 });
+          });
+        },
+        selectDoc(id) {
+          set((d) => {
+            const doc = d.docs.find((x) => x.id === id);
+            if (!doc) { Object.assign(d.context, { docId: '', docGoal: '', goalPage: 0, startPage: 1 }); return; }
+            pointAt(d, doc);
+          });
+        },
+        setDocGoal(text, page) { set((d) => { d.context.docGoal = text; d.context.goalPage = Math.max(0, Math.round(page) || 0); }); },
+        setStartPage(page) {
+          set((d) => {
+            const doc = d.docs.find((x) => x.id === d.context.docId);
+            d.context.startPage = clamp(Math.round(page) || 1, 1, doc?.pageCount || 1);
+            const s = d.timer.session;
+            if (s && s.docId === d.context.docId && !(s.seen?.length)) s.startPage = d.context.startPage;
+          });
+        },
+        recordProgress(page, title, source, conf) {
+          let reached = 0;
+          set((d) => {
+            const s = d.timer.session;
+            if (!s) return;
+            const ev = { at: Date.now(), page, title: title.slice(0, 120), source, ...(conf !== undefined ? { conf: Math.round(conf * 100) / 100 } : {}) };
+            const seen = s.seen ?? [];
+            const last = seen[seen.length - 1];
+            if (last && last.page === page && last.title === ev.title && ev.at - last.at < 60_000) return; // same slide, still on it
+            s.seen = [...seen, ev].slice(-100);
+            if (page > 0) {
+              s.endPage = Math.max(s.endPage ?? 0, page);
+              if (source === 'screen') s.progressSource = 'screen';
+              else if (s.progressSource !== 'screen') s.progressSource = 'manual';
+              if (s.goalPage && !s.goalMet && s.endPage >= s.goalPage) { s.goalMet = true; reached = s.goalPage; }
+            }
+          });
+          if (reached) {
+            const doc = get().docs.find((x) => x.id === get().timer.session?.docId);
+            toast(`Goal reached: ${doc ? unitWord(doc, 1) : 'page'} ${reached}. Nice work.`);
+          }
+        },
+        clearSeen(scope) {
+          set((d) => {
+            if (d.timer.session) d.timer.session.seen = [];
+            if (scope === 'all') for (const h of d.history) if (h.seen?.length) h.seen = [];
+          });
+          toast(scope === 'all' ? 'Screen-tracking logs deleted' : 'Log deleted');
+        },
+        setReached(sessionId, page) {
+          set((d) => {
+            const live = d.timer.session?.id === sessionId ? d.timer.session : null;
+            const rec = live ?? d.history.find((h) => h.id === sessionId);
+            if (!rec?.docId) return;
+            const doc = d.docs.find((x) => x.id === rec.docId);
+            rec.endPage = clamp(Math.round(page), 1, doc?.pageCount || page);
+            rec.progressSource = 'manual';
+            rec.goalMet = rec.goalPage ? rec.endPage >= rec.goalPage : undefined;
+            if (doc && !live) {
+              // Recompute the document's furthest page from every session, so lowering a mistake works too.
+              doc.furthest = Math.max(0, ...d.history.filter((h) => h.docId === doc.id).map((h) => h.endPage ?? 0));
+              applyReached(d, doc, rec);
+            }
+          });
+        },
       };
     }),
     {
@@ -555,7 +683,7 @@ export const useStudy = create<Store>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (s): Data => ({
         settings: s.settings, context: s.context, timer: s.timer, quiz: s.quiz, plan: s.plan, day: s.day,
-        tasks: s.tasks, history: s.history, stats: s.stats, asked: s.asked, sync: s.sync,
+        tasks: s.tasks, history: s.history, stats: s.stats, asked: s.asked, sync: s.sync, docs: s.docs,
       }),
       merge: (persisted, cur) => ({ ...cur, ...normalizeData(persisted as Partial<Data> | undefined) }),
     },

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import path from 'node:path';
 
 const FAKE = 'http://localhost:54321';
 const rows = async (table: string) => (await (await fetch(`${FAKE}/test/rows?table=${table}`)).json()) as Record<string, unknown>[];
@@ -50,6 +51,12 @@ test('guest progress survives sign-in, follows you to a second device, and stays
   await expect(a.locator('#ctxTopic')).toHaveValue('Plato and Aristotle');
   expect((await rows('profiles')).find((p) => p.id === guestId)).toBeTruthy(); // same user, upgraded in place
 
+  // A lecture uploaded here is saved to the account, pages included.
+  await a.locator('#docInput').setInputFiles(path.join(__dirname, '..', 'fixtures', 'lecture.pptx'));
+  await expect(a.locator('#docSelect')).toContainText('lecture.pptx', { timeout: 30_000 });
+  await expect.poll(async () => (await rows('documents')).length, { timeout: 15_000 }).toBe(1);
+  await expect.poll(async () => (await rows('document_pages')).length, { timeout: 15_000 }).toBe(7);
+
   /* ---------- device B: a different guest with their own task signs in to the same account ---------- */
   const b = await (await browser.newContext()).newPage();
   await b.goto('/');
@@ -63,6 +70,11 @@ test('guest progress survives sign-in, follows you to a second device, and stays
   await expect(b.locator('.task-list')).toContainText('Make flashcards');
   await expect(b.locator('#ctxTopic')).toHaveValue('Plato and Aristotle');
   await expect(b.locator('#todayCard .log')).toContainText('Philosophy · Plato and Aristotle');
+  // The lecture is here too; its page text comes from the account, so a goal from a slide's body works.
+  await expect(b.locator('#docSelect')).toContainText('lecture.pptx');
+  await b.selectOption('#docSelect', { label: 'lecture.pptx · 7 slides' });
+  await b.fill('#docGoal', 'the allegory of the cave');
+  await expect(b.locator('.goal-box')).toContainText('(slide 4). Correct?', { timeout: 15_000 });
   await expect.poll(async () => (await rows('tasks')).filter((r) => r.user_id === guestId).map((r) => r.text).sort(), { timeout: 15_000 })
     .toEqual(['Make flashcards', 'Read lecture 3']);
 
@@ -75,10 +87,12 @@ test('guest progress survives sign-in, follows you to a second device, and stays
   await a.reload();
   await expect(a.locator('#ctxGoal')).toHaveValue('Get up to the Aristotle slide', { timeout: 15_000 });
 
-  /* ---------- signing out on B leaves nothing behind for the next person ---------- */
-  await b.getByRole('button', { name: /Account menu/ }).click();
-  await b.getByRole('menuitem', { name: 'Sign out' }).click();
+  /* ---------- signing out on B (from Settings) leaves nothing behind for the next person ---------- */
+  await b.getByRole('button', { name: 'Settings', exact: true }).click();
+  await expect(b.locator('#settingsDlg')).toContainText('ana@test.dev');
+  await b.locator('#settingsDlg').getByRole('button', { name: 'Sign out' }).click();
   await expect(footer(b)).toContainText('studying as a guest', { timeout: 15_000 });
   await expect(b.locator('.task-list')).toContainText('Add what you want to get through today.');
   await expect(b.locator('#ctxTopic')).toHaveValue('');
+  await expect(b.locator('#docSelect option')).toHaveCount(1); // only "None"
 });

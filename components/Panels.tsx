@@ -3,11 +3,12 @@ import { useRef, useState } from 'react';
 import { useStudy } from '@/lib/store';
 import { isVagueTopic, topicKey, topicLabel, weakConcepts } from '@/lib/context';
 import { aiErrorText } from '@/lib/quiz';
-import { AI } from '@/lib/ai-client';
+import { parseFiles, ACCEPT } from '@/lib/docs/parse';
 import { timeOf } from '@/lib/util';
 import { todayFor } from '@/lib/dates';
 import type { StudyContext } from '@/lib/types';
 import { Icon } from './Icon';
+import { ReachPicker, StudyMaterial } from './Documents';
 
 /** A button that needs a second click within a few seconds, instead of a confirm() dialog. */
 function useArmed(ms = 3500) {
@@ -49,6 +50,7 @@ export function ResultBanner() {
           {r.items.map((x, i) => <span key={i} className={`pill ${x.correct ? 'good' : 'bad'}`}><Icon name={x.correct ? 'check' : 'x'} />{x.concept}</span>)}
         </div>
       )}
+      <ReachPicker />
     </section>
   );
 }
@@ -114,37 +116,28 @@ export function PlanCard() {
 
 /* ---------------- what you're studying ---------------- */
 
-export function ContextCard() {
+export function ContextCard({ onManageDocs }: { onManageDocs: () => void }) {
   const c = useStudy((s) => s.context);
-  const aiStatus = useStudy((s) => s.aiStatus);
   const { setContext, appendNotes, showToast } = useStudy.getState();
   const txtRef = useRef<HTMLInputElement>(null);
-  const photoRef = useRef<HTMLInputElement>(null);
-  const [reading, setReading] = useState(false);
+  const [reading, setReading] = useState('');
   const field = (k: keyof StudyContext) => ({
     value: c[k],
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => setContext({ [k]: e.target.value } as Partial<StudyContext>),
   });
   const n = c.notes.length;
 
-  const onText = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
+  // Any readable file (PDF, Word, PowerPoint, text, photos) can be added to the notes as text.
+  const onImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
     e.target.value = '';
-    if (!f) return;
-    if (f.size > 2_000_000) { showToast('That file is over 2 MB. Paste the part you need instead.'); return; }
-    const r = new FileReader();
-    r.onload = () => appendNotes(String(r.result || ''), f.name);
-    r.onerror = () => showToast('Couldn\'t read that file.');
-    r.readAsText(f);
-  };
-  const onPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    e.target.value = '';
-    if (!f) return;
-    setReading(true);
-    try { appendNotes(await AI.readPhoto(f), f.name); }
-    catch (err) { showToast(aiErrorText(err)); }
-    finally { setReading(false); }
+    if (!files.length) return;
+    setReading('Reading…');
+    try {
+      const { pages } = await parseFiles(files, setReading);
+      appendNotes(pages.map((p) => p.text).join('\n\n'), files.length > 1 ? `${files.length} photos` : files[0].name);
+    } catch (err) { showToast((err as Error).message || aiErrorText(err)); }
+    finally { setReading(''); }
   };
 
   return (
@@ -169,6 +162,7 @@ export function ContextCard() {
           <input type="text" id="ctxTopic" placeholder="e.g. Krebs cycle steps and products" maxLength={140} {...field('topic')} />
           {isVagueTopic(c) && <p className="hint">Add detail for sharper questions, e.g. &quot;{c.topic.trim()}: the part you&apos;re on today&quot;.</p>}
         </div>
+        <StudyMaterial onManage={onManageDocs} />
         <div className="field"><label htmlFor="ctxGoal">Goal for this session <span className="opt-tag">(optional)</span></label>
           <input type="text" id="ctxGoal" placeholder="e.g. Memorize the 8 steps in order" maxLength={200} {...field('goal')} /></div>
         <div className="field"><label htmlFor="ctxNotes">Your notes <span className="opt-tag">(optional)</span></label>
@@ -176,16 +170,12 @@ export function ContextCard() {
           <div className="file-row">
             <p className="hint">{n ? `${n.toLocaleString()} characters${n > 12000 ? ' · the first 12,000 are used' : ''}` : 'No notes yet'}</p>
             <div className="btns">
-              <button className="btn-quiet" type="button" title="Add a .txt or .md file" onClick={() => txtRef.current?.click()}><Icon name="file" />Text file</button>
-              {aiStatus === 'on' && (
-                <button className="btn-quiet" type="button" title="Read a photo of your notes" disabled={reading} onClick={() => photoRef.current?.click()}>
-                  {reading ? <><span className="spin" aria-hidden="true" />Reading…</> : <><Icon name="camera" />Photo</>}
-                </button>
-              )}
+              <button className="btn-quiet" type="button" title="Add the text of a PDF, Word, PowerPoint, text file or photo" disabled={!!reading} onClick={() => txtRef.current?.click()}>
+                {reading ? <><span className="spin" aria-hidden="true" />{reading}</> : <><Icon name="file" />Add text from a file</>}
+              </button>
             </div>
           </div>
-          <input ref={txtRef} type="file" accept=".txt,.md,.markdown,.csv,text/plain,text/markdown" hidden onChange={onText} />
-          <input ref={photoRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={onPhoto} />
+          <input ref={txtRef} id="notesInput" type="file" accept={ACCEPT} multiple hidden onChange={onImport} />
         </div>
       </form>
     </section>

@@ -8,7 +8,10 @@ import { Stage, TitleSync } from './Stage';
 import { ContextCard, PlanCard, ResultBanner, TasksCard, TodayCard } from './Panels';
 import { HelpDialog, SettingsDialog } from './Dialogs';
 import { AccountButton, ProfileDialog, SignInDialog, SyncStatus } from './Account';
-import { startSync } from '@/lib/sync';
+import { recheckAccount, startSync } from '@/lib/sync';
+import { maybeAskOnStart, stopWatching } from '@/lib/docs/screen';
+import { AppearanceDialog, useAppearance } from './Appearance';
+import { DocumentsDialog, ScreenConsentDialog } from './Documents';
 import { signInWithGoogle } from '@/lib/auth';
 
 /** The ambience that should be playing for the current timer state. */
@@ -16,7 +19,6 @@ const desiredAmbience = (s: Store) =>
   s.timer.status !== 'running' ? 'none' : s.timer.phase === 'study' ? s.settings.ambStudy : s.timer.phase === 'break' ? s.settings.ambBreak : 'none';
 
 export default function StudyBuddyApp() {
-  const skin = useStudy((s) => s.settings.skin);
   const loop = useStudy((s) => s.settings.loop);
   const ambience = useStudy(desiredAmbience);
   const wantWake = useStudy((s) => s.settings.wake && s.timer.status === 'running');
@@ -24,6 +26,28 @@ export default function StudyBuddyApp() {
   const helpRef = useRef<HTMLDialogElement>(null);
   const signInRef = useRef<HTMLDialogElement>(null);
   const profileRef = useRef<HTMLDialogElement>(null);
+  const lookRef = useRef<HTMLDialogElement>(null);
+  const docsRef = useRef<HTMLDialogElement>(null);
+  const screenRef = useRef<HTMLDialogElement>(null);
+  const studyLive = useStudy((s) => s.timer.phase === 'study' && !!s.timer.session);
+  useAppearance();
+
+  /** Start/pause; starting a new session can also ask to share the slides window (needs the click). */
+  const togglePlay = useRef(() => {
+    const before = useStudy.getState().timer;
+    useStudy.getState().toggle();
+    if (before.phase === 'study' && before.status === 'idle') maybeAskOnStart(() => screenRef.current?.showModal());
+  }).current;
+
+  // Screen tracking ends with the session: never during breaks or quizzes.
+  useEffect(() => { if (!studyLive) stopWatching(); }, [studyLive]);
+
+  // After an email link was opened in another tab, coming back here picks up the sign-in.
+  useEffect(() => {
+    const onFocus = () => { if (useStudy.getState().account.pendingEmail) void recheckAccount(); };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, []);
 
   // Boot once: recover an expired timer, check whether AI is available.
   useEffect(() => {
@@ -53,12 +77,6 @@ export default function StudyBuddyApp() {
     document.addEventListener('visibilitychange', beat);
     return () => { clearInterval(id); document.removeEventListener('visibilitychange', beat); };
   }, []);
-
-  // Theme picker.
-  useEffect(() => {
-    const el = document.documentElement;
-    if (skin === 'auto') delete el.dataset.skin; else el.dataset.skin = skin;
-  }, [skin]);
 
   // Audio: browsers need a first gesture, then ambience follows the timer.
   useEffect(() => {
@@ -103,7 +121,7 @@ export default function StudyBuddyApp() {
         }
         if (k === 'Enter' && s.quiz.step === 'feedback' && !onButton) { e.preventDefault(); s.nextQ(); return; }
       }
-      if (k === ' ' || k === 'Spacebar') { if (onButton) return; e.preventDefault(); if (s.timer.phase !== 'quiz') s.toggle(); }
+      if (k === ' ' || k === 'Spacebar') { if (onButton) return; e.preventDefault(); if (s.timer.phase !== 'quiz') togglePlay(); }
       else if (k === 'r' || k === 'R') s.reset();
       else if (k === 's' || k === 'S') s.skip();
       else if (k === 'd' || k === 'D') s.markDone();
@@ -136,18 +154,19 @@ export default function StudyBuddyApp() {
             <button className="chip-btn" type="button" aria-pressed={loop} title="Loop: start each phase automatically (L)" onClick={() => useStudy.getState().setLoop(!loop)}>
               <Icon name="loop" /><span>Loop</span>
             </button>
+            <button className="icon-btn" type="button" aria-label="Appearance" title="Appearance" onClick={() => lookRef.current?.showModal()}><Icon name="palette" /></button>
             <button className="icon-btn help-btn" type="button" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)" onClick={() => helpRef.current?.showModal()}><Icon name="kbd" /></button>
             <button className="icon-btn" type="button" aria-label="Settings" title="Settings" onClick={() => settingsRef.current?.showModal()}><Icon name="gear" /></button>
           </div>
         </header>
         <main className="desk">
           <div className="col-main">
-            <Stage />
+            <Stage onToggle={togglePlay} onScreenConsent={() => screenRef.current?.showModal()} />
             <ResultBanner />
             <PlanCard />
           </div>
           <aside className="col-side">
-            <ContextCard />
+            <ContextCard onManageDocs={() => docsRef.current?.showModal()} />
             <TasksCard />
             <TodayCard />
           </aside>
@@ -157,7 +176,10 @@ export default function StudyBuddyApp() {
           <span>Press <kbd>?</kbd> for shortcuts</span>
         </footer>
       </div>
-      <SettingsDialog dialogRef={settingsRef} />
+      <SettingsDialog dialogRef={settingsRef} onSignIn={() => signInRef.current?.showModal()} onAppearance={() => lookRef.current?.showModal()} />
+      <AppearanceDialog dialogRef={lookRef} />
+      <DocumentsDialog dialogRef={docsRef} />
+      <ScreenConsentDialog dialogRef={screenRef} />
       <HelpDialog dialogRef={helpRef} />
       <SignInDialog dialogRef={signInRef} />
       <ProfileDialog dialogRef={profileRef} />

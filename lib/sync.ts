@@ -18,10 +18,11 @@ import { DEFAULT_CONTEXT, DEFAULT_SETTINGS } from './defaults';
 import { todayFor } from './dates';
 import { mergeDeep } from './util';
 import {
-  attemptsFor, mergeHistory, rebuildAsked, rebuildStats, rowToSession, rowsToTasks, sessionHash, sessionToRow,
-  type AttemptRow, type SessionRow, type TaskRow,
+  attemptsFor, docHash, docToRow, eventsFor, mergeHistory, rebuildAsked, rebuildStats, rowToDoc, rowToSession, rowsToTasks,
+  sessionHash, sessionToRow, type AttemptRow, type DocRow, type EventRow, type SessionRow, type TaskRow,
 } from './sync-map';
-import type { SliceVersions } from './types';
+import type { DocMeta, DocPage, SliceVersions } from './types';
+import { idb } from './docs/idb';
 
 type Slice = keyof SliceVersions;
 const SLICES: Slice[] = ['settings', 'context', 'app', 'tasks'];
@@ -34,6 +35,21 @@ let pushTimer: ReturnType<typeof setTimeout> | undefined;
 let pushing: Promise<void> | null = null;
 let pushAgain = false;
 let queue: Promise<unknown> = Promise.resolve();
+/** The account's database is missing the documents update (part 2); sync the rest anyway. */
+let legacySchema = false;
+
+const SCHEMA_CODES = new Set(['42P01', '42703', 'PGRST204', 'PGRST205', 'PGRST200']);
+function isSchemaError(e: unknown): boolean {
+  const code = (e as { code?: string })?.code ?? '';
+  return SCHEMA_CODES.has(code) || /does not exist|Could not find the .* (column|table)/i.test((e as { message?: string })?.message ?? '');
+}
+function noteLegacy() {
+  if (legacySchema) return;
+  legacySchema = true;
+  setAccount({ notice: 'Documents aren\'t syncing yet: run the second database update (see the README, step B).' });
+}
+const DOC_COLS = ['document_id', 'start_page', 'end_page', 'goal_page', 'goal_met', 'progress_source'] as const;
+const withoutDocCols = (r: SessionRow): SessionRow => { const c: Record<string, unknown> = { ...r }; for (const k of DOC_COLS) delete c[k]; return c as unknown as SessionRow; };
 
 /** Run auth handling one step at a time, in order. */
 const serial = (fn: () => Promise<void>) => { queue = queue.then(fn, fn); return queue; };
@@ -89,8 +105,23 @@ export function startSync() {
 async function init() {
   const { data } = await sb!.auth.getSession();
   let user = data.session?.user ?? null;
+  if (user) {
+    // Ask the server: the saved copy can be stale (e.g. a guest who just confirmed their email).
+    const fresh = await sb!.auth.getUser().catch(() => null);
+    if (fresh?.data.user) {
+      if (user.is_anonymous && !fresh.data.user.is_anonymous) void sb!.auth.refreshSession().catch(() => undefined);
+      user = fresh.data.user;
+    }
+  }
   if (!user) user = await startGuest();
   if (user) await adoptUser(user);
+}
+
+/** Re-check the account, e.g. after an email link was opened in another tab. */
+export async function recheckAccount() {
+  if (!sb) return;
+  const { data } = await sb.auth.getUser().catch(() => ({ data: { user: null } }));
+  if (data.user) { await sb.auth.refreshSession().catch(() => undefined); await serial(() => adoptUser(data.user!)); }
 }
 
 async function startGuest(): Promise<User | null> {
@@ -105,6 +136,7 @@ async function startGuest(): Promise<User | null> {
 async function onSignedOut() {
   userId = '';
   state().resetLocalData();
+  await idb.clearPrefix('doc:'); // documents belonged to the signed-out account
   setAccount({ status: 'connecting', userId: undefined, email: undefined, name: undefined, avatarUrl: undefined, error: undefined });
   const user = await startGuest();
   if (user) await adoptUser(user);
@@ -114,7 +146,7 @@ async function onSignedOut() {
 async function adoptUser(user: User) {
   const info = accountFrom(user);
   if (user.id === userId) { // same person, maybe just upgraded from guest
-    setAccount(info);
+    setAccount({ ...info, ...(user.is_anonymous ? {} : { pendingEmail: undefined }) });
     if (!user.is_anonymous) state().mutate((d) => { d.sync.ownerAnon = false; });
     return;
   }
@@ -127,7 +159,7 @@ async function adoptUser(user: User) {
   state().mutate((d) => {
     d.sync.ownerId = user.id;
     d.sync.ownerAnon = !!user.is_anonymous;
-    if (adopt || replace) { d.sync.acked = { settings: 0, context: 0, app: 0, tasks: 0 }; d.sync.pushed = {}; }
+    if (adopt || replace) { d.sync.acked = { settings: 0, context: 0, app: 0, tasks: 0 }; d.sync.pushed = {}; d.sync.docsPushed = {}; }
     if (!d.settings.displayName && info.name && info.name !== info.email) d.settings.displayName = info.name;
   });
   setAccount({ ...info, syncing: true, error: undefined });
@@ -144,12 +176,14 @@ async function adoptUser(user: User) {
 function watchLocalChanges() {
   useStudy.subscribe((s, prev) => {
     if (applyingRemote || !userId) return;
-    const now = Date.now();
+    // A change must always count as newer than anything this device has already seen,
+    // even if another device's clock runs ahead of this one.
+    const next = (k: Slice) => Math.max(Date.now(), s.sync.v[k] + 1, s.sync.acked[k] + 1);
     const bump: Partial<SliceVersions> = {};
-    if (s.settings !== prev.settings) bump.settings = now;
-    if (s.context !== prev.context) bump.context = now;
-    if (s.timer !== prev.timer || s.quiz !== prev.quiz || s.plan !== prev.plan || s.day !== prev.day || s.asked !== prev.asked) bump.app = now;
-    if (s.tasks !== prev.tasks) bump.tasks = now;
+    if (s.settings !== prev.settings) bump.settings = next('settings');
+    if (s.context !== prev.context) bump.context = next('context');
+    if (s.timer !== prev.timer || s.quiz !== prev.quiz || s.plan !== prev.plan || s.day !== prev.day || s.asked !== prev.asked) bump.app = next('app');
+    if (s.tasks !== prev.tasks) bump.tasks = next('tasks');
     const historyChanged = s.history !== prev.history || s.sync.clearPending !== prev.sync.clearPending;
     if (Object.keys(bump).length) {
       applyingRemote = true;
@@ -209,15 +243,48 @@ async function push(): Promise<void> {
         sent.tasks = v.tasks;
       }
 
+      // Documents: metadata whenever it changes, pages the first time.
+      const docsSent: Record<string, string> = {};
+      let docsDeletedSent: string[] = [];
+      if (!legacySchema) {
+        try {
+          for (const id of s.sync.docsDeleted) {
+            const { error } = await sb!.from('documents').delete().eq('user_id', userId).eq('id', id);
+            if (error) throw error;
+          }
+          docsDeletedSent = s.sync.docsDeleted;
+          for (const doc of s.docs.filter((d) => s.sync.docsPushed[d.id] !== docHash(d))) {
+            const { error } = await sb!.from('documents').upsert(docToRow(doc, userId), { onConflict: 'user_id,id' });
+            if (error) throw error;
+            if (!(doc.id in s.sync.docsPushed)) await pushPages(doc);
+            docsSent[doc.id] = docHash(doc);
+          }
+        } catch (e) { if (isSchemaError(e)) noteLegacy(); else throw e; }
+      }
+
       const changed = s.history.filter((h) => h.endedAt && s.sync.pushed[h.id] !== sessionHash(h));
       for (let i = 0; i < changed.length; i += 100) {
         const batch = changed.slice(i, i + 100);
-        const { error } = await sb!.from('study_sessions').upsert(batch.map((h) => sessionToRow(h, userId)), { onConflict: 'user_id,id' });
+        const rows = batch.map((h) => sessionToRow(h, userId));
+        let { error } = await sb!.from('study_sessions').upsert(legacySchema ? rows.map(withoutDocCols) : rows, { onConflict: 'user_id,id' });
+        if (error && !legacySchema && isSchemaError(error)) {
+          noteLegacy();
+          ({ error } = await sb!.from('study_sessions').upsert(rows.map(withoutDocCols), { onConflict: 'user_id,id' }));
+        }
         if (error) throw error;
         const attempts = batch.flatMap((h) => attemptsFor(h, userId));
         if (attempts.length) {
           const { error: e2 } = await sb!.from('quiz_attempts').upsert(attempts, { onConflict: 'user_id,id' });
           if (e2) throw e2;
+        }
+        // The slides-seen log is replaced as a whole, so deleting it here deletes it there.
+        if (!legacySchema) {
+          const ids = batch.map((h) => h.id);
+          const { error: e3 } = await sb!.from('progress_events').delete().eq('user_id', userId).in('session_id', ids);
+          const events = batch.flatMap((h) => eventsFor(h, userId));
+          const e4 = !e3 && events.length ? (await sb!.from('progress_events').insert(events)).error : null;
+          const bad = e3 || e4;
+          if (bad) { if (isSchemaError(bad)) noteLegacy(); else throw bad; }
         }
       }
 
@@ -226,6 +293,8 @@ async function push(): Promise<void> {
         state().mutate((d) => {
           for (const k of SLICES) if (sent[k] !== undefined) d.sync.acked[k] = Math.max(d.sync.acked[k], sent[k]!);
           for (const h of changed) d.sync.pushed[h.id] = sessionHash(h);
+          for (const [id, h] of Object.entries(docsSent)) d.sync.docsPushed[id] = h;
+          d.sync.docsDeleted = d.sync.docsDeleted.filter((id) => !docsDeletedSent.includes(id));
         });
       } finally { applyingRemote = false; }
       setAccount({ syncing: false, error: undefined, lastSynced: Date.now() });
@@ -260,13 +329,17 @@ async function maybePull() {
  */
 async function pull({ adopt = false }: { adopt?: boolean } = {}) {
   if (!sb || !userId) return;
-  const [p, t, ss, aa] = await Promise.all([
+  const [p, t, ss, aa, ev, dd] = await Promise.all([
     sb.from('profiles').select('settings,context,app_state,settings_v,context_v,app_state_v,tasks_v').eq('id', userId).maybeSingle(),
     sb.from('tasks').select('id,text,done,position').order('position'),
     sb.from('study_sessions').select('*').order('started_at', { ascending: false }).limit(400),
     sb.from('quiz_attempts').select('user_id,id,session_id,topic_key,concept,question,chosen,answer,correct,created_at').order('created_at', { ascending: false }).limit(1500),
+    sb.from('progress_events').select('user_id,id,session_id,at,page_index,title,source,confidence').order('at', { ascending: false }).limit(3000),
+    sb.from('documents').select('user_id,id,name,kind,size_bytes,page_count,titles,furthest_page,storage_path,created_at'),
   ]);
   for (const r of [p, t, ss, aa]) if (r.error) throw r.error;
+  // Missing documents tables (part 2 not run yet) just mean "no documents".
+  for (const r of [ev, dd]) if (r.error) { if (isSchemaError(r.error)) noteLegacy(); else throw r.error; }
 
   const prof = p.data as ProfileRow | null;
   const bySession = new Map<string, AttemptRow[]>();
@@ -274,7 +347,13 @@ async function pull({ adopt = false }: { adopt?: boolean } = {}) {
     const list = bySession.get(a.session_id) ?? [];
     list.push(a); bySession.set(a.session_id, list);
   }
-  const remote = ((ss.data ?? []) as SessionRow[]).map((r) => rowToSession(r, bySession.get(r.id) ?? []));
+  const eventsBy = new Map<string, EventRow[]>();
+  for (const e of (ev.data ?? []) as EventRow[]) {
+    const list = eventsBy.get(e.session_id) ?? [];
+    list.push(e); eventsBy.set(e.session_id, list);
+  }
+  const remote = ((ss.data ?? []) as SessionRow[]).map((r) => rowToSession(r, bySession.get(r.id) ?? [], eventsBy.get(r.id) ?? []));
+  const remoteDocs = ((dd.data ?? []) as DocRow[]).map(rowToDoc);
   const local = state();
   const history = local.sync.clearPending ? local.history : mergeHistory(local.history, remote);
 
@@ -307,6 +386,21 @@ async function pull({ adopt = false }: { adopt?: boolean } = {}) {
         d.asked = rebuildAsked(history, d.asked, todayFor(d.settings));
         for (const r of remote) d.sync.pushed[r.id] = sessionHash(r);
       }
+      // Documents: union, furthest page = the higher of the two; drop ones deleted on another device.
+      const remoteIds = new Set(remoteDocs.map((x) => x.id));
+      const merged: DocMeta[] = d.docs
+        .filter((x) => remoteIds.has(x.id) || !(x.id in d.sync.docsPushed))
+        .map((x) => ({ ...x }));
+      for (const r of remoteDocs) {
+        if (d.sync.docsDeleted.includes(r.id)) continue;
+        const l = merged.find((x) => x.id === r.id);
+        if (l) { l.furthest = Math.max(l.furthest, r.furthest); if (!l.storagePath && r.storagePath) l.storagePath = r.storagePath; }
+        else merged.push(r);
+        d.sync.docsPushed[r.id] = docHash(r);
+      }
+      for (const id of Object.keys(d.sync.docsPushed)) if (!remoteIds.has(id) && !merged.some((x) => x.id === id)) delete d.sync.docsPushed[id];
+      d.docs = merged.sort((a, b) => b.createdAt - a.createdAt);
+      if (d.context.docId && !d.docs.some((x) => x.id === d.context.docId)) Object.assign(d.context, { docId: '', docGoal: '', goalPage: 0, startPage: 1 });
       d.sync.lastPull = Date.now();
     });
   } finally { applyingRemote = false; }
@@ -322,3 +416,47 @@ export async function signOut() {
 }
 
 export const syncInternals = { pull, push };
+
+/* ------------------------------------------------------------------ */
+/* Documents                                                            */
+
+async function pushPages(doc: DocMeta) {
+  const pages = await idb.get<DocPage[]>(`doc:${doc.id}`);
+  if (!pages?.length) return;
+  for (let i = 0; i < pages.length; i += 200) {
+    const rows = pages.slice(i, i + 200).map((p) => ({
+      user_id: userId, document_id: doc.id, page_index: p.index, title: p.title.slice(0, 120), text: p.text.slice(0, 20_000),
+    }));
+    const { error } = await sb!.from('document_pages').upsert(rows, { onConflict: 'user_id,document_id,page_index' });
+    if (error) throw error;
+  }
+}
+
+/** Keep the original file in the account's private storage. Returns its path, or undefined. */
+export async function uploadDocFile(docId: string, file: File): Promise<string | undefined> {
+  if (!sb || !userId) return undefined;
+  const safe = file.name.replace(/[^\w.\- ]+/g, '_').slice(-120) || 'document';
+  const path = `${userId}/${docId}/${safe}`;
+  const { error } = await sb.storage.from('documents').upload(path, file, { upsert: true, contentType: file.type || undefined });
+  return error ? undefined : path;
+}
+
+export async function deleteDocFiles(paths: string[]) {
+  if (!sb || !userId || !paths.length) return;
+  await sb.storage.from('documents').remove(paths);
+}
+
+/** A temporary link to download the original file. */
+export async function docDownloadUrl(path: string): Promise<string | null> {
+  if (!sb) return null;
+  const { data } = await sb.storage.from('documents').createSignedUrl(path, 300, { download: true });
+  return data?.signedUrl ?? null;
+}
+
+/** Pages of a document uploaded on another device. */
+export async function fetchDocPages(docId: string): Promise<DocPage[]> {
+  if (!sb || !userId) return [];
+  const { data, error } = await sb.from('document_pages').select('page_index,title,text').eq('document_id', docId).order('page_index');
+  if (error) throw error;
+  return ((data ?? []) as { page_index: number; title: string; text: string }[]).map((r) => ({ index: r.page_index, title: r.title, text: r.text }));
+}

@@ -4,7 +4,10 @@ import { useStudy } from '@/lib/store';
 import { PRESETS, DEFAULT_SETTINGS } from '@/lib/defaults';
 import { AMBIENCE, CHIMES, Sound } from '@/lib/sound';
 import { clamp } from '@/lib/util';
-import type { Difficulty, Skin, Tier } from '@/lib/types';
+import type { Difficulty, Tier } from '@/lib/types';
+import { supabaseConfigured } from '@/lib/supabase/env';
+import { signOut } from '@/lib/sync';
+import { screenSupported, stopWatching } from '@/lib/docs/screen';
 import { Icon } from './Icon';
 import { useArmed } from './Panels';
 
@@ -19,8 +22,12 @@ function DialogHead({ id, title, close }: { id: string; title: string; close: ()
 
 const closeOnBackdrop = (e: React.MouseEvent<HTMLDialogElement>) => { if (e.target === e.currentTarget) e.currentTarget.close(); };
 
-export function SettingsDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialogElement | null> }) {
+export function SettingsDialog({ dialogRef, onSignIn, onAppearance }: {
+  dialogRef: RefObject<HTMLDialogElement | null>; onSignIn: () => void; onAppearance: () => void;
+}) {
   const s = useStudy((st) => st.settings);
+  const account = useStudy((st) => st.account);
+  const [logArmed, pressLog] = useArmed();
   const { updateSettings, setStudyMin, setLoop, clearHistory, showToast } = useStudy.getState();
   const [previewing, setPreviewing] = useState(false);
   const [notifyNote, setNotifyNote] = useState('Pop up a notice when a phase ends');
@@ -43,6 +50,20 @@ export function SettingsDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialogE
     <dialog ref={dialogRef} id="settingsDlg" aria-labelledby="setTitle" onClick={closeOnBackdrop}>
       <DialogHead id="setTitle" title="Settings" close={close} />
       <div className="dlg-body">
+        {supabaseConfigured() && (
+          <fieldset>
+            <legend>Account</legend>
+            <div className="set-row">
+              <span className="field-label">
+                {account.status === 'user' ? 'Signed in' : account.status === 'guest' ? 'Studying as a guest' : 'Not connected'}
+                <span className="sub">{account.status === 'user' ? (account.email || account.name) : 'Sign in to keep your progress on every device'}</span>
+              </span>
+              {account.status === 'user'
+                ? <button className="btn" type="button" onClick={() => { close(); void signOut(); }}>Sign out</button>
+                : <button className="btn btn-primary" type="button" disabled={account.status === 'connecting'} onClick={() => { close(); onSignIn(); }}>Sign in</button>}
+            </div>
+          </fieldset>
+        )}
         <fieldset>
           <legend>Timer</legend>
           <div className="field"><span className="field-label" id="lenLabel">Study session length</span>
@@ -150,10 +171,37 @@ export function SettingsDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialogE
 
         <fieldset>
           <legend>Appearance</legend>
-          <div className="seg" role="group" aria-label="Theme">
-            {([['auto', 'Match system'], ['notebook', 'Notebook'], ['chalkboard', 'Chalkboard'], ['tomato', 'Tomato buddy']] as [Skin, string][]).map(([k, label]) => (
-              <button key={k} type="button" aria-pressed={s.skin === k} onClick={() => updateSettings((x) => { x.skin = k; })}>{label}</button>
-            ))}
+          <div className="set-row">
+            <span className="field-label">Look and feel<span className="sub">Theme, accent color, clock font, timer style, background, corners, spacing</span></span>
+            <button className="btn" type="button" onClick={() => { close(); onAppearance(); }}><Icon name="palette" />Customize</button>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Screen tracking</legend>
+          {!screenSupported() && <p className="hint" style={{ marginTop: -6 }}>Needs a desktop browser (Chrome, Edge, Firefox or Safari). On this device, set how far you got at the end of each session.</p>}
+          <div className="set-row">
+            <label htmlFor="scrToggle">Track my slides from the screen<span className="sub">Reads the window you share, on this device, to see which slide you&apos;re on</span></label>
+            <input type="checkbox" className="switch" id="scrToggle" checked={s.screenTrack} onChange={(e) => { const v = e.target.checked; updateSettings((x) => { x.screenTrack = v; }); if (!v) stopWatching(); }} />
+          </div>
+          {s.screenTrack && (
+            <>
+              <div className="set-row">
+                <label htmlFor="scrAsk">Ask to share when a session starts<span className="sub">Otherwise, use &ldquo;Track my slides&rdquo; on the timer</span></label>
+                <input type="checkbox" className="switch" id="scrAsk" checked={s.screenAskOnStart} onChange={(e) => { const v = e.target.checked; updateSettings((x) => { x.screenAskOnStart = v; }); }} />
+              </div>
+              <div className="set-row">
+                <label htmlFor="scrEvery">Look every<span className="sub">Only changed screens are read</span></label>
+                <span className="inline">
+                  <input type="range" id="scrEvery" min={10} max={60} step={5} value={s.screenEvery} onChange={(e) => { const v = Number(e.target.value); updateSettings((x) => { x.screenEvery = v; }); }} />
+                  <span className="small muted" style={{ minWidth: 36 }}>{s.screenEvery} s</span>
+                </span>
+              </div>
+            </>
+          )}
+          <div className="set-row">
+            <span className="field-label">Tracking logs<span className="sub">The slide numbers and titles read during past sessions</span></span>
+            <button className="btn" type="button" onClick={() => pressLog(() => useStudy.getState().clearSeen('all'))}>{logArmed ? 'Click again to delete' : 'Delete all logs'}</button>
           </div>
         </fieldset>
 

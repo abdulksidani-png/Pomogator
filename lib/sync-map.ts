@@ -2,7 +2,7 @@
  * Pure helpers that translate between the app's local records and database rows,
  * and merge copies of history coming from different devices.
  */
-import type { Asked, ConceptStat, QuizOutcomeStatus, SessionRecord, Task } from './types';
+import type { Asked, ConceptStat, DocKind, DocMeta, QuizOutcomeStatus, SeenEvent, SessionRecord, Task } from './types';
 import { recordConcepts, topicKey } from './context';
 import { hash } from './util';
 
@@ -24,6 +24,36 @@ export interface SessionRow {
   quiz_total: number | null;
   break_min: number | null;
   break_kind: string | null;
+  document_id: string | null;
+  start_page: number | null;
+  end_page: number | null;
+  goal_page: number | null;
+  goal_met: boolean | null;
+  progress_source: string | null;
+}
+
+export interface EventRow {
+  user_id: string;
+  id: string;
+  session_id: string;
+  at: string;
+  page_index: number | null;
+  title: string;
+  source: 'screen' | 'manual';
+  confidence: number | null;
+}
+
+export interface DocRow {
+  user_id: string;
+  id: string;
+  name: string;
+  kind: DocKind;
+  size_bytes: number;
+  page_count: number;
+  titles: string[];
+  furthest_page: number;
+  storage_path: string | null;
+  created_at: string;
 }
 
 export interface AttemptRow {
@@ -66,8 +96,46 @@ export function sessionToRow(h: SessionRecord, userId: string): SessionRow {
     quiz_total: h.quiz?.total ?? null,
     break_min: h.breakMin ?? null,
     break_kind: h.breakKind ?? null,
+    document_id: h.docId ?? null,
+    start_page: h.startPage ?? null,
+    end_page: h.endPage ?? null,
+    goal_page: h.goalPage ?? null,
+    goal_met: h.goalMet ?? null,
+    progress_source: h.progressSource ?? null,
   };
 }
+
+export function eventsFor(h: SessionRecord, userId: string): EventRow[] {
+  return (h.seen ?? []).map((e, i) => ({
+    user_id: userId, id: `${h.id}:${i}`, session_id: h.id, at: iso(e.at),
+    page_index: e.page || null, title: e.title || '', source: e.source, confidence: e.conf ?? null,
+  }));
+}
+
+export function rowToEvent(r: EventRow): SeenEvent {
+  const e: SeenEvent = { at: ms(r.at)!, page: r.page_index ?? 0, title: r.title || '', source: r.source };
+  if (r.confidence !== null && r.confidence !== undefined) e.conf = Number(r.confidence);
+  return e;
+}
+
+export function docToRow(d: DocMeta, userId: string): DocRow {
+  return {
+    user_id: userId, id: d.id, name: d.name.slice(0, 200), kind: d.kind, size_bytes: d.size, page_count: d.pageCount,
+    titles: d.titles.slice(0, 400).map((t) => t.slice(0, 120)), furthest_page: d.furthest, storage_path: d.storagePath ?? null,
+    created_at: iso(d.createdAt),
+  };
+}
+
+export function rowToDoc(r: DocRow): DocMeta {
+  const d: DocMeta = {
+    id: r.id, name: r.name, kind: r.kind, size: Number(r.size_bytes) || 0, pageCount: Number(r.page_count) || 0,
+    titles: Array.isArray(r.titles) ? r.titles.map(String) : [], createdAt: ms(r.created_at) ?? Date.now(), furthest: Number(r.furthest_page) || 0,
+  };
+  if (r.storage_path) d.storagePath = r.storage_path;
+  return d;
+}
+
+export const docHash = (d: DocMeta) => hash(JSON.stringify([d.name, d.kind, d.pageCount, d.furthest, d.storagePath ?? null]));
 
 export function attemptsFor(h: SessionRecord, userId: string): AttemptRow[] {
   const tk = topicKey(h);
@@ -86,7 +154,7 @@ export function attemptsFor(h: SessionRecord, userId: string): AttemptRow[] {
   }));
 }
 
-export function rowToSession(r: SessionRow, attempts: AttemptRow[]): SessionRecord {
+export function rowToSession(r: SessionRow, attempts: AttemptRow[], events: EventRow[] = []): SessionRecord {
   const items = attempts
     .slice()
     .sort((a, b) => Number(a.id.split(':').pop()) - Number(b.id.split(':').pop()))
@@ -110,6 +178,17 @@ export function rowToSession(r: SessionRow, attempts: AttemptRow[]): SessionReco
   }
   if (r.break_min !== null) rec.breakMin = num(r.break_min);
   if (r.break_kind) rec.breakKind = r.break_kind as SessionRecord['breakKind'];
+  if (r.document_id) {
+    rec.docId = r.document_id;
+    if (r.start_page != null) rec.startPage = Number(r.start_page);
+    if (r.end_page != null) rec.endPage = Number(r.end_page);
+    if (r.goal_page != null) rec.goalPage = Number(r.goal_page);
+    if (r.goal_met != null) rec.goalMet = !!r.goal_met;
+    if (r.progress_source) rec.progressSource = r.progress_source as SessionRecord['progressSource'];
+  }
+  if (events.length) {
+    rec.seen = events.slice().sort((a, b) => Number(a.id.split(':').pop()) - Number(b.id.split(':').pop())).map(rowToEvent);
+  }
   return rec;
 }
 
@@ -120,6 +199,8 @@ export function sessionHash(h: SessionRecord): string {
     h.quiz?.status ?? null, h.quiz?.score ?? null, h.quiz?.total ?? null,
     (h.quiz?.items ?? []).map((i) => [i.concept, i.question, i.chosen, i.answer, i.correct]),
     h.breakMin ?? null, h.breakKind ?? null,
+    h.docId ?? null, h.startPage ?? null, h.endPage ?? null, h.goalPage ?? null, h.goalMet ?? null, h.progressSource ?? null,
+    (h.seen ?? []).map((e) => [e.at, e.page, e.title, e.source, e.conf ?? null]),
   ]));
 }
 

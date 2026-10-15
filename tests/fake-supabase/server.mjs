@@ -38,7 +38,9 @@ await admin.query(`create database ${DB}`);
 await admin.end();
 const db = new pg.Pool({ ...PG, database: DB });
 await db.query(fs.readFileSync(path.join(root, 'tests/db/supabase-stub.sql'), 'utf8'));
-for (const f of fs.readdirSync(path.join(root, 'supabase/migrations')).sort()) {
+// FAKE_MIGRATIONS=1 applies only the first migration (to test an account that hasn't run later updates).
+const migrations = fs.readdirSync(path.join(root, 'supabase/migrations')).sort().slice(0, Number(process.env.FAKE_MIGRATIONS) || undefined);
+for (const f of migrations) {
   await db.query(fs.readFileSync(path.join(root, 'supabase/migrations', f), 'utf8'));
 }
 
@@ -132,7 +134,7 @@ const server = http.createServer(async (req, res) => {
     if (p === '/test/link') return send(res, 200, { url: links.get(url.searchParams.get('email')) || null });
     if (p === '/test/rows') {
       const table = url.searchParams.get('table');
-      if (!['tasks', 'study_sessions', 'quiz_attempts', 'profiles'].includes(table)) return send(res, 400, {});
+      if (!['tasks', 'study_sessions', 'quiz_attempts', 'profiles', 'documents', 'document_pages', 'progress_events'].includes(table)) return send(res, 400, {});
       const { rows } = await db.query(`select * from public.${table}`);
       return send(res, 200, rows);
     }
@@ -186,6 +188,11 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, {});
     }
     if (p === '/auth/v1/logout') { res.writeHead(204); res.end(); return; }
+    if (p.startsWith('/storage/v1/object/documents/') && req.method === 'POST') {
+      if (!userFrom(req)) return send(res, 403, { statusCode: '403', error: 'Unauthorized', message: 'no user' });
+      return send(res, 200, { Key: p.replace('/storage/v1/object/', ''), Id: crypto.randomUUID() });
+    }
+    if (p === '/storage/v1/object/documents' && req.method === 'DELETE') return send(res, 200, []);
     return send(res, 404, { msg: `fake supabase: no route for ${req.method} ${p}` });
   } catch (e) {
     console.error(e);

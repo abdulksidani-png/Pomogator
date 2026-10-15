@@ -7,23 +7,25 @@ import { ctxKey, hasTopic, topicLabel } from '@/lib/context';
 import { MIN, clamp, fmt } from '@/lib/util';
 import { Icon } from './Icon';
 import { Mascot, type Mood } from './Mascot';
+import { DocProgress, ScreenTracker } from './Documents';
 
-export function Stage() {
+export function Stage({ onToggle, onScreenConsent }: { onToggle: () => void; onScreenConsent: () => void }) {
   const phase = useStudy((s) => s.timer.phase);
   const status = useStudy((s) => s.timer.status);
   return (
     <section className="card stage" id="stage" data-phase={phase} data-status={status} aria-label="Timer">
-      {phase === 'quiz' ? <QuizFace /> : <TimerFace />}
+      {phase === 'quiz' ? <QuizFace /> : <TimerFace onToggle={onToggle} onScreenConsent={onScreenConsent} />}
     </section>
   );
 }
 
 /* ---------------- timer face ---------------- */
 
-function TimerFace() {
+function TimerFace({ onToggle, onScreenConsent }: { onToggle: () => void; onScreenConsent: () => void }) {
   const T = useStudy((s) => s.timer);
   const settings = useStudy((s) => s.settings);
-  const { toggle, reset, skip, addFive, markDone, switchMode } = useStudy.getState();
+  const { reset, skip, addFive, markDone, switchMode } = useStudy.getState();
+  const style = settings.timerStyle;
   const N = settings.longEvery;
   const running = T.status === 'running';
 
@@ -57,16 +59,27 @@ function TimerFace() {
       </div>
       <div className="clock-row">
         <div className="mascot-wrap" aria-hidden="true"><Mascot mood={mood} /></div>
-        <div className="clock-col">
-          <p className="eyebrow">{eyebrow}</p>
-          <Clock />
-          <p className="clock-sub">{sub}</p>
-        </div>
+        {style === 'ring' ? (
+          <div className="timer-ring">
+            <RingProgress />
+            <div className="clock-col">
+              <p className="eyebrow">{eyebrow}</p>
+              <Clock />
+              <p className="clock-sub">{sub}</p>
+            </div>
+          </div>
+        ) : (
+          <div className="clock-col">
+            <p className="eyebrow">{eyebrow}</p>
+            <Clock />
+            <p className="clock-sub">{sub}</p>
+          </div>
+        )}
       </div>
-      <Ruler />
+      {style === 'classic' && <Ruler />}
       <div className="controls">
         <button className="icon-btn" type="button" aria-label="Reset timer" title="Reset (R)" disabled={T.status === 'idle' && T.remainingMs === T.totalMs} onClick={reset}><Icon name="reset" /></button>
-        <button className="btn btn-primary start-btn" id="startBtn" type="button" aria-label={`${startLabel} (Space)`} onClick={toggle}>
+        <button className="btn btn-primary start-btn" id="startBtn" type="button" aria-label={`${startLabel} (Space)`} onClick={onToggle}>
           <Icon name={running ? 'pause' : 'play'} /><span>{startLabel}</span>
         </button>
         <button className="icon-btn" type="button" aria-label="Skip to the next phase" title="Skip (S)" disabled={T.phase === 'study' && T.status === 'idle' && !T.session} onClick={skip}><Icon name="skip" /></button>
@@ -77,8 +90,23 @@ function TimerFace() {
           <button className="btn-quiet" type="button" title="End the session now and take the quiz (D)" disabled={!T.session} onClick={markDone}><Icon name="flag" />Finish session now</button>
         )}
       </div>
+      <DocProgress />
+      <ScreenTracker onConsent={onScreenConsent} />
       <StageFoot />
     </div>
+  );
+}
+
+function RingProgress() {
+  const T = useStudy((s) => s.timer);
+  const now = useNow((s) => s.now);
+  const r = 46, C = 2 * Math.PI * r;
+  const done = clamp(1 - remainingAt(T, now) / (T.totalMs || 1), 0, 1);
+  return (
+    <svg viewBox="0 0 100 100" aria-hidden="true">
+      <circle className="track" cx="50" cy="50" r={r} fill="none" strokeWidth="5" />
+      <circle className="bar" cx="50" cy="50" r={r} fill="none" strokeWidth="5" strokeDasharray={C} strokeDashoffset={C * (1 - done)} />
+    </svg>
   );
 }
 
