@@ -1,0 +1,104 @@
+# StudyBuddy — notes for Claude Code
+
+A Pomodoro study site: 25–45 min study sessions, then a 1–3 question quiz on what you studied.
+The score sets the break (3/3 → 15 min, 1/3 → 5 min), every answer gets a memory tip, and a
+next-session plan follows. It adds documents with plain-language goals ("up to the Aristotle slide"),
+optional screen tracking, sign-in with cloud sync, and appearance customization.
+
+- **Full spec:** `docs/SPEC.md` (the owner's build prompt; sections 5–7 and 9–11 are still to do)
+- **Reference prototype:** `docs/reference/studybuddy.html`, the original single-file version.
+  Its `window.claude.use("sample")` calls show the intended AI prompts and JSON shapes. Port; don't redesign.
+- **Live site:** https://studybuddy-bay.vercel.app (Vercel deploys every push to `main`)
+- **Repo:** github.com/abdulksidani-png/studybuddy
+
+## Working with the owner
+
+- He's a beginner. Give step-by-step setup instructions with exact clicks and plain words, with no jargon.
+- Build **one phase at a time**, end each phase with something he can test, and give him a short test checklist.
+  **Don't start the next phase until he says the current one works.**
+- He can't run SQL from a file path: tell him to open the raw GitHub link, copy everything,
+  paste it into Supabase → SQL Editor, and click Run.
+- He views the site on Vercel. The footer shows `v<commit>`; when he reports something missing,
+  check that version first (stale tabs have happened).
+
+## Status
+
+| Phase | What | Status |
+| --- | --- | --- |
+| 1 | Next.js port: timer, quiz flow, settings, sounds, themes, tasks (local) | Done |
+| 2 | Supabase: guests, email link + Google sign-in, sync across devices | Done |
+| 4 | Documents: PDF/PPTX/DOCX/text/photos, outlines, goals, resume point, library | Done |
+| 5 | Screen tracking: opt-in, on-device OCR, slide matching, "slides seen" log | Done |
+| + | Appearance: themes, accent, clock fonts, timer styles, backgrounds | Done |
+| **3** | **Claude API routes: quiz, plan, day summary, OCR fallback, daily limits** | **Next** (needs `ANTHROPIC_API_KEY` from him) |
+| 6 | Stats engine (pure, tested) + Stats page | |
+| 7 | Weekly report | |
+| 8 | Check-in streaks + celebrations (MyFitnessPal style) | |
+| 9 | Polish, export / delete account, full README guide | |
+
+The owner's latest requests, all done:
+- sign out (Settings → Account, avatar menu)
+- more file types
+- screen-share button under "Study material"
+- appearance options
+
+He hadn't confirmed they work yet.
+
+### Where the build differs from the spec (on purpose)
+- **Outlines** come from the file itself (PPTX slide titles, PDF largest text, DOCX headings) rather than `/api/ai/outline`.
+  Phase 3 may add AI summaries and key concepts on top.
+- **Screen tracking** reads frames with on-device Tesseract OCR and IDF word matching (`lib/docs/match.ts`) rather than
+  sending frames to Claude. `/api/ai/frame` could be a fallback when the match isn't confident.
+- **AI routes** are stubs: `app/api/ai/[action]/route.ts` returns 503 and `app/api/ai/status` returns `{configured:false}`.
+  The client side is ready in `lib/ai-client.ts` and `lib/quiz.ts`, which include validation.
+
+## Stack
+- Next.js 15 App Router and React 19. The app is client-only: `components/ClientApp.tsx` loads `StudyBuddyApp` with `ssr:false`.
+- TypeScript, Tailwind 4, and hand-written CSS in `app/globals.css`, unlayered.
+- Zustand 5 with persist + immer (`lib/store.ts`, localStorage key `studybuddy.v1`). The timer works from timestamps (`endAt`).
+- Supabase (`@supabase/ssr`): anonymous guests are upgraded in place with `linkIdentity` / `updateUser(email)`.
+  `/auth/callback` route; `middleware.ts` refreshes the session.
+- Docs: pdfjs-dist, jszip (PPTX), mammoth (DOCX), Tesseract.js. All are self-hosted and copied to
+  `public/vendor` by `scripts/copy-vendor.mjs`, which runs on predev/prebuild. `public/vendor` is gitignored.
+
+## Map
+- `lib/store.ts`: all state and actions (sessions, quiz, docs, progress).
+- `lib/types.ts`, `lib/defaults.ts`.
+- `lib/sync.ts`, `lib/sync-map.ts`: sync engine. Settings, context, app and tasks are versioned slices where the newest wins.
+  Version numbers only go up (`next(k)`), so a device with a fast clock can't make other devices' edits look old.
+  Sessions, attempts and events merge by id. It falls back gracefully if migration 2 hasn't been run.
+- `lib/docs/`:
+  - `parse.ts`: file → pages
+  - `library.ts`: import, pages cache (memory → IndexedDB → server), delete
+  - `match.ts`: goals, screen matching, change detection
+  - `ocr.ts`, `screen.ts`
+- `lib/appearance.ts` + `components/Appearance.tsx`: look settings, applied as data attributes on `<html>`.
+- `components/`:
+  - `StudyBuddyApp.tsx`: layout, dialogs, Start/consent wiring
+  - `Stage.tsx`: timer and quiz
+  - `Panels.tsx`: context, tasks, today, plan
+  - `Documents.tsx`
+  - `Dialogs.tsx`: settings, help
+  - `Account.tsx`
+- `supabase/migrations/`: `…000000_core.sql`, `…010000_documents.sql`. RLS restricts every table to
+  `user_id = (select auth.uid())`. The owner pastes migrations into the SQL Editor by hand.
+
+## Commands
+```bash
+npm run dev          # http://localhost:3000 (copies vendor files first)
+npm run typecheck
+npm test             # Vitest unit tests (42)
+npm run test:e2e     # Playwright: loop, documents, goals, screen tracking, appearance
+npm run test:sync    # two-device sync: needs local Postgres + PostgREST (PGHOST/PGPORT/PGUSER, POSTGREST_BIN)
+```
+`tests/fake-supabase/server.mjs` runs the real migrations on Postgres behind PostgREST, with a fake auth server.
+`FAKE_MIGRATIONS=1` applies only migration 1, to test the legacy fallback. `tests/db/rls-check.sql` checks RLS.
+
+## Gotchas
+- A Zustand selector must never return a fresh `[]` or `{}`: that re-renders forever (React #185). Use a shared constant like `NO_EVENTS`.
+- Custom class names can collide with Tailwind utilities, which already caused trouble with `.ring` and `.outline`.
+  Use specific names like `.timer-ring` or `.doc-outline`.
+- Screen tracking may start before a session. It stops when a live session ends, and it only reads frames while studying.
+- Playwright reuses a server already running on its port. Kill stale `next` processes first, and don't `pkill -f`
+  a pattern that appears in your own command.
+- Commits: write clear messages and push to `main`. Vercel deploys automatically.

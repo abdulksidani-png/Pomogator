@@ -1,0 +1,1849 @@
+<title>StudyBuddy</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Fredoka:wght@500;600;700&family=Martian+Mono:wght@400;600;700&display=swap">
+<style>
+/* Layout: a study desk. The timer "stage" (which turns into an index-card quiz) and the next-session plan sit in the wide left column; the study kit (what you're studying, tasks, today's log) sits in the right column. One column on phones. */
+:root {
+  --bg: #F3F5FA; --card: #FFFFFF; --sunk: #E8ECF5;
+  --fg: #1A2240; --fg-2: #485170; --fg-3: #7A83A0;
+  --rule: #D6DCEB; --margin: #DB5368;
+  --accent: #2F4BC8; --accent-soft: #E1E7FB; --on-accent: #FFFFFF;
+  --good: #1B7A52; --good-bg: #E0F2E9; --bad: #B4344A; --bad-bg: #FAE5E9;
+  --hl: #FFF09C; --hl-ink: #3A3100;
+  --phase: var(--accent);
+  --shadow: 0 1px 2px rgba(26,34,64,.06), 0 10px 28px -16px rgba(26,34,64,.28);
+  --f-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "Martian Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --f-clock: var(--f-mono);
+  --r-sm: 7px; --r-md: 11px; --r-lg: 18px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131C19; --card: #1B2622; --sunk: #24312C;
+    --fg: #ECF0E8; --fg-2: #B2BDB5; --fg-3: #7D8B84;
+    --rule: #2F3E38; --margin: #F2938F;
+    --accent: #F0D26A; --accent-soft: #3A3920; --on-accent: #131C19;
+    --good: #86D7A7; --good-bg: #1E3A2C; --bad: #F4968F; --bad-bg: #3E2523;
+    --hl: #4A4320; --hl-ink: #FFF3C6;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 30px -16px rgba(0,0,0,.7);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #131C19; --card: #1B2622; --sunk: #24312C;
+  --fg: #ECF0E8; --fg-2: #B2BDB5; --fg-3: #7D8B84;
+  --rule: #2F3E38; --margin: #F2938F;
+  --accent: #F0D26A; --accent-soft: #3A3920; --on-accent: #131C19;
+  --good: #86D7A7; --good-bg: #1E3A2C; --bad: #F4968F; --bad-bg: #3E2523;
+  --hl: #4A4320; --hl-ink: #FFF3C6;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 30px -16px rgba(0,0,0,.7);
+  color-scheme: dark;
+}
+/* The page's own theme picker (Settings → Appearance) overrides the viewer theme. */
+html:root[data-skin="notebook"] {
+  --bg: #F3F5FA; --card: #FFFFFF; --sunk: #E8ECF5;
+  --fg: #1A2240; --fg-2: #485170; --fg-3: #7A83A0;
+  --rule: #D6DCEB; --margin: #DB5368;
+  --accent: #2F4BC8; --accent-soft: #E1E7FB; --on-accent: #FFFFFF;
+  --good: #1B7A52; --good-bg: #E0F2E9; --bad: #B4344A; --bad-bg: #FAE5E9;
+  --hl: #FFF09C; --hl-ink: #3A3100;
+  --shadow: 0 1px 2px rgba(26,34,64,.06), 0 10px 28px -16px rgba(26,34,64,.28);
+  color-scheme: light;
+}
+html:root[data-skin="chalkboard"] {
+  --bg: #131C19; --card: #1B2622; --sunk: #24312C;
+  --fg: #ECF0E8; --fg-2: #B2BDB5; --fg-3: #7D8B84;
+  --rule: #2F3E38; --margin: #F2938F;
+  --accent: #F0D26A; --accent-soft: #3A3920; --on-accent: #131C19;
+  --good: #86D7A7; --good-bg: #1E3A2C; --bad: #F4968F; --bad-bg: #3E2523;
+  --hl: #4A4320; --hl-ink: #FFF3C6;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 30px -16px rgba(0,0,0,.7);
+  color-scheme: dark;
+}
+html:root[data-skin="tomato"] {
+  --bg: #FFF0EC; --card: #FFFFFF; --sunk: #FFE2DA;
+  --fg: #3A1D22; --fg-2: #7A4B52; --fg-3: #A6828A;
+  --rule: #F7CFC6; --margin: #3E9A5E;
+  --accent: #D63A43; --accent-soft: #FFDCD8; --on-accent: #FFFFFF;
+  --good: #2A8A50; --good-bg: #E1F4E7; --bad: #C1323C; --bad-bg: #FFE1E1;
+  --hl: #FFE6A3; --hl-ink: #4A3300;
+  --shadow: 0 2px 0 #F7CFC6, 0 12px 26px -16px rgba(140,40,40,.35);
+  --f-display: "Fredoka", "Avenir Next Rounded", "Segoe UI", system-ui, sans-serif;
+  --f-clock: "Fredoka", "Avenir Next Rounded", system-ui, sans-serif;
+  --r-sm: 10px; --r-md: 16px; --r-lg: 26px;
+  color-scheme: light;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font-family: var(--f-body); font-size: 16px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+html:root[data-skin="tomato"] body {
+  background-image: radial-gradient(var(--rule) 1.3px, transparent 1.4px);
+  background-size: 24px 24px;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+svg.i { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.app {
+  max-width: 1180px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 10px 48px;
+}
+
+/* ---------- header ---------- */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 8px 18px; }
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.brand-mark { width: 34px; height: 34px; flex: none; }
+.brand-name { font-family: var(--f-display); font-weight: 800; font-size: 22px; letter-spacing: -.015em; }
+.brand-tag { font-size: 13px; color: var(--fg-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.top-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+.chip-btn {
+  display: inline-flex; align-items: center; gap: 7px; height: 40px; padding: 0 14px;
+  border-radius: 999px; border: 1px solid var(--rule); background: var(--card);
+  font-weight: 700; font-size: 14px; color: var(--fg-2);
+}
+.chip-btn[aria-pressed="true"] { background: var(--accent); border-color: transparent; color: var(--on-accent); }
+.icon-btn {
+  width: 40px; height: 40px; display: inline-grid; place-items: center; flex: none;
+  border-radius: 999px; border: 1px solid var(--rule); background: var(--card); color: var(--fg-2);
+}
+.icon-btn:hover:not(:disabled), .chip-btn:hover { border-color: var(--fg-3); color: var(--fg); }
+.chip-btn[aria-pressed="true"]:hover { color: var(--on-accent); }
+.icon-btn:disabled { opacity: .4; }
+
+/* ---------- desk grid ---------- */
+.desk { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.col-main, .col-side { display: grid; gap: 20px; min-width: 0; }
+@media (max-width: 920px) {
+  /* One column: timer, result, what you're studying, plan, tasks, today. */
+  .desk { grid-template-columns: minmax(0, 1fr); }
+  .col-main, .col-side { display: contents; }
+  #stage { order: 1; } #resultBanner { order: 2; } #ctxCard { order: 3; } #planCard { order: 4; } #tasksCard { order: 5; } #todayCard { order: 6; }
+}
+
+.card { background: var(--card); border: 1px solid var(--rule); border-radius: var(--r-lg); }
+.stage { box-shadow: var(--shadow); padding: 22px 24px 20px; position: relative; }
+.stage[data-phase="break"] { --phase: var(--good); }
+.stage[data-phase="quiz"] { --phase: var(--margin); }
+.side-card { padding: 18px 20px 20px; }
+.card-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.card-h h2 { margin: 0; font-family: var(--f-display); font-weight: 700; font-size: 19px; letter-spacing: -.01em; }
+.card-h .meta { font-size: 13px; color: var(--fg-3); }
+.eyebrow { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--fg-3); }
+
+/* ---------- buttons ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 42px; padding: 0 16px; border-radius: var(--r-md);
+  border: 1px solid var(--rule); background: var(--card); color: var(--fg);
+  font-weight: 700; font-size: 15px; text-decoration: none; white-space: nowrap;
+}
+.btn:hover:not(:disabled) { border-color: var(--fg-3); }
+.btn:disabled { opacity: .45; }
+.btn-primary { background: var(--accent); border-color: transparent; color: var(--on-accent); }
+.btn-primary:hover:not(:disabled) { border-color: transparent; filter: brightness(1.07); }
+.btn-quiet {
+  display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent;
+  color: var(--fg-2); font-weight: 700; font-size: 14px; padding: 7px 10px; border-radius: var(--r-sm);
+}
+.btn-quiet:hover:not(:disabled) { background: var(--sunk); color: var(--fg); }
+.btn-quiet:disabled { opacity: .4; }
+.btn-link { border: 0; background: none; padding: 0; color: var(--accent); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---------- timer face ---------- */
+.modes { display: flex; gap: 4px; padding: 4px; background: var(--sunk); border-radius: 999px; width: max-content; max-width: 100%; margin: 0 auto; }
+.mode { border: 0; background: transparent; color: var(--fg-2); font-weight: 700; font-size: 14px; padding: 9px 15px; border-radius: 999px; white-space: nowrap; }
+.mode[aria-pressed="true"] { background: var(--card); color: var(--fg); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.mode:disabled:not([aria-pressed="true"]) { opacity: .5; }
+
+.clock-row { display: flex; align-items: center; justify-content: center; gap: 22px; margin-top: 22px; }
+.clock-col { text-align: center; min-width: 0; }
+.clock {
+  font-family: var(--f-clock); font-weight: 600; line-height: 1; letter-spacing: -.02em;
+  font-size: clamp(62px, 15vw, 128px); color: var(--fg); margin: 10px 0 8px; white-space: nowrap;
+}
+html:root[data-skin="tomato"] .clock { font-weight: 700; }
+.clock .d { display: inline-block; width: .66em; text-align: center; }
+.clock .c { display: inline-block; width: .36em; text-align: center; opacity: .75; }
+.stage[data-status="paused"] .clock { opacity: .55; }
+.clock-sub { margin: 0; color: var(--fg-2); font-size: 15px; }
+
+.mascot-wrap { display: none; width: 118px; flex: none; }
+html:root[data-skin="tomato"] .mascot-wrap { display: block; }
+.mascot { width: 100%; height: auto; display: block; overflow: visible; }
+.mascot .v { display: none; }
+.mascot[data-mood="idle"] .v-idle, .mascot[data-mood="focus"] .v-focus, .mascot[data-mood="quiz"] .v-quiz,
+.mascot[data-mood="happy"] .v-happy, .mascot[data-mood="rest"] .v-rest, .mascot[data-mood="cheer"] .v-cheer { display: inline; }
+.mascot .m-bob { transform-origin: 60px 110px; }
+.mascot[data-mood="focus"] .m-bob { animation: breathe 3.6s ease-in-out infinite; }
+.mascot[data-mood="happy"] .m-bob { animation: hop 1.2s ease-in-out 2; }
+@keyframes breathe { 50% { transform: scale(1.025, .985); } }
+@keyframes hop { 30% { transform: translateY(-8px); } 60% { transform: translateY(0); } }
+
+.ruler { position: relative; height: 46px; margin: 24px 6px 0; }
+.ruler-track { position: absolute; left: 0; right: 0; top: 0; height: 10px; border-radius: 999px; background: var(--sunk); overflow: hidden; }
+.ruler-fill { height: 100%; width: 0; background: var(--phase); border-radius: 999px; }
+.ruler-ticks { position: absolute; left: 0; right: 0; top: 14px; height: 32px; }
+.tick { position: absolute; top: 0; width: 1px; height: 5px; background: var(--fg-3); opacity: .55; }
+.tick.major { height: 9px; opacity: 1; }
+.tick-label { position: absolute; top: 13px; transform: translateX(-50%); font: 500 10px/1 var(--f-mono); color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.ruler-unit { position: absolute; right: 0; top: -20px; font: 500 10px/1 var(--f-mono); color: var(--fg-3); letter-spacing: .04em; }
+
+.controls { display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 14px; }
+.controls .icon-btn { width: 54px; height: 54px; }
+.start-btn { min-width: 196px; min-height: 62px; font-size: 19px; border-radius: 999px; }
+.controls-2 { display: flex; justify-content: center; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+
+.stage-foot { margin-top: 18px; padding-top: 16px; border-top: 1px dashed var(--rule); display: grid; gap: 12px; }
+.foot-row { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; }
+.cycle { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--fg-2); }
+.dots { display: flex; gap: 5px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--fg-3); }
+.dot.on { background: var(--accent); border-color: var(--accent); }
+.dot.now { border-color: var(--accent); }
+.studying { font-size: 14px; color: var(--fg-2); min-width: 0; }
+.studying strong { color: var(--fg); }
+.tiers { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; color: var(--fg-3); }
+.tier { font: 600 12px/1 var(--f-mono); padding: 5px 8px; border-radius: 6px; background: var(--sunk); color: var(--fg-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.qchip { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; padding: 6px 11px; border-radius: 999px; background: var(--sunk); color: var(--fg-2); }
+.qchip.good { background: var(--good-bg); color: var(--good); }
+.qchip.warn { background: var(--hl); color: var(--hl-ink); }
+.qchip .btn-link { font-size: 13px; }
+.spin { width: 13px; height: 13px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .8s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- quiz face (index card) ---------- */
+.qcard { position: relative; padding: 4px 4px 4px 44px; min-height: 360px; }
+.qcard::before { content: ""; position: absolute; left: 22px; top: -22px; bottom: -20px; width: 2px; background: var(--margin); opacity: .5; }
+.q-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding-bottom: 12px; border-bottom: 2px solid var(--rule); border-bottom: 2px solid color-mix(in srgb, var(--margin) 45%, transparent); }
+.q-num { font: 700 13px/1 var(--f-mono); color: var(--margin); letter-spacing: .03em; }
+.q-concept { font-size: 13px; color: var(--fg-3); font-weight: 700; }
+.q-progress { display: flex; gap: 4px; }
+.q-progress span { width: 22px; height: 6px; border-radius: 3px; background: var(--sunk); }
+.q-progress span.good { background: var(--good); } .q-progress span.bad { background: var(--bad); } .q-progress span.now { background: var(--fg-3); }
+.q-text { font-family: var(--f-display); font-weight: 600; font-size: clamp(20px, 2.5vw, 25px); line-height: 1.32; letter-spacing: -.01em; text-wrap: balance; margin: 18px 0; }
+.opts { display: grid; gap: 10px; }
+.opt {
+  display: grid; grid-template-columns: 32px minmax(0, 1fr) 22px; align-items: center; gap: 12px;
+  text-align: left; padding: 11px 14px; border: 1.5px solid var(--rule); border-radius: var(--r-md);
+  background: var(--card); font-size: 16px; line-height: 1.4; color: var(--fg);
+}
+.opt .key { width: 32px; height: 32px; border-radius: 8px; background: var(--sunk); display: grid; place-items: center; font: 700 13px/1 var(--f-mono); color: var(--fg-2); }
+.opt:hover:not(:disabled) { border-color: var(--accent); }
+.opt:disabled { cursor: default; }
+.opt.is-correct { border-color: var(--good); background: var(--good-bg); }
+.opt.is-correct .key { background: var(--good); color: var(--card); }
+.opt.is-wrong { border-color: var(--bad); background: var(--bad-bg); }
+.opt.is-wrong .key { background: var(--bad); color: var(--card); }
+.opt.is-dim { opacity: .55; }
+.opt .mark { color: var(--good); }
+.opt.is-wrong .mark { color: var(--bad); }
+.fb { margin-top: 18px; display: grid; gap: 12px; }
+.verdict { margin: 0; font-weight: 700; font-size: 18px; }
+.verdict.good { color: var(--good); } .verdict.bad { color: var(--bad); }
+.fb p { margin: 0; }
+.why { border-left: 3px solid var(--bad); padding-left: 12px; color: var(--fg-2); }
+.aid { background: var(--hl); color: var(--hl-ink); border-radius: var(--r-md); padding: 13px 16px; }
+.aid-label { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; opacity: .78; margin-bottom: 4px; }
+.q-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+.q-intro { display: grid; gap: 14px; padding-top: 10px; }
+.q-intro h2 { margin: 0; font-family: var(--f-display); font-size: clamp(24px, 3vw, 30px); font-weight: 700; letter-spacing: -.015em; text-wrap: balance; }
+.q-intro p { margin: 0; color: var(--fg-2); max-width: 58ch; }
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.loading-line { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--fg-2); }
+.loading-line .spin { width: 16px; height: 16px; }
+
+/* ---------- result + plan ---------- */
+.result { padding: 18px 22px; display: flex; align-items: center; gap: 14px 20px; flex-wrap: wrap; }
+.score { font-family: var(--f-clock); font-weight: 700; font-size: 44px; line-height: 1; font-variant-numeric: tabular-nums; }
+.result-text { min-width: 0; flex: 1 1 240px; }
+.result-text h2 { margin: 0 0 2px; font-family: var(--f-display); font-size: 19px; font-weight: 700; }
+.result-text p { margin: 0; color: var(--fg-2); font-size: 15px; }
+.pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; background: var(--sunk); color: var(--fg-2); }
+.pill.good { background: var(--good-bg); color: var(--good); }
+.pill.bad { background: var(--bad-bg); color: var(--bad); }
+.pill svg.i { width: 14px; height: 14px; stroke-width: 3; }
+
+.plan { padding: 20px 22px 22px; }
+.plan-summary { margin: 0 0 14px; font-size: 16px; max-width: 64ch; }
+.plan-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 18px; margin-bottom: 8px; }
+@media (max-width: 520px) { .plan-cols { grid-template-columns: 1fr; } }
+.plan-cols h3, .today h3 { margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--fg-3); }
+.actions { list-style: none; margin: 8px 0 0; padding: 0; }
+.action { display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-top: 1px dashed var(--rule); }
+.action .mins { font: 700 14px/1.5 var(--f-mono); color: var(--accent); font-variant-numeric: tabular-nums; }
+.action .tech { font-weight: 700; display: block; }
+.action .step { color: var(--fg-2); }
+.plan-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 12px; padding-top: 14px; border-top: 1px solid var(--rule); }
+.plan-goal { font-size: 14px; color: var(--fg-2); min-width: 0; flex: 1 1 260px; }
+.plan-goal strong { color: var(--fg); }
+.loop-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 4px; }
+@media (max-width: 560px) { .loop-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.loop-step { background: var(--sunk); border-radius: var(--r-md); padding: 12px; min-width: 0; }
+.loop-step b { display: block; font-family: var(--f-display); font-size: 15px; }
+.loop-step span { font-size: 13px; color: var(--fg-2); }
+.loop-step .n { font: 700 11px/1 var(--f-mono); color: var(--fg-3); display: block; margin-bottom: 6px; }
+.muted { color: var(--fg-2); }
+.small { font-size: 13px; }
+
+/* ---------- side: context form ---------- */
+.form { display: grid; gap: 12px; }
+.field { display: grid; gap: 5px; min-width: 0; }
+.field > label, .field-label { font-size: 13px; font-weight: 700; color: var(--fg-2); }
+.field .opt-tag { font-weight: 400; color: var(--fg-3); }
+input[type="text"], input[type="number"], select, textarea {
+  width: 100%; font-size: 15px; color: var(--fg); background: var(--bg);
+  border: 1px solid var(--rule); border-radius: var(--r-sm); padding: 9px 11px; min-width: 0;
+}
+input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+textarea { min-height: 92px; resize: vertical; line-height: 1.45; }
+.row2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.hint { font-size: 12.5px; color: var(--fg-3); margin: 0; }
+.hint.warn { color: var(--bad); }
+.file-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+.file-row .btns { display: flex; gap: 2px; flex-wrap: wrap; }
+
+/* ---------- side: tasks ---------- */
+.task-add { display: flex; gap: 8px; }
+.task-add input { flex: 1; }
+.task-list { list-style: none; margin: 10px 0 0; padding: 0; }
+.task { display: grid; grid-template-columns: 22px minmax(0, 1fr) 30px; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--rule); }
+.task input { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }
+.task .t { overflow-wrap: anywhere; }
+.task.done .t { text-decoration: line-through; color: var(--fg-3); }
+.task .x { width: 30px; height: 30px; border: 0; background: none; border-radius: 6px; color: var(--fg-3); display: grid; place-items: center; }
+.task .x:hover { background: var(--sunk); color: var(--bad); }
+.task .x svg.i { width: 16px; height: 16px; }
+.task-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.empty { color: var(--fg-3); font-size: 14px; padding: 10px 0 4px; margin: 0; }
+
+/* ---------- side: today ---------- */
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
+.stat { background: var(--sunk); border-radius: var(--r-md); padding: 10px 12px; }
+.stat b { display: block; font: 700 22px/1.1 var(--f-clock); font-variant-numeric: tabular-nums; }
+.stat span { font-size: 12.5px; color: var(--fg-2); }
+.log { list-style: none; margin: 0 0 12px; padding: 0; }
+.log li { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 10px; padding: 7px 0; border-top: 1px solid var(--rule); font-size: 14px; align-items: baseline; }
+.log .when { font: 500 12px/1.4 var(--f-mono); color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.log .what { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.log .res { font: 600 12px/1.4 var(--f-mono); color: var(--fg-2); white-space: nowrap; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.day-sum { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--rule); display: grid; gap: 10px; font-size: 14.5px; }
+.day-sum h4 { margin: 0; font-family: var(--f-display); font-size: 16px; }
+.day-sum ul { margin: 0; padding-left: 18px; }
+.day-sum p { margin: 0; }
+
+/* ---------- dialogs ---------- */
+dialog {
+  border: 1px solid var(--rule); border-radius: var(--r-lg); background: var(--card); color: var(--fg);
+  padding: 0; width: min(660px, calc(100vw - 24px)); max-height: calc(100dvh - 40px); box-shadow: 0 30px 80px -20px rgba(0,0,0,.45);
+}
+dialog[open] { display: flex; flex-direction: column; }
+dialog::backdrop { background: rgba(12, 16, 32, .5); }
+.dlg-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 18px 14px 22px; border-bottom: 1px solid var(--rule); }
+.dlg-head h2 { margin: 0; font-family: var(--f-display); font-size: 20px; }
+.dlg-body { padding: 18px 22px 24px; overflow: auto; display: grid; gap: 26px; }
+.dlg-foot { padding: 12px 22px; border-top: 1px solid var(--rule); display: flex; justify-content: flex-end; }
+fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 12px; min-width: 0; }
+legend { font-family: var(--f-display); font-weight: 700; font-size: 16px; padding: 0; margin-bottom: 10px; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button { border: 1px solid var(--rule); background: var(--card); color: var(--fg-2); font-weight: 700; font-size: 14px; padding: 8px 13px; border-radius: 999px; }
+.seg button[aria-pressed="true"] { background: var(--accent); border-color: transparent; color: var(--on-accent); }
+.seg input[type="number"] { width: 84px; }
+.set-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.set-row > label, .set-row > .field-label { font-size: 14.5px; font-weight: 700; color: var(--fg); }
+.set-row .sub { display: block; font-weight: 400; font-size: 13px; color: var(--fg-3); }
+.inline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.inline select { width: auto; min-width: 180px; }
+.tier-wrap { overflow-x: auto; }
+.tier-table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 420px; }
+.tier-table th { text-align: left; font-size: 12px; font-weight: 700; color: var(--fg-3); padding: 0 6px 6px; letter-spacing: .04em; }
+.tier-table td { padding: 4px 6px; }
+.tier-table td:first-child { font-weight: 700; white-space: nowrap; }
+.tier-table input { width: 72px; padding: 7px 8px; }
+input[type="range"] { width: 180px; accent-color: var(--accent); }
+.switch { width: 20px; height: 20px; accent-color: var(--accent); }
+.kbd-list { display: grid; grid-template-columns: auto 1fr; gap: 10px 18px; align-items: center; margin: 0; }
+.kbd-list dt { display: flex; gap: 4px; }
+.kbd-list dd { margin: 0; color: var(--fg-2); }
+kbd { font: 600 12px/1 var(--f-mono); padding: 5px 8px; border-radius: 6px; border: 1px solid var(--rule); border-bottom-width: 2px; background: var(--bg); }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 50;
+  transform: translate(-50%, 16px); opacity: 0; pointer-events: none;
+  background: var(--fg); color: var(--bg); padding: 10px 18px; border-radius: 999px;
+  font-weight: 700; font-size: 14px; max-width: calc(100vw - 32px); text-align: center; transition: opacity .2s, transform .2s;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.foot { margin-top: 28px; font-size: 13px; color: var(--fg-3); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+@media (max-width: 560px) {
+  .stage { padding: 16px 16px 16px; }
+  .brand-tag { display: none; }
+  .chip-btn span { display: none; }
+  .chip-btn { width: 40px; padding: 0; justify-content: center; }
+  .mascot-wrap { width: 76px; }
+  .clock-row { gap: 10px; }
+  .start-btn { min-width: 150px; min-height: 56px; }
+  .controls { gap: 12px; }
+  .controls .icon-btn { width: 48px; height: 48px; }
+  .qcard { padding-left: 26px; }
+  .qcard::before { left: 10px; top: -16px; bottom: -16px; }
+  .row2 { grid-template-columns: 1fr; }
+  .mode { padding: 9px 11px; font-size: 13.5px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="4.5" width="4" height="15" rx="1.2" fill="currentColor" stroke="none"/><rect x="14" y="4.5" width="4" height="15" rx="1.2" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 2.6-6.4"/><path d="M3 4v5h5"/></symbol>
+    <symbol id="i-skip" viewBox="0 0 24 24"><path d="M5 5l10 7-10 7z"/><path d="M19 5v14"/></symbol>
+    <symbol id="i-loop" viewBox="0 0 24 24"><path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 0 1 4-4h12"/><path d="M7 22l-3-3 3-3"/><path d="M20 13v2a4 4 0 0 1-4 4H4"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+    <symbol id="i-kbd" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></symbol>
+    <symbol id="i-sound" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
+        <circle cx="20" cy="21" r="15" fill="none" stroke="var(--rule)" stroke-width="4"/>
+        <path d="M20 6a15 15 0 0 1 14.6 18.3" fill="none" stroke="var(--accent)" stroke-width="4" stroke-linecap="round"/>
+        <path d="M13.5 21.5l4.5 4.5 8.5-9" fill="none" stroke="var(--fg)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="brand-name">StudyBuddy</span>
+      <span class="brand-tag">Study, quiz yourself, earn your break</span>
+    </div>
+    <div class="top-actions">
+      <button class="chip-btn" id="loopBtn" type="button" aria-pressed="false" title="Loop: start each phase automatically (L)"><svg class="i"><use href="#i-loop"/></svg><span>Loop</span></button>
+      <button class="icon-btn" id="helpBtn" type="button" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)"><svg class="i"><use href="#i-kbd"/></svg></button>
+      <button class="icon-btn" id="settingsBtn" type="button" aria-label="Settings" title="Settings"><svg class="i"><use href="#i-gear"/></svg></button>
+    </div>
+  </header>
+
+  <main class="desk">
+    <div class="col-main">
+      <section class="card stage" id="stage" data-phase="study" data-status="idle" aria-label="Timer">
+        <div id="timerFace">
+          <div class="modes" role="group" aria-label="Timer mode">
+            <button class="mode" type="button" data-mode="study" aria-pressed="true">Study</button>
+            <button class="mode" type="button" data-mode="short" aria-pressed="false">Short break</button>
+            <button class="mode" type="button" data-mode="long" aria-pressed="false">Long break</button>
+          </div>
+          <div class="clock-row">
+            <div class="mascot-wrap" aria-hidden="true">
+              <svg class="mascot" id="mascot" viewBox="0 0 120 124" data-mood="idle">
+                <ellipse cx="60" cy="117" rx="32" ry="5" fill="var(--sunk)"/>
+                <g class="m-bob">
+                  <path d="M60 30C90 29 108 50 106 75c-2 24-21 37-46 37S16 99 14 75C12 50 30 31 60 30z" fill="var(--accent)"/>
+                  <path d="M28 58c3-11 12-19 23-21" fill="none" stroke="#FFFFFF" stroke-opacity=".5" stroke-width="5" stroke-linecap="round"/>
+                  <path d="M60 33c-6-6-15-8-22-6 5 3 10 6 14 9-7 0-14 3-17 8 7-1 15-1 23-4 8 3 16 3 23 4-3-5-10-8-17-8 4-3 9-6 14-9-7-2-16 0-22 6z" fill="var(--margin)"/>
+                  <rect x="57.5" y="14" width="5" height="18" rx="2.5" fill="var(--margin)"/>
+                  <ellipse cx="37" cy="83" rx="7" ry="4.5" fill="#FF9AA6" opacity=".75"/>
+                  <ellipse cx="83" cy="83" rx="7" ry="4.5" fill="#FF9AA6" opacity=".75"/>
+                  <g class="v v-idle v-quiz v-cheer" fill="#3A1D22"><ellipse cx="46" cy="71" rx="4.5" ry="6"/><ellipse cx="74" cy="71" rx="4.5" ry="6"/><circle cx="47.5" cy="68.5" r="1.6" fill="#FFFFFF"/><circle cx="75.5" cy="68.5" r="1.6" fill="#FFFFFF"/></g>
+                  <g class="v v-focus" fill="#3A1D22"><ellipse cx="46" cy="72" rx="4.5" ry="5"/><ellipse cx="74" cy="72" rx="4.5" ry="5"/><path d="M39 62l13 3M81 62l-13 3" stroke="#3A1D22" stroke-width="3" stroke-linecap="round"/></g>
+                  <g class="v v-happy" fill="none" stroke="#3A1D22" stroke-width="3.5" stroke-linecap="round"><path d="M40 72q6-7 12 0M68 72q6-7 12 0"/></g>
+                  <g class="v v-rest" fill="none" stroke="#3A1D22" stroke-width="3.5" stroke-linecap="round"><path d="M40 70q6 6 12 0M68 70q6 6 12 0"/></g>
+                  <path class="v v-idle v-cheer" d="M52 85q8 8 16 0" fill="none" stroke="#3A1D22" stroke-width="3.5" stroke-linecap="round"/>
+                  <path class="v v-focus" d="M54 88h12" fill="none" stroke="#3A1D22" stroke-width="3.5" stroke-linecap="round"/>
+                  <ellipse class="v v-quiz" cx="60" cy="88" rx="4" ry="5" fill="#3A1D22"/>
+                  <path class="v v-happy" d="M49 83q11 15 22 0z" fill="#3A1D22"/>
+                  <path class="v v-rest" d="M55 87q5 3 10 0" fill="none" stroke="#3A1D22" stroke-width="3.5" stroke-linecap="round"/>
+                  <g class="v v-rest" fill="var(--fg-3)" font-family="Fredoka, system-ui, sans-serif" font-weight="700"><text x="96" y="30" font-size="14">z</text><text x="106" y="18" font-size="10">z</text></g>
+                </g>
+              </svg>
+            </div>
+            <div class="clock-col">
+              <p class="eyebrow" id="phaseLabel">Study session 1 of 4</p>
+              <div class="clock" id="clock" role="timer" aria-live="off" aria-label="25 minutes left"></div>
+              <p class="clock-sub" id="clockSub">25-minute focus session</p>
+            </div>
+          </div>
+          <div class="ruler" aria-hidden="true">
+            <div class="ruler-track"><div class="ruler-fill" id="rulerFill"></div></div>
+            <div class="ruler-ticks" id="rulerTicks"></div>
+          </div>
+          <div class="controls">
+            <button class="icon-btn" id="resetBtn" type="button" aria-label="Reset timer" title="Reset (R)"><svg class="i"><use href="#i-reset"/></svg></button>
+            <button class="btn btn-primary start-btn" id="startBtn" type="button"><svg class="i"><use href="#i-play"/></svg><span>Start studying</span></button>
+            <button class="icon-btn" id="skipBtn" type="button" aria-label="Skip to the next phase" title="Skip (S)"><svg class="i"><use href="#i-skip"/></svg></button>
+          </div>
+          <div class="controls-2">
+            <button class="btn-quiet" id="addBtn" type="button" title="Add 5 minutes and keep going (+)"><svg class="i"><use href="#i-plus"/></svg>5 min</button>
+            <button class="btn-quiet" id="doneBtn" type="button" title="End the session now and take the quiz (D)"><svg class="i"><use href="#i-flag"/></svg>Finish session now</button>
+          </div>
+          <div class="stage-foot">
+            <div class="foot-row">
+              <div class="cycle" id="cycle"></div>
+              <div id="quizChip"></div>
+            </div>
+            <div class="foot-row">
+              <div class="studying" id="studyingLine"></div>
+              <div class="tiers" id="tiers"></div>
+            </div>
+          </div>
+        </div>
+        <div id="quizFace" hidden></div>
+      </section>
+
+      <section class="card result" id="resultBanner" hidden aria-live="polite"></section>
+      <section class="card plan" id="planCard" aria-label="Next-session plan"></section>
+    </div>
+
+    <aside class="col-side">
+      <section class="card side-card" id="ctxCard" aria-labelledby="ctxTitle">
+        <div class="card-h"><h2 id="ctxTitle">What you're studying</h2><span class="meta">Quizzes use this</span></div>
+        <form class="form" id="ctxForm" autocomplete="off">
+          <div class="row2">
+            <div class="field"><label for="ctxSubject">Subject</label><input type="text" id="ctxSubject" placeholder="e.g. Biology" maxlength="80"></div>
+            <div class="field"><label for="ctxLevel">Level</label>
+              <select id="ctxLevel">
+                <option value="hs">High school</option>
+                <option value="intro">Intro college</option>
+                <option value="advanced">Advanced college</option>
+                <option value="exam">Exam prep</option>
+              </select>
+            </div>
+          </div>
+          <div class="field" id="examField" hidden><label for="ctxExam">Which exam?</label><input type="text" id="ctxExam" placeholder="e.g. MCAT, AP Chemistry, Step 1" maxlength="60"></div>
+          <div class="field"><label for="ctxTopic">Topic</label><input type="text" id="ctxTopic" placeholder="e.g. Krebs cycle steps and products" maxlength="140">
+            <p class="hint" id="topicHint" hidden></p></div>
+          <div class="field"><label for="ctxGoal">Goal for this session <span class="opt-tag">(optional)</span></label><input type="text" id="ctxGoal" placeholder="e.g. Memorize the 8 steps in order" maxlength="200"></div>
+          <div class="field"><label for="ctxNotes">Your notes <span class="opt-tag">(optional)</span></label>
+            <textarea id="ctxNotes" placeholder="Paste notes, a textbook passage or slide text. Questions will stick to what's here."></textarea>
+            <div class="file-row">
+              <p class="hint" id="notesCount">No notes yet</p>
+              <div class="btns">
+                <button class="btn-quiet" type="button" id="txtBtn" title="Add a .txt or .md file"><svg class="i"><use href="#i-file"/></svg>Text file</button>
+                <button class="btn-quiet" type="button" id="photoBtn" hidden title="Read a photo of your notes"><svg class="i"><use href="#i-camera"/></svg>Photo</button>
+              </div>
+            </div>
+            <input type="file" id="txtInput" accept=".txt,.md,.markdown,.csv,text/plain,text/markdown" hidden>
+            <input type="file" id="photoInput" accept="image/jpeg,image/png,image/webp" hidden>
+          </div>
+        </form>
+      </section>
+
+      <section class="card side-card" id="tasksCard" aria-labelledby="tasksTitle">
+        <div class="card-h"><h2 id="tasksTitle">To-do</h2><span class="meta" id="taskMeta"></span></div>
+        <form class="task-add" id="taskForm">
+          <label class="sr-only" for="taskInput">New task</label>
+          <input type="text" id="taskInput" placeholder="Add a task (N)" maxlength="160">
+          <button class="btn" type="submit">Add</button>
+        </form>
+        <ul class="task-list" id="taskList"></ul>
+        <div class="task-foot">
+          <button class="btn-quiet" type="button" id="clearDoneBtn">Clear completed</button>
+          <button class="btn-quiet" type="button" id="resetTasksBtn">Reset list</button>
+        </div>
+      </section>
+
+      <section class="card side-card today" id="todayCard" aria-labelledby="todayTitle"></section>
+    </aside>
+  </main>
+  <footer class="foot">
+    <span>Settings, tasks and history stay in this browser. No account needed.</span>
+    <span>Press <kbd>?</kbd> for shortcuts</span>
+  </footer>
+</div>
+
+<dialog id="settingsDlg" aria-labelledby="setTitle">
+  <div class="dlg-head"><h2 id="setTitle">Settings</h2><button class="icon-btn" type="button" data-close aria-label="Close settings"><svg class="i"><use href="#i-x"/></svg></button></div>
+  <div class="dlg-body">
+    <fieldset>
+      <legend>Timer</legend>
+      <div class="field"><span class="field-label" id="lenLabel">Study session length</span>
+        <div class="seg" id="lenSeg" role="group" aria-labelledby="lenLabel">
+          <button type="button" data-min="25">25 min</button><button type="button" data-min="30">30 min</button><button type="button" data-min="35">35 min</button><button type="button" data-min="40">40 min</button><button type="button" data-min="45">45 min</button>
+          <span class="inline"><label class="sr-only" for="customMin">Custom length in minutes</label><input type="number" id="customMin" min="1" max="90" step="1" placeholder="Custom"><span class="small muted">custom</span></span>
+        </div>
+        <p class="hint">A custom length can be 1–90 minutes. Use 1 to try the full loop quickly.</p>
+      </div>
+      <div class="set-row"><label for="longEvery">Long break after every<span class="sub">study sessions that reach at least half their time</span></label><span class="inline"><input type="number" id="longEvery" min="2" max="8" step="1" style="width:84px"><span class="small muted">sessions</span></span></div>
+      <div class="set-row"><label for="loopToggle">Loop<span class="sub">Start the quiz, the break and the next session automatically</span></label><input type="checkbox" class="switch" id="loopToggle"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Breaks you earn</legend>
+      <p class="hint" style="margin-top:-6px">Your quiz score sets the break, in minutes. "No quiz" applies when you skip the quiz, study less than half the session, or quizzes can't load.</p>
+      <div class="tier-wrap">
+        <table class="tier-table">
+          <thead><tr><th scope="col"></th><th scope="col">100%</th><th scope="col">50–99%</th><th scope="col">Below 50%</th><th scope="col">No quiz</th></tr></thead>
+          <tbody>
+            <tr><td>Short break</td><td><input type="number" min="1" max="90" data-tier="short.max" aria-label="Short break for 100%"></td><td><input type="number" min="1" max="90" data-tier="short.mid" aria-label="Short break for 50 to 99%"></td><td><input type="number" min="1" max="90" data-tier="short.min" aria-label="Short break below 50%"></td><td><input type="number" min="1" max="90" data-tier="short.none" aria-label="Short break with no quiz"></td></tr>
+            <tr><td>Long break</td><td><input type="number" min="1" max="90" data-tier="long.max" aria-label="Long break for 100%"></td><td><input type="number" min="1" max="90" data-tier="long.mid" aria-label="Long break for 50 to 99%"></td><td><input type="number" min="1" max="90" data-tier="long.min" aria-label="Long break below 50%"></td><td><input type="number" min="1" max="90" data-tier="long.none" aria-label="Long break with no quiz"></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Quiz</legend>
+      <div class="set-row"><span class="field-label" id="qnLabel">Questions per quiz</span>
+        <div class="seg" id="qnSeg" role="group" aria-labelledby="qnLabel"><button type="button" data-q="1">1</button><button type="button" data-q="2">2</button><button type="button" data-q="3">3</button></div></div>
+      <div class="set-row"><span class="field-label" id="diffLabel">Difficulty</span>
+        <div class="seg" id="diffSeg" role="group" aria-labelledby="diffLabel"><button type="button" data-diff="gentle">Gentle</button><button type="button" data-diff="standard">Standard</button><button type="button" data-diff="challenging">Challenging</button></div></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Sound</legend>
+      <div class="set-row"><label for="chimeSel">End-of-phase chime</label>
+        <span class="inline"><select id="chimeSel"></select><button class="btn" type="button" id="chimeTest"><svg class="i"><use href="#i-sound"/></svg>Test</button></span></div>
+      <div class="set-row"><label for="chimeVol">Chime volume</label><input type="range" id="chimeVol" min="0" max="1" step="0.05"></div>
+      <div class="set-row"><label for="ambStudy">Study ambience<span class="sub">Plays while a study session runs</span></label><select id="ambStudy" style="width:auto;min-width:180px"></select></div>
+      <div class="set-row"><label for="ambBreak">Break ambience<span class="sub">Plays while a break runs</span></label><select id="ambBreak" style="width:auto;min-width:180px"></select></div>
+      <div class="set-row"><label for="ambVol">Ambience volume</label><span class="inline"><input type="range" id="ambVol" min="0" max="1" step="0.05"><button class="btn" type="button" id="ambPreview">Preview</button></span></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Appearance</legend>
+      <div class="seg" id="skinSeg" role="group" aria-label="Theme"><button type="button" data-skin="auto">Match Claude</button><button type="button" data-skin="notebook">Notebook</button><button type="button" data-skin="chalkboard">Chalkboard</button><button type="button" data-skin="tomato">Tomato buddy</button></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Extras</legend>
+      <div class="set-row"><label for="notifyToggle">Browser notifications<span class="sub" id="notifyNote">Pop up a notice when a phase ends</span></label><input type="checkbox" class="switch" id="notifyToggle"></div>
+      <div class="set-row"><label for="wakeToggle">Keep screen awake<span class="sub">While the timer runs, if your device allows it</span></label><input type="checkbox" class="switch" id="wakeToggle"></div>
+      <div class="set-row"><span class="field-label">History<span class="sub">Sessions, quiz stats and plans saved in this browser</span></span><button class="btn" type="button" id="clearHistBtn">Clear history</button></div>
+    </fieldset>
+  </div>
+  <div class="dlg-foot"><button class="btn btn-primary" type="button" data-close>Done</button></div>
+</dialog>
+
+<dialog id="helpDlg" aria-labelledby="helpTitle">
+  <div class="dlg-head"><h2 id="helpTitle">Keyboard shortcuts</h2><button class="icon-btn" type="button" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button></div>
+  <div class="dlg-body">
+    <dl class="kbd-list">
+      <dt><kbd>Space</kbd></dt><dd>Start or pause the timer</dd>
+      <dt><kbd>R</kbd></dt><dd>Reset the current timer</dd>
+      <dt><kbd>S</kbd></dt><dd>Skip to the next phase</dd>
+      <dt><kbd>D</kbd></dt><dd>Finish the study session now and take the quiz</dd>
+      <dt><kbd>+</kbd></dt><dd>Add 5 minutes and keep going</dd>
+      <dt><kbd>L</kbd></dt><dd>Turn Loop on or off</dd>
+      <dt><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd></dt><dd>Pick an answer during a quiz (A–D work too)</dd>
+      <dt><kbd>Enter</kbd></dt><dd>Next question</dd>
+      <dt><kbd>N</kbd></dt><dd>Add a task</dd>
+      <dt><kbd>?</kbd></dt><dd>Show this list</dd>
+    </dl>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="sr-only" id="announcer" aria-live="assertive"></div>
+
+<script>
+(() => {
+'use strict';
+
+/* =====================================================================
+   Helpers
+   ===================================================================== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const MIN = 60000;
+const now = () => Date.now();
+const clamp = (n, a, b) => Math.min(b, Math.max(a, n));
+const uid = () => Math.random().toString(36).slice(2, 9) + now().toString(36).slice(-4);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const todayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const hash = (str) => { let h = 5381; for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
+const shuffle = (a) => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+const fmt = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
+const timeOf = (t) => new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+const icon = (id) => `<svg class="i" aria-hidden="true"><use href="#i-${id}"/></svg>`;
+
+/* =====================================================================
+   Store (localStorage, fails soft)
+   ===================================================================== */
+const Store = {
+  get(k, d) { try { const v = localStorage.getItem('studybuddy.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('studybuddy.' + k, JSON.stringify(v)); } catch { /* storage unavailable */ } },
+};
+function mergeDeep(base, over) {
+  if (base && typeof base === 'object' && !Array.isArray(base)) {
+    const out = {};
+    for (const k of Object.keys(base)) out[k] = mergeDeep(base[k], over && typeof over === 'object' ? over[k] : undefined);
+    return out;
+  }
+  return over === undefined || over === null || typeof over !== typeof base ? base : over;
+}
+
+/* =====================================================================
+   State
+   ===================================================================== */
+const DEFAULT_SETTINGS = {
+  studyMin: 25, longEvery: 4, loop: false,
+  tiers: { short: { max: 15, mid: 10, min: 5, none: 5 }, long: { max: 30, mid: 22, min: 15, none: 15 } },
+  questions: 3, difficulty: 'standard',
+  chime: 'bell', chimeVol: 0.7, ambStudy: 'none', ambBreak: 'none', ambVol: 0.5,
+  skin: 'auto', notify: false, wake: false,
+};
+let settings = mergeDeep(DEFAULT_SETTINGS, Store.get('settings', {}));
+const saveSettings = () => Store.set('settings', settings);
+
+const DEFAULT_CONTEXT = { subject: '', topic: '', level: 'intro', exam: '', goal: '', notes: '' };
+let context = mergeDeep(DEFAULT_CONTEXT, Store.get('context', {}));
+const saveContext = () => Store.set('context', context);
+
+function freshTimer() {
+  return { phase: 'study', status: 'idle', totalMs: settings.studyMin * MIN, remainingMs: settings.studyMin * MIN, endAt: 0,
+    breakKind: 'short', breakReason: '', session: null, cycleDone: 0, lastResult: null, lastSessionId: '', refreshTried: false };
+}
+let T = Object.assign(freshTimer(), Store.get('timer', {}) || {});
+const saveTimer = () => Store.set('timer', T);
+
+function freshQuiz() { return { ctxKey: '', gen: 'none', error: '', questions: [], madeOn: '', used: false, step: 'intro', index: 0, answers: [], forTopic: '' }; }
+let Q = Object.assign(freshQuiz(), Store.get('quiz', {}) || {});
+if (Q.gen === 'loading') Q.gen = 'none'; // a reload dropped the request in flight
+const saveQuiz = () => Store.set('quiz', Q);
+
+let P = Store.get('plan', null) || { status: 'none' };
+if (P.status === 'loading') { P.status = 'failed'; P.error = 'The plan was interrupted by a reload.'; }
+const savePlan = () => Store.set('plan', P);
+
+let D = Store.get('day', null) || { date: '', status: 'none' };
+if (D.status === 'loading') D.status = 'none';
+const saveDay = () => Store.set('day', D);
+
+let Tasks = Store.get('tasks', []) || [];
+const saveTasks = () => Store.set('tasks', Tasks);
+
+const History = {
+  list: Store.get('history', []) || [],
+  add(s) { this.list.push(s); if (this.list.length > 400) this.list = this.list.slice(-400); this.save(); },
+  update(id, patch) { const s = this.list.find((x) => x.id === id); if (s) { Object.assign(s, patch); this.save(); } },
+  today() { const k = todayKey(); return this.list.filter((s) => s.date === k); },
+  forTopic(tk) { return this.list.filter((s) => topicKey(s) === tk); },
+  save() { Store.set('history', this.list); },
+};
+let Stats = Store.get('concepts', {}) || {};
+let Asked = Store.get('asked', null) || { date: '', items: [] };
+
+const topicKey = (o) => `${o.subject || ''}|${o.topic || ''}`.toLowerCase().replace(/\s+/g, ' ').trim();
+const topicLabel = (o) => [o.subject, o.topic].map((x) => (x || '').trim()).filter(Boolean).join(' · ');
+const hasTopic = () => !!(context.topic.trim() || context.subject.trim() || context.notes.trim());
+const ctxKey = () => hash(JSON.stringify([context.subject, context.topic, context.level, context.exam, context.goal, context.notes, settings.difficulty, settings.questions]));
+
+function recordConcepts(tk, items) {
+  for (const it of items) {
+    const key = tk + '::' + it.concept.toLowerCase();
+    const c = Stats[key] || { topic: tk, concept: it.concept, seen: 0, missed: 0, streak: 0, last: 0 };
+    c.seen++; if (it.correct) c.streak++; else { c.missed++; c.streak = 0; }
+    c.last = now(); Stats[key] = c;
+  }
+  Store.set('concepts', Stats);
+}
+const weakConcepts = (tk, limit = 5) => Object.values(Stats)
+  .filter((c) => c.topic === tk && c.missed > 0 && c.streak < 2)
+  .sort((a, b) => (b.missed - a.missed) || (b.last - a.last)).slice(0, limit);
+function askedToday() { if (Asked.date !== todayKey()) Asked = { date: todayKey(), items: [] }; return Asked.items; }
+function addAsked(qs) { askedToday().push(...qs); Asked.items = Asked.items.slice(-60); Store.set('asked', Asked); }
+
+/* =====================================================================
+   Break rules (pure)
+   ===================================================================== */
+function breakFor(score, total, tier) {
+  if (!total) return tier.none;
+  const pct = score / total;
+  return pct >= 1 ? tier.max : pct >= 0.5 ? tier.mid : tier.min;
+}
+const nextBreakKind = () => (T.cycleDone + 1 >= settings.longEvery ? 'long' : 'short');
+
+/* =====================================================================
+   Sound: synthesized chimes + ambience (Web Audio, nothing to download)
+   ===================================================================== */
+const Sound = (() => {
+  let ctx = null, ambOut = null, current = { name: 'none', stop: null }, previewTimer = 0, previewing = false;
+  const buffers = {};
+  function ensure() {
+    if (!ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null; try { ctx = new AC(); } catch { return null; } }
+    if (ctx.state === 'suspended') ctx.resume().then(() => syncAmbience()).catch(() => {});
+    return ctx;
+  }
+  const unlocked = () => !!ctx && ctx.state === 'running';
+  function tone(dest, f, t0, dur, { type = 'sine', gain = 0.3, attack = 0.006 } = {}) {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t0);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(gain, t0 + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(dest); o.start(t0); o.stop(t0 + dur + 0.05);
+  }
+  const CHIMES = {
+    bell: { label: 'Desk bell', play: (d, t) => { [[880, 1, 1.8], [1769, .45, 1.2], [2429, .22, .8], [4752, .1, .4]].forEach(([f, a, du]) => tone(d, f, t, du, { gain: .3 * a })); [[880, 1, 1.6], [1769, .4, 1]].forEach(([f, a, du]) => tone(d, f, t + .5, du, { gain: .2 * a })); } },
+    marimba: { label: 'Marimba', play: (d, t) => { [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => { tone(d, f, t + i * .14, .55, { gain: .34 }); tone(d, f * 4, t + i * .14, .1, { gain: .04 }); }); } },
+    digital: { label: 'Digital beeps', play: (d, t) => { for (let i = 0; i < 3; i++) tone(d, 1320, t + i * .22, .12, { type: 'square', gain: .07, attack: .002 }); } },
+    gong: { label: 'Soft gong', play: (d, t) => { [[196, 1, 3.4], [294, .4, 2.6], [470, .22, 2], [764, .1, 1.3]].forEach(([f, a, du]) => tone(d, f, t, du, { gain: .36 * a, attack: .03 })); } },
+    wood: { label: 'Wood block', play: (d, t) => { [0, .17, .5].forEach((o) => { tone(d, 1750, t + o, .08, { type: 'triangle', gain: .3, attack: .001 }); tone(d, 880, t + o, .1, { gain: .14, attack: .001 }); }); } },
+    rise: { label: 'Rising chord', play: (d, t) => { [392, 493.88, 587.33, 783.99].forEach((f, i) => tone(d, f, t + i * .09, 1.7 - i * .1, { type: 'triangle', gain: .15 })); } },
+  };
+  function chime(name = settings.chime, vol = settings.chimeVol) {
+    const c = ensure(); if (!c) return;
+    const g = c.createGain(); g.gain.value = vol; g.connect(c.destination);
+    (CHIMES[name] || CHIMES.bell).play(g, c.currentTime + 0.03);
+  }
+  function noise(kind) {
+    if (buffers[kind]) return buffers[kind];
+    const len = ctx.sampleRate * 4, buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
+    if (kind === 'white') { for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1; }
+    else if (kind === 'pink') {
+      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+      for (let i = 0; i < len; i++) {
+        const w = Math.random() * 2 - 1;
+        b0 = .99886 * b0 + w * .0555179; b1 = .99332 * b1 + w * .0750759; b2 = .969 * b2 + w * .153852;
+        b3 = .8665 * b3 + w * .3104856; b4 = .55 * b4 + w * .5329522; b5 = -.7616 * b5 - w * .016898;
+        d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * .5362) * .11; b6 = w * .115926;
+      }
+    } else { let last = 0; for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; last = (last + .02 * w) / 1.02; d[i] = last * 3.5; } }
+    return (buffers[kind] = buf);
+  }
+  function loopSrc(kind) { const s = ctx.createBufferSource(); s.buffer = noise(kind); s.loop = true; s.loopStart = Math.random(); return s; }
+  function filt(type, f, q = 0.7) { const b = ctx.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q; return b; }
+  function gainN(v) { const g = ctx.createGain(); g.gain.value = v; return g; }
+  function chain(...nodes) { for (let i = 0; i < nodes.length - 1; i++) nodes[i].connect(nodes[i + 1]); return nodes[nodes.length - 1]; }
+  function lfo(param, rate, depth) { const o = ctx.createOscillator(), g = gainN(depth); o.frequency.value = rate; o.connect(g); g.connect(param); o.start(); return o; }
+  function sprinkle(fn, minMs, maxMs) { let alive = true, t; const go = () => { if (!alive) return; fn(); t = setTimeout(go, minMs + Math.random() * (maxMs - minMs)); }; t = setTimeout(go, minMs); return () => { alive = false; clearTimeout(t); }; }
+  function burst(out, f, dur, g, type = 'bandpass', q = 1.4) {
+    const s = ctx.createBufferSource(); s.buffer = noise('white'); const b = filt(type, f, q), v = ctx.createGain(), t0 = ctx.currentTime;
+    v.gain.setValueAtTime(0.0001, t0); v.gain.exponentialRampToValueAtTime(g, t0 + .004); v.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    chain(s, b, v, out); s.start(t0, Math.random() * 3); s.stop(t0 + dur + .05);
+  }
+  const AMB = {
+    none: { label: 'Off' },
+    rain: { label: 'Rain on the window', build(out) {
+      const s = loopSrc('pink'), g = gainN(.9); chain(s, filt('highpass', 500), filt('lowpass', 7500), g, out); s.start();
+      const s2 = loopSrc('white'), g2 = gainN(.06); chain(s2, filt('bandpass', 2600, .6), g2, out); s2.start();
+      const l = lfo(g.gain, .13, .12);
+      const stopDrops = sprinkle(() => burst(out, 3000 + Math.random() * 3000, .05, .05 + Math.random() * .05), 40, 220);
+      return () => { stopDrops(); [s, s2, l].forEach((n) => n.stop()); };
+    } },
+    cafe: { label: 'Busy café', build(out) {
+      const s = loopSrc('pink'), g = gainN(.75); chain(s, filt('bandpass', 700, .5), filt('lowpass', 2400), g, out); s.start();
+      const l = lfo(g.gain, .21, .18), l2 = lfo(g.gain, .07, .12);
+      const stopClinks = sprinkle(() => { const t = ctx.currentTime; const f = 2400 + Math.random() * 1800; tone(out, f, t, .5, { gain: .03 }); tone(out, f * 1.5, t, .3, { gain: .012 }); }, 1800, 6000);
+      return () => { stopClinks(); [s, l, l2].forEach((n) => n.stop()); };
+    } },
+    fire: { label: 'Campfire', build(out) {
+      const s = loopSrc('brown'), g = gainN(1.1); chain(s, filt('lowpass', 420), g, out); s.start();
+      const l = lfo(g.gain, .3, .25);
+      const stopCrackle = sprinkle(() => { const n = 1 + Math.floor(Math.random() * 3); for (let i = 0; i < n; i++) setTimeout(() => burst(out, 1500 + Math.random() * 2500, .03 + Math.random() * .04, .12 + Math.random() * .2, 'highpass', .8), i * 40); }, 120, 900);
+      return () => { stopCrackle(); [s, l].forEach((n) => n.stop()); };
+    } },
+    ocean: { label: 'Ocean waves', build(out) {
+      const s = loopSrc('brown'), g = gainN(.55), lp = filt('lowpass', 700); chain(s, lp, g, out); s.start();
+      const l = lfo(g.gain, .085, .48), lf = lfo(lp.frequency, .085, 380);
+      const s2 = loopSrc('pink'), g2 = gainN(.08); chain(s2, filt('highpass', 2000), g2, out); s2.start(); const l2 = lfo(g2.gain, .085, .07);
+      return () => [s, l, lf, s2, l2].forEach((n) => n.stop());
+    } },
+    white: { label: 'White noise', build(out) { const s = loopSrc('white'), g = gainN(.25); chain(s, filt('lowpass', 9000), g, out); s.start(); return () => s.stop(); } },
+    brown: { label: 'Brown noise', build(out) { const s = loopSrc('brown'), g = gainN(.9); chain(s, filt('lowpass', 900), g, out); s.start(); return () => s.stop(); } },
+  };
+  function play(name) {
+    if (name === current.name) return;
+    const c = ctx; if (!c) return;
+    if (!ambOut) { ambOut = c.createGain(); ambOut.gain.value = settings.ambVol; ambOut.connect(c.destination); }
+    if (current.stop) {
+      const old = current; // fade the old bed out
+      old.out.gain.setTargetAtTime(0.0001, c.currentTime, .25);
+      setTimeout(() => { try { old.stop(); old.out.disconnect(); } catch { /* already stopped */ } }, 1200);
+    }
+    if (!AMB[name] || name === 'none') { current = { name: 'none', stop: null }; return; }
+    const out = c.createGain(); out.gain.value = 0.0001; out.connect(ambOut);
+    out.gain.setTargetAtTime(1, c.currentTime, .4);
+    let stop = null; try { stop = AMB[name].build(out); } catch { stop = null; }
+    current = { name, stop: stop || (() => {}), out };
+  }
+  function sync(desired) { if (previewing) return; if (!unlocked()) { if (desired === 'none') play('none'); return; } play(desired); }
+  function setAmbVol(v) { if (ambOut && ctx) ambOut.gain.setTargetAtTime(v, ctx.currentTime, .1); }
+  function preview(name, onEnd) {
+    if (!ensure()) return;
+    clearTimeout(previewTimer); previewing = true; play(name === 'none' ? 'rain' : name);
+    previewTimer = setTimeout(() => { previewing = false; play('none'); onEnd?.(); syncAmbience(); }, 6000);
+  }
+  return { ensure, unlocked, chime, sync, setAmbVol, preview, CHIMES, AMB };
+})();
+
+/* =====================================================================
+   AI: live Claude through the page's `sample` capability.
+   Every call is memoryless, so each prompt carries the full context and
+   asks for strict JSON, which is then validated before use.
+   ===================================================================== */
+const LEVEL_NAMES = { hs: 'High school', intro: 'Intro college', advanced: 'Advanced college', exam: 'Exam prep' };
+const levelText = (c) => (c.level === 'exam' ? `Exam prep${c.exam ? ` for ${c.exam}` : ''}` : LEVEL_NAMES[c.level] || 'Intro college');
+const DIFF_TEXT = {
+  gentle: 'Gentle. Test core facts and definitions directly.',
+  standard: 'Standard. Mix recall with understanding (why, how, cause and effect).',
+  challenging: 'Challenging. Test application and close distinctions; wrong options should be near-misses a strong student could fall for.',
+};
+
+function quizPrompt({ ctx, n, difficulty, weak, asked }) {
+  const notes = (ctx.notes || '').trim().slice(0, 12000);
+  return [
+    'You write short retrieval-practice quizzes for a student who just finished a focused study session.',
+    '',
+    'STUDY CONTEXT',
+    `Subject: ${ctx.subject || '(not given)'}`,
+    `Topic: ${ctx.topic || '(not given)'}`,
+    `Level: ${levelText(ctx)}`,
+    `Session goal: ${ctx.goal || '(not given)'}`,
+    `Difficulty: ${DIFF_TEXT[difficulty] || DIFF_TEXT.standard}`,
+    notes
+      ? `The student's notes are between the markers below. Every question must be answerable from these notes.\n<<<NOTES\n${notes}\nNOTES>>>`
+      : 'No notes were given. Write questions from standard material for this topic at this level.',
+    '',
+    'HISTORY',
+    weak.length ? `Concepts this student missed before on this topic. Re-test at least one of them and reuse its exact label as "concept": ${weak.join('; ')}` : 'No earlier misses on this topic.',
+    asked.length ? `Questions already asked today. Do not repeat or closely paraphrase any of them:\n- ${asked.join('\n- ')}` : 'No questions asked yet today.',
+    '',
+    'TASK',
+    `Write exactly ${n} multiple-choice question${n === 1 ? '' : 's'}.`,
+    '- Exactly 4 options and exactly one correct answer.',
+    '- Wrong options must be plausible: common mistakes or near-misses, similar in length and style to the right answer. No "all of the above", "none of the above", trick wording or double negatives.',
+    '- Each question tests a different key idea and can be read in about 15 seconds.',
+    '- If the topic is vague, pick the core ideas a student at this level is expected to know.',
+    '- "concept": a 2-5 word label for the idea tested.',
+    '- "explanation": 1-2 sentences on why the correct answer is right.',
+    '- "memoryAid": a mnemonic, vivid analogy, visual association or study tip that makes this specific fact stick. Under 40 words. No generic advice.',
+    '- "optionFeedback": one sentence per option, in the same order as "options". For the correct option, reinforce why it is right. For each wrong option, name the misconception that leads someone to pick it and how to tell it apart from the right answer.',
+    '- Do not put letters such as "A." in front of options.',
+    '',
+    'Reply with only this JSON and no other text:',
+    '{"questions":[{"id":"q1","concept":"...","question":"...","options":["...","...","...","..."],"correctIndex":0,"explanation":"...","memoryAid":"...","optionFeedback":["...","...","...","..."]}]}',
+  ].join('\n');
+}
+
+function planPrompt({ ctx, result, history, weak, studyMin }) {
+  const notes = (ctx.notes || '').trim().slice(0, 3000);
+  const items = result.items.map((x) => `- ${x.correct ? 'CORRECT' : 'MISSED'} · ${x.concept}: "${x.question}" Student chose "${x.chosen}". Correct answer: "${x.answer}".`).join('\n');
+  const hist = history.length ? history.map((h) => `- ${h.date}: studied ${Math.round(h.studiedMin || 0)} min, quiz ${h.total ? `${h.score}/${h.total}` : 'none'}`).join('\n') : '- This is the first recorded session on this topic.';
+  return [
+    'You are a study coach. Write an actionable plan for this student\'s next study session.',
+    '',
+    'STUDY CONTEXT',
+    `Subject: ${ctx.subject || '(not given)'}`,
+    `Topic: ${ctx.topic || '(not given)'}`,
+    `Level: ${levelText(ctx)}`,
+    `Session goal: ${ctx.goal || '(not given)'}`,
+    notes ? `Excerpt of the student's notes:\n<<<NOTES\n${notes}\nNOTES>>>` : 'No notes were given.',
+    '',
+    `THIS QUIZ: ${result.score}/${result.total}`,
+    items,
+    '',
+    'HISTORY ON THIS TOPIC (oldest first)',
+    hist,
+    weak.length ? `Concepts often missed: ${weak.map((w) => `${w.concept} (missed ${w.missed} of ${w.seen})`).join('; ')}` : 'No concepts missed repeatedly.',
+    `Current session length: ${studyMin} minutes.`,
+    '',
+    'RULES',
+    '- Build the plan around what was missed in this quiz and in the history. If everything was right, move to the next layer of the topic or harder practice.',
+    '- 2 to 4 actions, in the order to do them. Each names one concrete technique (active recall, practice problems, Feynman technique, flashcards, spaced review, concept mapping, worked examples, teach-back, interleaving) and a specific step that uses the student\'s actual material.',
+    '- "suggestedMinutes" is 25, 30, 35, 40 or 45, and the action minutes add up to it.',
+    '- "summary": 1-2 specific, encouraging sentences. Never shaming.',
+    '- "strong" and "review": short concept labels.',
+    '- "nextGoal": one line under 12 words that starts with a verb.',
+    '',
+    'Reply with only this JSON and no other text:',
+    '{"summary":"...","strong":["..."],"review":["..."],"actions":[{"minutes":10,"technique":"Active recall","step":"..."}],"suggestedMinutes":30,"nextGoal":"..."}',
+  ].join('\n');
+}
+
+function dayPrompt({ sessions, weak }) {
+  return [
+    'You are a study coach writing a short end-of-day summary for a student.',
+    '',
+    'TODAY\'S SESSIONS',
+    sessions.map((s) => `- ${s.time} · ${s.topic} · studied ${Math.round(s.studiedMin || 0)} min · quiz ${s.quiz}${s.missed.length ? ` · missed: ${s.missed.join(', ')}` : ''}`).join('\n'),
+    weak.length ? `Concepts missed most: ${weak.map((w) => `${w.concept} (missed ${w.missed} of ${w.seen})`).join('; ')}` : 'No repeated misses.',
+    '',
+    'Keep every line short, specific and encouraging. Never shaming.',
+    'Reply with only this JSON and no other text:',
+    '{"headline":"one sentence about the day","wins":["1-3 items"],"gaps":["1-3 concepts or skills still shaky"],"tomorrow":["2-3 concrete steps for tomorrow\'s first session"]}',
+  ].join('\n');
+}
+
+const AI = (() => {
+  let sample = null, state = 'checking', blocked = false, photos = false;
+  const DENIED = ['not_granted', 'sampling_disabled', 'not_declared', 'capability_disabled', 'capability_removed'];
+  const ready = (async () => {
+    await null; // let the page finish booting first
+    try { sample = window.claude && typeof window.claude.use === 'function' ? await window.claude.use('sample') : null; } catch { sample = null; }
+    state = sample ? 'on' : 'off';
+    if (sample) { try { photos = !!(await sample.limits())?.images; } catch { photos = false; } }
+    render();
+    return sample;
+  })();
+  async function call(fn) {
+    await ready;
+    if (!sample || blocked) throw { code: 'unavailable' };
+    try { return await fn(sample); }
+    catch (e) { if (DENIED.includes(e?.code)) { blocked = true; render(); } throw e; }
+  }
+  return {
+    mode: 'live',
+    ready: () => ready,
+    status: () => (blocked ? 'off' : state),
+    available: () => !!sample && !blocked,
+    canReadPhotos: () => !!sample && !blocked && photos,
+    quiz: async (input, signal) => cleanQuiz(await call((s) => s.json(quizPrompt(input), { signal })), input.n),
+    plan: async (input, signal) => cleanPlan(await call((s) => s.json(planPrompt(input), { signal }))),
+    day: (input, signal) => call((s) => s.json(dayPrompt(input), { signal })),
+    readPhoto: async (file) => {
+      const { text } = await call((s) => s('Transcribe the study notes in this image into plain text. Keep headings, lists and formulas, using "-" for bullets. Write [unclear] for any part you cannot read. Reply with only the transcription.', { images: [file] }));
+      return text;
+    },
+  };
+})();
+
+/* Validate and normalize a quiz reply. Options are reshuffled so the right answer moves around. */
+function cleanQuiz(data, n) {
+  const arr = Array.isArray(data) ? data : (data && Array.isArray(data.questions) ? data.questions : []);
+  const out = [];
+  const strip = (s) => String(s ?? '').replace(/^\s*(?:\(?[A-Da-d]\)|[A-Da-d][.:)])\s+/, '').trim();
+  for (const q of arr) {
+    if (!q || typeof q.question !== 'string' || !q.question.trim() || !Array.isArray(q.options) || q.options.length !== 4) continue;
+    const ci = Number(q.correctIndex);
+    if (!Number.isInteger(ci) || ci < 0 || ci > 3) continue;
+    const opts = q.options.map(strip);
+    if (opts.some((o) => !o) || new Set(opts.map((o) => o.toLowerCase())).size !== 4) continue;
+    const fb = Array.isArray(q.optionFeedback) && q.optionFeedback.length === 4 ? q.optionFeedback.map((x) => String(x ?? '').trim()) : ['', '', '', ''];
+    const order = shuffle([0, 1, 2, 3]);
+    out.push({
+      id: String(q.id || uid()), concept: String(q.concept || 'Key idea').trim().slice(0, 60),
+      question: q.question.trim(), options: order.map((i) => opts[i]), correctIndex: order.indexOf(ci),
+      explanation: String(q.explanation || '').trim(), memoryAid: String(q.memoryAid || '').trim(), optionFeedback: order.map((i) => fb[i]),
+    });
+    if (out.length >= n) break;
+  }
+  return out;
+}
+function cleanPlan(d) {
+  if (!d || typeof d !== 'object') throw { code: 'invalid_json' };
+  const list = (x) => (Array.isArray(x) ? x.map((s) => String(s ?? '').trim()).filter(Boolean).slice(0, 6) : []);
+  const actions = (Array.isArray(d.actions) ? d.actions : []).map((a) => ({
+    minutes: clamp(Math.round(Number(a?.minutes) || 5), 1, 60), technique: String(a?.technique || 'Study').trim().slice(0, 40), step: String(a?.step || '').trim(),
+  })).filter((a) => a.step).slice(0, 4);
+  if (!actions.length) throw { code: 'invalid_json' };
+  let sm = Math.round((Number(d.suggestedMinutes) || 25) / 5) * 5;
+  return { summary: String(d.summary || '').trim(), strong: list(d.strong), review: list(d.review), actions,
+    suggestedMinutes: clamp(sm, 25, 45), nextGoal: String(d.nextGoal || '').trim().slice(0, 200) };
+}
+function aiErrorText(e) {
+  switch (e && e.code) {
+    case 'not_granted': return 'Claude access wasn\'t allowed for this page, so quizzes are off. Reload the page to be asked again.';
+    case 'sampling_disabled': case 'capability_disabled': case 'not_declared': case 'capability_removed': return 'Claude isn\'t available in this view, so quizzes are off.';
+    case 'unavailable': return 'Quizzes need Claude, which this view can\'t reach.';
+    case 'offline': return 'You\'re offline, so no quiz this round.';
+    case 'rate_limited': return 'Claude is busy or you\'ve hit a usage limit. Try again in a minute.';
+    case 'session_expired': return 'Sign in to Claude again, then try again.';
+    case 'refused': return 'Claude declined to write questions for this topic. Try rewording the topic.';
+    case 'prompt_too_large': return 'Your notes are too long. Trim them and try again.';
+    case 'invalid_json': case 'empty_completion': return 'The reply came back incomplete. Try again.';
+    default: return 'Couldn\'t reach Claude. Check your connection and try again.';
+  }
+}
+
+/* =====================================================================
+   Quiz generation
+   ===================================================================== */
+let quizCtl = null;
+async function prefetchQuiz() {
+  if (!hasTopic()) { if (Q.gen !== 'loading') { Q.gen = 'none'; saveQuiz(); render(); } return; }
+  const key = ctxKey();
+  if (Q.gen === 'ready' && Q.ctxKey === key && !Q.used && Q.madeOn === todayKey()) return;
+  if (Q.gen === 'loading' && Q.ctxKey === key) return;
+  quizCtl?.abort();
+  const ctl = (quizCtl = new AbortController());
+  Q = Object.assign(freshQuiz(), { ctxKey: key, gen: 'loading', forTopic: topicLabel(context) || 'your notes', step: Q.step });
+  saveQuiz(); render();
+  try {
+    await AI.ready();
+    if (ctl !== quizCtl) return;
+    if (!AI.available()) throw { code: 'unavailable' };
+    if (navigator.onLine === false) throw { code: 'offline' };
+    const tk = topicKey(context);
+    const qs = await AI.quiz({ ctx: { ...context }, n: settings.questions, difficulty: settings.difficulty,
+      weak: weakConcepts(tk).map((c) => c.concept), asked: askedToday().slice(-30) }, ctl.signal);
+    if (ctl !== quizCtl) return;
+    if (!qs.length) throw { code: 'invalid_json' };
+    Object.assign(Q, { questions: qs, gen: 'ready', madeOn: todayKey(), error: '' });
+  } catch (e) {
+    if (ctl !== quizCtl || e?.code === 'cancelled') return;
+    Q.gen = AI.available() ? 'failed' : 'off'; Q.error = aiErrorText(e);
+  }
+  saveQuiz(); render();
+}
+const quizMatches = () => Q.gen === 'ready' && Q.ctxKey === ctxKey() && !Q.used;
+
+/* =====================================================================
+   Plan + day summary generation
+   ===================================================================== */
+let planCtl = null;
+async function generatePlan(result) {
+  planCtl?.abort();
+  const ctl = (planCtl = new AbortController());
+  const tk = topicKey(context);
+  P = { status: 'loading', topic: topicLabel(context), applied: false,
+    input: { ctx: { ...context }, result, studyMin: settings.studyMin,
+      history: History.forTopic(tk).slice(-8).map((s) => ({ date: s.date, studiedMin: s.studiedMin, score: s.quiz?.score ?? null, total: s.quiz?.total ?? 0 })),
+      weak: weakConcepts(tk, 6).map((c) => ({ concept: c.concept, missed: c.missed, seen: c.seen })) } };
+  savePlan(); render();
+  try {
+    await AI.ready();
+    if (!AI.available()) throw { code: 'unavailable' };
+    const data = await AI.plan(P.input, ctl.signal);
+    if (ctl !== planCtl) return;
+    P.data = data; P.status = 'ready';
+  } catch (e) {
+    if (ctl !== planCtl || e?.code === 'cancelled') return;
+    P.status = 'failed'; P.error = aiErrorText(e);
+  }
+  savePlan(); render();
+}
+function applyPlan() {
+  if (P.status !== 'ready' || !P.data) return;
+  if (P.data.nextGoal) { context.goal = P.data.nextGoal; $('#ctxGoal').value = context.goal; saveContext(); }
+  setStudyMin(P.data.suggestedMinutes);
+  P.applied = true; savePlan(); render();
+  toast(`Plan applied: ${P.data.suggestedMinutes}-minute session, goal set`);
+}
+let dayCtl = null;
+async function summarizeDay() {
+  const sessions = History.today();
+  if (!sessions.length) return;
+  dayCtl?.abort();
+  const ctl = (dayCtl = new AbortController());
+  D = { date: todayKey(), status: 'loading' }; saveDay(); render();
+  try {
+    await AI.ready();
+    if (!AI.available()) throw { code: 'unavailable' };
+    const tkSet = new Set(sessions.map(topicKey));
+    const weak = Object.values(Stats).filter((c) => tkSet.has(c.topic) && c.missed > 0).sort((a, b) => b.missed - a.missed).slice(0, 6).map((c) => ({ concept: c.concept, missed: c.missed, seen: c.seen }));
+    const data = await AI.day({ sessions: sessions.map((s) => ({ time: timeOf(s.startedAt), topic: topicLabel(s) || 'Unlabeled', studiedMin: s.studiedMin, quiz: s.quiz?.total ? `${s.quiz.score}/${s.quiz.total}` : (s.quiz?.status || 'none'), missed: (s.quiz?.items || []).filter((x) => !x.correct).map((x) => x.concept) })), weak }, ctl.signal);
+    if (ctl !== dayCtl) return;
+    const list = (x) => (Array.isArray(x) ? x.map((s) => String(s ?? '').trim()).filter(Boolean).slice(0, 5) : []);
+    D = { date: todayKey(), status: 'ready', data: { headline: String(data?.headline || '').trim(), wins: list(data?.wins), gaps: list(data?.gaps), tomorrow: list(data?.tomorrow) } };
+  } catch (e) {
+    if (ctl !== dayCtl || e?.code === 'cancelled') return;
+    D = { date: todayKey(), status: 'failed', error: aiErrorText(e) };
+  }
+  saveDay(); render();
+}
+
+/* =====================================================================
+   Timer engine (timestamp based: remaining = endAt - now)
+   ===================================================================== */
+const remaining = () => (T.status === 'running' ? Math.max(0, T.endAt - now()) : T.remainingMs);
+
+function setStudyMin(m) {
+  settings.studyMin = clamp(Math.round(m), 1, 90); saveSettings();
+  if (T.phase === 'study' && T.status === 'idle' && !T.session) { T.totalMs = T.remainingMs = settings.studyMin * MIN; saveTimer(); }
+  render(); syncSettingsForm();
+}
+function beginSession() {
+  T.session = { id: uid(), date: todayKey(), startedAt: now(), plannedMin: settings.studyMin, subject: context.subject, topic: context.topic, level: context.level, goal: context.goal };
+  T.refreshTried = false;
+  if (!(Q.gen === 'ready' && Q.ctxKey === ctxKey() && !Q.used && Q.madeOn === todayKey())) prefetchQuiz();
+}
+function start() {
+  Sound.ensure();
+  if (T.phase === 'quiz' || T.status === 'running') return;
+  if (T.phase === 'study' && !T.session) beginSession();
+  if (T.remainingMs <= 0) T.remainingMs = T.totalMs;
+  T.status = 'running'; T.endAt = now() + T.remainingMs;
+  saveTimer(); render();
+}
+function pause() {
+  if (T.status !== 'running') return;
+  T.remainingMs = Math.max(0, T.endAt - now()); T.status = 'paused'; T.endAt = 0;
+  saveTimer(); render();
+}
+const toggle = () => (T.status === 'running' ? pause() : start());
+function reset() {
+  if (T.phase === 'quiz') return;
+  if (T.phase === 'study') { T.totalMs = settings.studyMin * MIN; T.session = null; }
+  T.status = 'idle'; T.remainingMs = T.totalMs; T.endAt = 0;
+  saveTimer(); render();
+}
+function addFive() {
+  Sound.ensure();
+  if (T.phase === 'quiz') {
+    if (Q.step !== 'intro' && Q.answers.some(Boolean)) return; // only before any answer
+    Q.step = 'intro'; saveQuiz();
+    T.phase = 'study'; T.status = 'idle'; T.totalMs = (T.studiedMs || 0) + 5 * MIN; T.remainingMs = 5 * MIN;
+    T.cycleDone = Math.max(0, T.cycleDone - (T.countedCycle ? 1 : 0)); T.countedCycle = false;
+    saveTimer(); start(); toast('5 more minutes. The quiz waits for you.'); return;
+  }
+  T.totalMs += 5 * MIN;
+  if (T.status === 'running') T.endAt += 5 * MIN; else T.remainingMs += 5 * MIN;
+  saveTimer();
+  if (T.status !== 'running') start(); else render();
+}
+function skip() {
+  if (T.phase === 'study') { if (T.status === 'idle' && !T.session) return; endStudy('skip'); }
+  else if (T.phase === 'break') endBreak('skip');
+  else if (T.phase === 'quiz') skipQuiz();
+}
+function markDone() { if (T.phase === 'study' && T.session) endStudy('done'); }
+function complete(opts = {}) { if (T.phase === 'study') endStudy('time', opts); else if (T.phase === 'break') endBreak('time', opts); }
+
+function endStudy(reason, opts = {}) {
+  const studiedMs = Math.max(0, T.totalMs - remaining());
+  T.status = 'idle'; T.remainingMs = 0; T.endAt = 0; T.studiedMs = studiedMs;
+  const s = T.session || { id: uid(), date: todayKey(), startedAt: now() - studiedMs, plannedMin: settings.studyMin };
+  Object.assign(s, { endedAt: now(), studiedMin: Math.round(studiedMs / MIN * 10) / 10, subject: context.subject, topic: context.topic, level: context.level, goal: context.goal });
+  T.session = s;
+  const enough = studiedMs >= (s.plannedMin * MIN) / 2;
+  T.countedCycle = enough;
+  if (enough) T.cycleDone += 1;
+  const kind = enough && T.cycleDone >= settings.longEvery ? 'long' : 'short';
+  T.breakKind = kind;
+  if (reason === 'time') signalEnd('Study session complete', hasTopic() ? 'Quiz time. Answer to earn your break.' : 'Time for a break.', opts);
+  if (reason === 'skip') { finishSession({ status: 'skipped' }); startBreak(kind, null, 'skipped'); return; }
+  if (!enough) { finishSession({ status: 'too-short' }); startBreak(kind, null, 'short-session'); return; }
+  T.phase = 'quiz'; saveTimer();
+  Q.step = settings.loop ? 'question' : 'intro'; Q.index = 0; Q.answers = []; saveQuiz();
+  if (!quizMatches() && !(Q.gen === 'loading' && Q.ctxKey === ctxKey()) && !(Q.gen === 'failed' && Q.ctxKey === ctxKey())) prefetchQuiz();
+  announce('Study session complete. Quiz time.');
+  render();
+  const ae = document.activeElement;
+  if (!ae || ae === document.body || $('#stage').contains(ae)) focusQuiz();
+}
+function finishSession(quiz) {
+  const s = T.session; if (!s) return;
+  s.quiz = quiz; s.endedAt = s.endedAt || now();
+  History.add(s); T.lastSessionId = s.id; T.session = null; saveTimer();
+}
+function startBreak(kind, result, reason, opts = {}) {
+  const tier = settings.tiers[kind];
+  const mins = result ? breakFor(result.score, result.total, tier) : tier.none;
+  if (kind === 'long') T.cycleDone = 0;
+  Object.assign(T, { phase: 'break', breakKind: kind, breakReason: reason, totalMs: mins * MIN, remainingMs: mins * MIN, status: 'idle', endAt: 0, countedCycle: false,
+    lastResult: { score: result?.score ?? null, total: result?.total ?? 0, items: result?.items || [], mins, kind, reason, at: now() } });
+  if (T.lastSessionId && reason !== 'manual') History.update(T.lastSessionId, { breakMin: mins, breakKind: kind });
+  saveTimer();
+  announce(`${mins}-minute ${kind} break.`);
+  if (settings.loop && opts.auto !== false) start(); else render();
+}
+function endBreak(reason, opts = {}) {
+  Object.assign(T, { phase: 'study', status: 'idle', totalMs: settings.studyMin * MIN, remainingMs: settings.studyMin * MIN, endAt: 0, session: null, breakReason: '', lastResult: null });
+  saveTimer();
+  if (reason === 'time') signalEnd('Break is over', 'Ready for the next study session?', opts);
+  announce('Break over. Next study session ready.');
+  if (settings.loop && reason === 'time' && opts.auto !== false) start(); else render();
+}
+function switchMode(mode) {
+  if (T.status !== 'idle' || T.phase === 'quiz') return;
+  if (mode === 'study') Object.assign(T, { phase: 'study', totalMs: settings.studyMin * MIN, breakReason: '', lastResult: null });
+  else Object.assign(T, { phase: 'break', breakKind: mode, totalMs: settings.tiers[mode].none * MIN, breakReason: 'manual', lastResult: null, session: null });
+  T.remainingMs = T.totalMs; T.endAt = 0; saveTimer(); render();
+}
+
+/* ---- quiz flow ---- */
+function beginQuiz() { if (T.phase !== 'quiz') return; Q.step = 'question'; Q.index = 0; Q.answers = []; saveQuiz(); render(); focusQuiz(); }
+function answer(i) {
+  if (T.phase !== 'quiz' || Q.step !== 'question' || !quizReadyForTaking()) return;
+  const q = Q.questions[Q.index];
+  Q.answers[Q.index] = { chosen: i, correct: i === q.correctIndex };
+  Q.step = 'feedback'; saveQuiz(); render();
+  requestAnimationFrame(() => $('#qNext')?.focus());
+}
+function nextQ() {
+  if (Q.step !== 'feedback') return;
+  if (Q.index < Q.questions.length - 1) { Q.index++; Q.step = 'question'; saveQuiz(); render(); focusQuiz(); }
+  else finishQuiz(false);
+}
+function finishQuiz(early) {
+  const items = Q.questions.map((q, i) => (Q.answers[i] ? { concept: q.concept, question: q.question, chosen: q.options[Q.answers[i].chosen], answer: q.options[q.correctIndex], correct: Q.answers[i].correct } : null)).filter(Boolean);
+  const score = items.filter((x) => x.correct).length, total = items.length;
+  if (total) { recordConcepts(topicKey(context), items); addAsked(items.map((x) => x.question)); }
+  Q.used = true; Q.step = 'intro'; Q.answers = []; saveQuiz();
+  finishSession({ status: total === 0 ? 'skipped' : (early && total < Q.questions.length ? 'partial' : 'done'), score, total, items });
+  const result = total ? { score, total, items } : null;
+  startBreak(T.breakKind, result, total ? 'quiz' : 'quiz-skipped');
+  if (result) generatePlan(result);
+}
+function skipQuiz() {
+  if (T.phase !== 'quiz') return;
+  if (Q.step !== 'intro' && Q.answers.some(Boolean)) { finishQuiz(true); return; }
+  Q.step = 'intro'; Q.answers = []; saveQuiz();
+  finishSession({ status: Q.gen === 'ready' ? 'skipped' : (Q.gen === 'none' ? 'no-topic' : 'unavailable') });
+  startBreak(T.breakKind, null, 'quiz-skipped');
+}
+const quizReadyForTaking = () => Q.gen === 'ready' && !Q.used && Q.questions.length > 0;
+
+/* ---- end-of-phase signals ---- */
+function signalEnd(title, body, opts = {}) {
+  if (!opts.quiet) Sound.chime();
+  if (settings.notify && !opts.quiet) { try { if ('Notification' in window && Notification.permission === 'granted') new Notification(title, { body, tag: 'studybuddy' }); } catch { /* not allowed here */ } }
+  toast(title);
+}
+
+/* ---- tick ---- */
+let lastClock = '';
+function tick() {
+  if (T.status === 'running') {
+    const r = T.endAt - now();
+    if (r <= 0) { complete(); return; }
+    // Two minutes before the end: if the topic changed since the quiz was written, rewrite it once.
+    if (T.phase === 'study' && r <= 2 * MIN && !T.refreshTried && hasTopic() && Q.gen !== 'loading' && Q.ctxKey !== ctxKey()) {
+      T.refreshTried = true; saveTimer(); prefetchQuiz();
+    }
+  }
+  renderClock();
+}
+
+/* =====================================================================
+   Rendering
+   ===================================================================== */
+function renderClock() {
+  const rem = T.phase === 'quiz' ? 0 : remaining();
+  const text = fmt(rem);
+  if (text !== lastClock) {
+    lastClock = text;
+    $('#clock').innerHTML = [...text].map((ch) => (ch === ':' ? '<span class="c">:</span>' : `<span class="d">${ch}</span>`)).join('');
+    const m = Math.floor(Math.ceil(rem / 1000) / 60), s = Math.ceil(rem / 1000) % 60;
+    $('#clock').setAttribute('aria-label', `${m} minute${m === 1 ? '' : 's'} ${s} second${s === 1 ? '' : 's'} left`);
+  }
+  const total = T.totalMs || 1;
+  $('#rulerFill').style.width = `${clamp((1 - rem / total) * 100, 0, 100)}%`;
+  const label = T.phase === 'study' ? 'Study' : T.phase === 'break' ? (T.breakKind === 'long' ? 'Long break' : 'Break') : 'Quiz';
+  const title = T.status === 'idle' && T.phase !== 'quiz' ? 'StudyBuddy' : T.phase === 'quiz' ? 'Quiz time · StudyBuddy' : `${text} ${label}${T.status === 'paused' ? ' (paused)' : ''} · StudyBuddy`;
+  if (document.title !== title) document.title = title;
+}
+let rulerKey = '';
+function renderRuler() {
+  const M = Math.max(1, Math.round(T.totalMs / MIN));
+  if (rulerKey === String(M)) return;
+  rulerKey = String(M);
+  const narrow = window.innerWidth < 560;
+  const step = M <= 10 ? 1 : M <= 30 ? 5 : M <= 60 ? (narrow ? 10 : 5) : 10;
+  const minorEvery = M > 60 ? 5 : 1;
+  let html = '';
+  for (let m = 0; m <= M; m += minorEvery) {
+    const left = (m / M) * 100, major = m % step === 0 || m === M;
+    html += `<span class="tick${major ? ' major' : ''}" style="left:${left}%"></span>`;
+    if (m % step === 0 && (M - m >= step / 2 || m === M)) html += `<span class="tick-label" style="left:${left}%">${m}</span>`;
+  }
+  if (M % step !== 0) html += `<span class="tick major" style="left:100%"></span><span class="tick-label" style="left:100%">${M}</span>`;
+  $('#rulerTicks').innerHTML = html + '<span class="ruler-unit">min</span>';
+}
+
+function render() {
+  const stage = $('#stage');
+  stage.dataset.phase = T.phase; stage.dataset.status = T.status;
+  const inQuiz = T.phase === 'quiz';
+  $('#timerFace').hidden = inQuiz;
+  $('#quizFace').hidden = !inQuiz;
+
+  // mode tabs
+  const activeMode = T.phase === 'study' ? 'study' : T.breakKind;
+  $$('.mode').forEach((b) => { b.setAttribute('aria-pressed', String(b.dataset.mode === activeMode)); b.disabled = T.status !== 'idle' || inQuiz; });
+
+  // labels
+  const N = settings.longEvery;
+  let eyebrow = '', sub = '';
+  if (T.phase === 'study') {
+    eyebrow = `Study session ${Math.min(T.cycleDone + 1, N)} of ${N}`;
+    sub = T.status === 'running' ? 'Focus. A quick quiz comes at the end.' : T.status === 'paused' ? 'Paused' : `${Math.round(T.totalMs / MIN)}-minute focus session`;
+  } else if (T.phase === 'break') {
+    eyebrow = T.breakKind === 'long' ? 'Long break' : 'Short break';
+    const mins = Math.round(T.totalMs / MIN);
+    sub = T.status === 'running' ? (T.breakKind === 'long' ? 'Cycle complete. Get up, stretch, drink water.' : 'Look away from the screen and move a little.') : T.status === 'paused' ? 'Paused' : `${mins}-minute break ready`;
+  }
+  $('#phaseLabel').textContent = eyebrow;
+  $('#clockSub').textContent = sub;
+
+  // controls
+  const sb = $('#startBtn');
+  const running = T.status === 'running';
+  sb.innerHTML = running ? `${icon('pause')}<span>Pause</span>` : T.status === 'paused' ? `${icon('play')}<span>Resume</span>` : `${icon('play')}<span>${T.phase === 'break' ? 'Start break' : 'Start studying'}</span>`;
+  sb.setAttribute('aria-label', `${running ? 'Pause' : T.status === 'paused' ? 'Resume' : 'Start'} (Space)`);
+  $('#resetBtn').disabled = T.status === 'idle' && T.remainingMs === T.totalMs;
+  $('#skipBtn').disabled = T.phase === 'study' && T.status === 'idle' && !T.session;
+  $('#doneBtn').hidden = T.phase !== 'study';
+  $('#doneBtn').disabled = !T.session;
+  $('#addBtn').disabled = false;
+
+  // mascot
+  let mood = 'idle';
+  if (T.phase === 'study' && running) mood = 'focus';
+  else if (inQuiz) mood = 'quiz';
+  else if (T.phase === 'break') mood = T.lastResult?.total && T.lastResult.score === T.lastResult.total ? 'happy' : running ? 'rest' : 'cheer';
+  const masc = $('#mascot'); if (masc.dataset.mood !== mood) masc.dataset.mood = mood;
+
+  renderRuler(); renderClock();
+  renderFoot(); renderQuiz(); renderResult(); renderPlan(); renderToday(); renderTopicHint();
+  $('#loopBtn').setAttribute('aria-pressed', String(settings.loop));
+  syncAmbience(); syncWake();
+}
+
+function renderFoot() {
+  const N = settings.longEvery;
+  let dots = '';
+  for (let i = 0; i < N; i++) {
+    const on = i < T.cycleDone, cur = i === T.cycleDone && T.phase === 'study';
+    dots += `<span class="dot${on ? ' on' : ''}${cur ? ' now' : ''}"></span>`;
+  }
+  const cycText = T.phase === 'break' && T.breakKind === 'long' && T.breakReason !== 'manual' ? 'Cycle complete'
+    : T.phase === 'study' && N - T.cycleDone <= 1 ? 'Long break after this session' : `Long break after session ${N}`;
+  $('#cycle').innerHTML = `<span class="dots" aria-hidden="true">${dots}</span><span>${cycText}</span><span class="sr-only">${T.cycleDone} of ${N} sessions done in this cycle</span>`;
+
+  // studying line
+  const lbl = topicLabel(context);
+  $('#studyingLine').innerHTML = hasTopic()
+    ? `Studying <strong>${esc(lbl || 'from your notes')}</strong> <button class="btn-link" type="button" data-act="edit-ctx">Edit</button>`
+    : `What are you studying? <button class="btn-link" type="button" data-act="edit-ctx">Add a topic</button> to get a quiz.`;
+
+  // tier strip for the next break
+  const kind = T.phase === 'break' ? T.breakKind : nextBreakKind();
+  const tier = settings.tiers[kind], n = settings.questions;
+  let tiers = `<span>${kind === 'long' ? 'Long break' : 'Break'} by score</span>`;
+  for (let k = n; k >= 0; k--) tiers += `<span class="tier">${k}/${n} → ${breakFor(k, n, tier)}m</span>`;
+  $('#tiers').innerHTML = tiers;
+
+  // quiz chip
+  let chip = '';
+  if (T.phase === 'study') {
+    const key = ctxKey();
+    if (!hasTopic()) chip = '<span class="qchip">No quiz without a topic</span>';
+    else if (AI.status() === 'off') chip = `<span class="qchip warn">Quizzes off: Claude isn't available here</span>`;
+    else if (Q.gen === 'loading') chip = '<span class="qchip"><span class="spin" aria-hidden="true"></span>Writing your quiz…</span>';
+    else if (Q.gen === 'ready' && !Q.used && Q.ctxKey === key) chip = `<span class="qchip good">${icon('check')}Quiz ready · ${Q.questions.length} question${Q.questions.length === 1 ? '' : 's'}</span>`;
+    else if (Q.gen === 'ready' && !Q.used && T.session) chip = '<span class="qchip warn">Topic changed · quiz updates near the end</span>';
+    else if (Q.gen === 'failed' && T.session) chip = `<span class="qchip warn">Quiz didn't load <button class="btn-link" type="button" data-act="retry-quiz">Try again</button></span>`;
+    else if (Q.gen === 'off') chip = '<span class="qchip warn">Quizzes off here</span>';
+    else chip = '<span class="qchip">Quiz is written when you start</span>';
+  }
+  $('#quizChip').innerHTML = chip;
+}
+
+function renderTopicHint() {
+  const t = context.topic.trim(), h = $('#topicHint');
+  const vague = t && t.split(/\s+/).length === 1 && t.length < 14 && !context.notes.trim();
+  h.hidden = !vague;
+  if (vague) h.textContent = `Add detail for sharper questions, e.g. "${t}: the part you're on today".`;
+  $('#examField').hidden = context.level !== 'exam';
+  const n = context.notes.length;
+  $('#notesCount').textContent = n ? `${n.toLocaleString()} characters${n > 12000 ? ' · the first 12,000 are used' : ''}` : 'No notes yet';
+  $('#photoBtn').hidden = !AI.canReadPhotos();
+}
+
+function renderQuiz() {
+  const el = $('#quizFace');
+  if (T.phase !== 'quiz') { el.innerHTML = ''; return; }
+  const topic = esc(Q.forTopic || topicLabel(context) || 'your notes');
+  const studied = T.session ? Math.round(T.session.studiedMin) : 0;
+  const breakNone = settings.tiers[T.breakKind].none;
+  const kindWord = T.breakKind === 'long' ? 'long break' : 'break';
+  const skipBtn = `<button class="btn" type="button" data-act="skip-quiz">Skip quiz · ${breakNone}-min ${kindWord}</button>`;
+  const head = `<div class="q-head"><span class="q-num">SESSION COMPLETE</span><span class="q-concept">${studied} min studied</span></div>`;
+  const notReady = () => {
+    if (!hasTopic()) return `<div class="q-intro"><h2>What did you study?</h2><p>Add a subject or topic and StudyBuddy writes your quiz now.</p><div class="btn-row"><button class="btn btn-primary" type="button" data-act="edit-ctx">Add a topic</button>${skipBtn}</div></div>`;
+    if (Q.gen === 'loading') return `<div class="q-intro"><h2>Writing ${settings.questions} question${settings.questions === 1 ? '' : 's'} on ${topic}</h2><p class="loading-line"><span class="spin" aria-hidden="true"></span>Thinking…</p><p>This usually takes a few seconds.</p><div class="btn-row">${skipBtn}</div></div>`;
+    if (Q.gen === 'failed' || Q.gen === 'off' || AI.status() === 'off') {
+      const canRetry = Q.gen === 'failed' && AI.status() !== 'off';
+      return `<div class="q-intro"><h2>No quiz this round</h2><p>${esc(Q.error || 'Quizzes need Claude, which this view can\'t reach.')}</p><div class="btn-row">${canRetry ? '<button class="btn btn-primary" type="button" data-act="retry-quiz">Try again</button>' : ''}<button class="btn${canRetry ? '' : ' btn-primary'}" type="button" data-act="skip-quiz">Take a ${breakNone}-min ${kindWord}</button></div></div>`;
+    }
+    return `<div class="q-intro"><h2>Quiz on ${topic}?</h2><p>StudyBuddy writes ${settings.questions} question${settings.questions === 1 ? '' : 's'} from what you entered.</p><div class="btn-row"><button class="btn btn-primary" type="button" data-act="retry-quiz">Write my quiz</button>${skipBtn}</div></div>`;
+  };
+  if (!quizReadyForTaking()) {
+    el.innerHTML = `<div class="qcard">${head}${notReady() || ''}</div>`; return;
+  }
+  if (Q.step === 'intro') {
+    const n = Q.questions.length;
+    el.innerHTML = `<div class="qcard">${head}<div class="q-intro">
+      <h2>Time's up. ${n} quick question${n === 1 ? '' : 's'} on ${topic}.</h2>
+      <p>Your score sets your ${kindWord}: ${tierSentence(T.breakKind, n)}</p>
+      <div class="btn-row"><button class="btn btn-primary" type="button" data-act="begin-quiz" id="qBegin">Start quiz</button>
+      <button class="btn" type="button" data-act="add-five">${icon('plus')}5 more minutes</button>
+      <button class="btn-quiet" type="button" data-act="skip-quiz">Skip quiz</button></div></div></div>`;
+    return;
+  }
+  const q = Q.questions[Q.index], a = Q.answers[Q.index], n = Q.questions.length;
+  const prog = Q.questions.map((_, i) => `<span class="${Q.answers[i] ? (Q.answers[i].correct ? 'good' : 'bad') : i === Q.index ? 'now' : ''}"></span>`).join('');
+  const letters = 'ABCD';
+  const opts = q.options.map((o, i) => {
+    let cls = 'opt', mark = '';
+    if (a) {
+      if (i === q.correctIndex) { cls += ' is-correct'; mark = `<span class="mark">${icon('check')}</span>`; }
+      else if (i === a.chosen) { cls += ' is-wrong'; mark = `<span class="mark">${icon('x')}</span>`; }
+      else cls += ' is-dim';
+    }
+    return `<button class="${cls}" type="button" data-answer="${i}" ${a ? 'disabled' : ''} aria-label="${letters[i]}: ${esc(o)}"><span class="key">${letters[i]}</span><span>${esc(o)}</span>${mark}</button>`;
+  }).join('');
+  let fb = '';
+  if (a) {
+    const right = a.correct;
+    const why = !right && q.optionFeedback[a.chosen] ? `<p class="why"><strong>Why not ${letters[a.chosen]}:</strong> ${esc(q.optionFeedback[a.chosen])}</p>` : '';
+    fb = `<div class="fb" aria-live="polite">
+      <p class="verdict ${right ? 'good' : 'bad'}">${right ? 'Correct.' : `Not quite. The answer is ${letters[q.correctIndex]}.`}</p>
+      ${q.explanation ? `<p>${esc(q.explanation)}</p>` : ''}${why}
+      ${q.memoryAid ? `<div class="aid"><div class="aid-label">${right ? 'Lock it in' : 'Memory aid'}</div>${esc(q.memoryAid)}</div>` : ''}
+    </div>`;
+  }
+  const last = Q.index === n - 1;
+  el.innerHTML = `<div class="qcard">
+    <div class="q-head"><span class="q-num">Q${Q.index + 1} / ${n}</span><span class="q-concept">${esc(q.concept)}</span><span class="q-progress" aria-hidden="true">${prog}</span></div>
+    <p class="q-text" id="qText">${esc(q.question)}</p>
+    <div class="opts" role="group" aria-labelledby="qText">${opts}</div>
+    ${fb}
+    <div class="q-actions">
+      <button class="btn-quiet" type="button" data-act="end-quiz">${Q.answers.some(Boolean) ? 'End quiz and score what I answered' : 'Skip quiz'}</button>
+      ${a ? `<button class="btn btn-primary" type="button" id="qNext" data-act="next-q">${last ? 'Finish and start break' : 'Next question'}</button>` : '<span class="small muted">Press 1–4 to answer</span>'}
+    </div>
+  </div>`;
+}
+function tierSentence(kind, n) {
+  const t = settings.tiers[kind];
+  if (n === 1) return `1/1 earns ${t.max} minutes, 0/1 earns ${t.min}.`;
+  const parts = [];
+  for (let k = n; k >= 0; k--) parts.push(`${k}/${n} = ${breakFor(k, n, t)} min`);
+  return parts.join(', ') + '.';
+}
+function focusQuiz() { requestAnimationFrame(() => { const b = $('#qBegin') || $('#quizFace .opt:not(:disabled)'); b?.focus({ preventScroll: true }); }); }
+
+function renderResult() {
+  const el = $('#resultBanner'), r = T.lastResult;
+  if (T.phase !== 'break' || !r || T.breakReason === 'manual') { el.hidden = true; return; }
+  el.hidden = false;
+  const kindWord = r.kind === 'long' ? 'long break' : 'break';
+  let score = '', title = '', msg = '';
+  if (r.total) {
+    const pct = r.score / r.total;
+    score = `<div class="score">${r.score}/${r.total}</div>`;
+    title = `${r.mins}-minute ${kindWord} earned`;
+    msg = pct >= 1 ? 'Perfect round. Enjoy the full break.' : pct >= 0.5 ? 'Solid work. What you missed is in the plan below.' : 'Good that the gaps showed up now. Short reset, then a focused review.';
+    if (r.kind === 'long') msg += ` That finishes a cycle of ${settings.longEvery} sessions.`;
+  } else {
+    title = `${r.mins}-minute ${kindWord}`;
+    msg = r.reason === 'short-session' ? 'You studied under half the planned time, so there was no quiz this round.' : r.reason === 'skipped' ? 'Session skipped, so no quiz this round.' : 'No quiz this round.';
+  }
+  const pills = (r.items || []).map((x) => `<span class="pill ${x.correct ? 'good' : 'bad'}">${icon(x.correct ? 'check' : 'x')}${esc(x.concept)}</span>`).join('');
+  el.innerHTML = `${score}<div class="result-text"><h2>${title}</h2><p>${msg}</p></div>${pills ? `<div class="pills">${pills}</div>` : ''}`;
+}
+
+function renderPlan() {
+  const el = $('#planCard');
+  const head = (meta = '') => `<div class="card-h"><h2>Next-session plan</h2>${meta ? `<span class="meta">${meta}</span>` : ''}</div>`;
+  if (P.status === 'loading') { el.innerHTML = `${head(esc(P.topic))}<p class="loading-line"><span class="spin" aria-hidden="true"></span>Writing your plan from this quiz and your history…</p>`; return; }
+  if (P.status === 'failed') { el.innerHTML = `${head()}<p class="muted">${esc(P.error || 'The plan didn\'t load.')}</p><div class="btn-row" style="margin-top:10px"><button class="btn" type="button" data-act="retry-plan">Try again</button></div>`; return; }
+  if (P.status === 'ready' && P.data) {
+    const d = P.data;
+    const chips = (arr, cls) => (arr.length ? arr.map((c) => `<span class="pill ${cls}">${esc(c)}</span>`).join('') : '<span class="small muted">None yet</span>');
+    el.innerHTML = `${head(`${esc(P.topic || '')}${P.topic ? ' · ' : ''}Suggested ${d.suggestedMinutes} min`)}
+      ${d.summary ? `<p class="plan-summary">${esc(d.summary)}</p>` : ''}
+      <div class="plan-cols"><div><h3>Solid</h3><div class="pills">${chips(d.strong, 'good')}</div></div><div><h3>Review next</h3><div class="pills">${chips(d.review, 'bad')}</div></div></div>
+      <ol class="actions">${d.actions.map((a) => `<li class="action"><span class="mins">${a.minutes} min</span><span><span class="tech">${esc(a.technique)}</span><span class="step">${esc(a.step)}</span></span></li>`).join('')}</ol>
+      <div class="plan-foot"><span class="plan-goal">${d.nextGoal ? `Next goal: <strong>${esc(d.nextGoal)}</strong>` : ''}</span>
+      <button class="btn ${P.applied ? '' : 'btn-primary'}" type="button" data-act="apply-plan" ${P.applied ? 'disabled' : ''}>${P.applied ? `${icon('check')}Applied` : `Apply plan · ${d.suggestedMinutes}-min session`}</button></div>`;
+    return;
+  }
+  el.innerHTML = `${head()}
+    <p class="muted" style="margin:0 0 12px">After each quiz, StudyBuddy writes a plan for your next session from what you got right, what you missed and your history on the topic.</p>
+    ${AI.status() === 'off' ? '<p class="qchip warn" style="margin:0 0 12px">Quizzes and plans need Claude, which this view can\'t reach. The timer still works.</p>' : ''}
+    <div class="loop-steps">
+      <div class="loop-step"><span class="n">1</span><b>Study</b><span>${settings.studyMin} min on your topic</span></div>
+      <div class="loop-step"><span class="n">2</span><b>Quiz</b><span>${settings.questions} question${settings.questions === 1 ? '' : 's'}, with memory aids</span></div>
+      <div class="loop-step"><span class="n">3</span><b>Break</b><span>${settings.tiers.short.min}–${settings.tiers.short.max} min, set by your score</span></div>
+      <div class="loop-step"><span class="n">4</span><b>Plan</b><span>Steps for the next session</span></div>
+    </div>`;
+}
+
+function renderToday() {
+  const el = $('#todayCard');
+  const list = History.today();
+  const studied = list.reduce((a, s) => a + (s.studiedMin || 0), 0);
+  const quizzed = list.filter((s) => s.quiz?.total);
+  const avg = quizzed.length ? Math.round((quizzed.reduce((a, s) => a + s.quiz.score / s.quiz.total, 0) / quizzed.length) * 100) : null;
+  const breaks = list.reduce((a, s) => a + (s.breakMin || 0), 0);
+  const tk = topicKey(context);
+  const weak = weakConcepts(tk, 5);
+  const log = list.slice().reverse().slice(0, 8).map((s) => {
+    const res = s.quiz?.total ? `${s.quiz.score}/${s.quiz.total}` : ({ skipped: 'skipped', 'too-short': 'short', unavailable: 'no quiz', 'no-topic': 'no quiz' }[s.quiz?.status] || '—');
+    return `<li><span class="when">${timeOf(s.startedAt)}</span><span class="what" title="${esc(topicLabel(s))}">${esc(topicLabel(s) || 'Untitled session')} · ${Math.round(s.studiedMin || 0)}m</span><span class="res">${res}${s.breakMin ? ` · ${s.breakMin}m` : ''}</span></li>`;
+  }).join('');
+  let sum = '';
+  if (D.date === todayKey()) {
+    if (D.status === 'loading') sum = '<div class="day-sum"><p class="loading-line"><span class="spin" aria-hidden="true"></span>Summarizing your day…</p></div>';
+    else if (D.status === 'failed') sum = `<div class="day-sum"><p class="muted">${esc(D.error)}</p></div>`;
+    else if (D.status === 'ready' && D.data) {
+      const ul = (a) => (a.length ? `<ul>${a.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '');
+      sum = `<div class="day-sum"><h4>${esc(D.data.headline)}</h4>${D.data.wins.length ? `<div><h3>Went well</h3>${ul(D.data.wins)}</div>` : ''}${D.data.gaps.length ? `<div><h3>Still shaky</h3>${ul(D.data.gaps)}</div>` : ''}${D.data.tomorrow.length ? `<div><h3>Tomorrow</h3>${ul(D.data.tomorrow)}</div>` : ''}</div>`;
+    }
+  }
+  el.innerHTML = `<div class="card-h"><h2 id="todayTitle">Today</h2><span class="meta">${new Date().toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}</span></div>
+    <div class="stats">
+      <div class="stat"><b>${list.length}</b><span>session${list.length === 1 ? '' : 's'}</span></div>
+      <div class="stat"><b>${Math.round(studied)}</b><span>minutes studied</span></div>
+      <div class="stat"><b>${avg == null ? '—' : avg + '%'}</b><span>average quiz score</span></div>
+      <div class="stat"><b>${breaks}</b><span>break minutes earned</span></div>
+    </div>
+    ${weak.length ? `<h3>Review next${context.topic ? ` · ${esc(context.topic)}` : ''}</h3><div class="chips">${weak.map((c) => `<span class="pill bad" title="Missed ${c.missed} of ${c.seen}">${esc(c.concept)} · ${c.missed}/${c.seen}</span>`).join('')}</div>` : ''}
+    ${list.length ? `<h3>Log</h3><ul class="log">${log}</ul>` : '<p class="empty">No sessions yet today. Your first one shows up here.</p>'}
+    ${list.length && AI.status() !== 'off' ? `<button class="btn" type="button" data-act="sum-day" ${D.status === 'loading' && D.date === todayKey() ? 'disabled' : ''}>${D.status === 'ready' && D.date === todayKey() ? 'Refresh day summary' : 'Summarize my day'}</button>` : ''}
+    ${sum}`;
+}
+
+/* ---- tasks ---- */
+function renderTasks() {
+  const ul = $('#taskList');
+  ul.innerHTML = Tasks.length ? Tasks.map((t) => `<li class="task${t.done ? ' done' : ''}" data-id="${t.id}">
+    <input type="checkbox" id="task-${t.id}" ${t.done ? 'checked' : ''}><label class="t" for="task-${t.id}">${esc(t.text)}</label>
+    <button class="x" type="button" data-del="${t.id}" aria-label="Delete task">${icon('x')}</button></li>`).join('')
+    : '<li class="empty">Add what you want to get through today.</li>';
+  const done = Tasks.filter((t) => t.done).length;
+  $('#taskMeta').textContent = Tasks.length ? `${done} of ${Tasks.length} done` : '';
+}
+
+/* ---- ambience / wake lock ---- */
+function syncAmbience() {
+  const desired = T.status === 'running' ? (T.phase === 'study' ? settings.ambStudy : T.phase === 'break' ? settings.ambBreak : 'none') : 'none';
+  Sound.sync(desired);
+}
+let wake = null;
+async function syncWake() {
+  const want = settings.wake && T.status === 'running' && document.visibilityState === 'visible';
+  if (want && !wake && navigator.wakeLock) {
+    try { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); } catch { wake = null; }
+  } else if (!want && wake) { try { await wake.release(); } catch { /* ignore */ } wake = null; }
+}
+
+/* ---- toast / announce ---- */
+let toastT = 0;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2800); }
+function announce(msg) { const a = $('#announcer'); a.textContent = ''; setTimeout(() => { a.textContent = msg; }, 50); }
+
+/* =====================================================================
+   Forms: context, settings
+   ===================================================================== */
+function initContextForm() {
+  const map = { ctxSubject: 'subject', ctxTopic: 'topic', ctxLevel: 'level', ctxExam: 'exam', ctxGoal: 'goal', ctxNotes: 'notes' };
+  for (const [id, key] of Object.entries(map)) {
+    const el = $('#' + id); el.value = context[key] || (key === 'level' ? 'intro' : '');
+    el.addEventListener('input', () => { context[key] = el.value; saveContext(); renderFoot(); renderTopicHint(); if (T.phase === 'quiz') renderQuiz(); });
+  }
+  $('#ctxForm').addEventListener('submit', (e) => e.preventDefault());
+  $('#txtBtn').addEventListener('click', () => $('#txtInput').click());
+  $('#txtInput').addEventListener('change', (e) => {
+    const f = e.target.files?.[0]; e.target.value = ''; if (!f) return;
+    if (f.size > 2_000_000) { toast('That file is over 2 MB. Paste the part you need instead.'); return; }
+    const r = new FileReader();
+    r.onload = () => appendNotes(String(r.result || ''), f.name);
+    r.onerror = () => toast('Couldn\'t read that file.');
+    r.readAsText(f);
+  });
+  $('#photoBtn').addEventListener('click', () => $('#photoInput').click());
+  $('#photoInput').addEventListener('change', async (e) => {
+    const f = e.target.files?.[0]; e.target.value = ''; if (!f || !AI.readPhoto) return;
+    const btn = $('#photoBtn'); btn.disabled = true; btn.innerHTML = `<span class="spin" aria-hidden="true"></span>Reading…`;
+    try { const text = await AI.readPhoto(f); appendNotes(text, f.name); }
+    catch (err) { toast(err?.code === 'image_rejected' ? 'That image couldn\'t be read. Try a JPEG or PNG under 20 MB.' : aiErrorText(err)); }
+    finally { btn.disabled = false; btn.innerHTML = `${icon('camera')}Photo`; }
+  });
+}
+function appendNotes(text, name) {
+  const t = text.trim(); if (!t) { toast('No text found in that file.'); return; }
+  context.notes = (context.notes.trim() ? context.notes.trim() + '\n\n' : '') + t;
+  $('#ctxNotes').value = context.notes; saveContext(); render();
+  toast(`Added notes from ${name}`);
+}
+
+function fillSelect(sel, entries, value) { sel.innerHTML = entries.map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join(''); sel.value = value; }
+function syncSettingsForm() {
+  $$('#lenSeg [data-min]').forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.min === settings.studyMin)));
+  $('#customMin').value = [25, 30, 35, 40, 45].includes(settings.studyMin) ? '' : settings.studyMin;
+  $('#longEvery').value = settings.longEvery;
+  $('#loopToggle').checked = settings.loop;
+  $$('[data-tier]').forEach((inp) => { const [k, t] = inp.dataset.tier.split('.'); inp.value = settings.tiers[k][t]; });
+  $$('#qnSeg [data-q]').forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.q === settings.questions)));
+  $$('#diffSeg [data-diff]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.diff === settings.difficulty)));
+  $('#chimeSel').value = settings.chime; $('#chimeVol').value = settings.chimeVol;
+  $('#ambStudy').value = settings.ambStudy; $('#ambBreak').value = settings.ambBreak; $('#ambVol').value = settings.ambVol;
+  $$('#skinSeg [data-skin]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.skin === settings.skin)));
+  $('#notifyToggle').checked = settings.notify; $('#wakeToggle').checked = settings.wake;
+}
+function applySkin() { if (settings.skin === 'auto') delete document.documentElement.dataset.skin; else document.documentElement.dataset.skin = settings.skin; }
+function initSettings() {
+  fillSelect($('#chimeSel'), Object.entries(Sound.CHIMES).map(([k, v]) => [k, v.label]), settings.chime);
+  const amb = Object.entries(Sound.AMB).map(([k, v]) => [k, v.label]);
+  fillSelect($('#ambStudy'), amb, settings.ambStudy); fillSelect($('#ambBreak'), amb, settings.ambBreak);
+  syncSettingsForm();
+  $('#lenSeg').addEventListener('click', (e) => { const b = e.target.closest('[data-min]'); if (b) setStudyMin(+b.dataset.min); });
+  $('#customMin').addEventListener('change', (e) => { const v = Math.round(+e.target.value); if (v >= 1) setStudyMin(v); else syncSettingsForm(); });
+  $('#longEvery').addEventListener('change', (e) => { settings.longEvery = clamp(Math.round(+e.target.value) || 4, 2, 8); saveSettings(); syncSettingsForm(); render(); });
+  $('#loopToggle').addEventListener('change', (e) => setLoop(e.target.checked));
+  $$('[data-tier]').forEach((inp) => inp.addEventListener('change', () => {
+    const [k, t] = inp.dataset.tier.split('.'); settings.tiers[k][t] = clamp(Math.round(+inp.value) || DEFAULT_SETTINGS.tiers[k][t], 1, 90);
+    saveSettings(); syncSettingsForm(); render();
+  }));
+  $('#qnSeg').addEventListener('click', (e) => { const b = e.target.closest('[data-q]'); if (!b) return; settings.questions = +b.dataset.q; saveSettings(); syncSettingsForm(); render(); });
+  $('#diffSeg').addEventListener('click', (e) => { const b = e.target.closest('[data-diff]'); if (!b) return; settings.difficulty = b.dataset.diff; saveSettings(); syncSettingsForm(); render(); });
+  $('#chimeSel').addEventListener('change', (e) => { settings.chime = e.target.value; saveSettings(); Sound.chime(); });
+  $('#chimeTest').addEventListener('click', () => Sound.chime());
+  $('#chimeVol').addEventListener('input', (e) => { settings.chimeVol = +e.target.value; saveSettings(); });
+  $('#chimeVol').addEventListener('change', () => Sound.chime());
+  $('#ambStudy').addEventListener('change', (e) => { settings.ambStudy = e.target.value; saveSettings(); Sound.ensure(); syncAmbience(); });
+  $('#ambBreak').addEventListener('change', (e) => { settings.ambBreak = e.target.value; saveSettings(); Sound.ensure(); syncAmbience(); });
+  $('#ambVol').addEventListener('input', (e) => { settings.ambVol = +e.target.value; saveSettings(); Sound.setAmbVol(settings.ambVol); });
+  $('#ambPreview').addEventListener('click', () => {
+    const name = settings.ambStudy !== 'none' ? settings.ambStudy : settings.ambBreak;
+    const b = $('#ambPreview'); b.disabled = true; b.textContent = 'Playing…';
+    Sound.preview(name, () => { b.disabled = false; b.textContent = 'Preview'; });
+  });
+  $('#skinSeg').addEventListener('click', (e) => { const b = e.target.closest('[data-skin]'); if (!b) return; settings.skin = b.dataset.skin; saveSettings(); applySkin(); syncSettingsForm(); });
+  $('#notifyToggle').addEventListener('change', async (e) => {
+    const note = $('#notifyNote');
+    if (!e.target.checked) { settings.notify = false; saveSettings(); note.textContent = 'Pop up a notice when a phase ends'; return; }
+    let ok = false;
+    try { if ('Notification' in window) ok = Notification.permission === 'granted' || (await Notification.requestPermission()) === 'granted'; } catch { ok = false; }
+    settings.notify = ok; saveSettings(); e.target.checked = ok;
+    note.textContent = ok ? 'On. You\'ll get a notice when a phase ends.' : 'This view blocks notifications. The chime and tab title still mark each phase.';
+  });
+  $('#wakeToggle').addEventListener('change', (e) => { settings.wake = e.target.checked; saveSettings(); syncWake(); if (settings.wake && !navigator.wakeLock) toast('This device doesn\'t support keeping the screen awake.'); });
+  let clearArmed = 0;
+  $('#clearHistBtn').addEventListener('click', (e) => {
+    const b = e.currentTarget;
+    if (!clearArmed) { b.textContent = 'Click again to clear'; clearArmed = setTimeout(() => { clearArmed = 0; b.textContent = 'Clear history'; }, 3500); return; }
+    clearTimeout(clearArmed); clearArmed = 0; b.textContent = 'Clear history';
+    History.list = []; History.save(); Stats = {}; Store.set('concepts', Stats); Asked = { date: '', items: [] }; Store.set('asked', Asked);
+    P = { status: 'none' }; savePlan(); D = { date: '', status: 'none' }; saveDay();
+    render(); toast('History cleared');
+  });
+  $$('dialog [data-close]').forEach((b) => b.addEventListener('click', () => b.closest('dialog').close()));
+  $$('dialog').forEach((d) => d.addEventListener('click', (e) => { if (e.target === d) d.close(); }));
+}
+function setLoop(on) { settings.loop = !!on; saveSettings(); syncSettingsForm(); render(); toast(settings.loop ? 'Loop on: phases start automatically' : 'Loop off'); }
+
+/* =====================================================================
+   Events
+   ===================================================================== */
+function bind() {
+  $('#startBtn').addEventListener('click', toggle);
+  $('#resetBtn').addEventListener('click', reset);
+  $('#skipBtn').addEventListener('click', skip);
+  $('#addBtn').addEventListener('click', addFive);
+  $('#doneBtn').addEventListener('click', markDone);
+  $('#loopBtn').addEventListener('click', () => setLoop(!settings.loop));
+  $('#settingsBtn').addEventListener('click', () => { syncSettingsForm(); $('#settingsDlg').showModal(); });
+  $('#helpBtn').addEventListener('click', () => $('#helpDlg').showModal());
+  $$('.mode').forEach((b) => b.addEventListener('click', () => switchMode(b.dataset.mode)));
+
+  document.addEventListener('click', (e) => {
+    const ans = e.target.closest('[data-answer]');
+    if (ans) { answer(+ans.dataset.answer); return; }
+    const act = e.target.closest('[data-act]')?.dataset.act;
+    if (!act) return;
+    if (act === 'edit-ctx') { const c = $('#ctxCard'); c.scrollIntoView({ behavior: 'smooth', block: 'start' }); setTimeout(() => $(context.topic ? '#ctxTopic' : '#ctxSubject').focus({ preventScroll: true }), 300); }
+    else if (act === 'retry-quiz') { Q.gen = 'none'; prefetchQuiz(); }
+    else if (act === 'skip-quiz') skipQuiz();
+    else if (act === 'begin-quiz') beginQuiz();
+    else if (act === 'add-five') addFive();
+    else if (act === 'next-q') nextQ();
+    else if (act === 'end-quiz') { if (Q.answers.some(Boolean)) finishQuiz(true); else skipQuiz(); }
+    else if (act === 'apply-plan') applyPlan();
+    else if (act === 'retry-plan') { if (P.input?.result) generatePlan(P.input.result); }
+    else if (act === 'sum-day') summarizeDay();
+  });
+
+  $('#taskForm').addEventListener('submit', (e) => {
+    e.preventDefault(); const inp = $('#taskInput'); const text = inp.value.trim(); if (!text) return;
+    Tasks.push({ id: uid(), text, done: false }); saveTasks(); renderTasks(); inp.value = '';
+  });
+  $('#taskList').addEventListener('change', (e) => {
+    const li = e.target.closest('.task'); if (!li) return;
+    const t = Tasks.find((x) => x.id === li.dataset.id); if (t) { t.done = e.target.checked; saveTasks(); renderTasks(); }
+  });
+  $('#taskList').addEventListener('click', (e) => {
+    const id = e.target.closest('[data-del]')?.dataset.del; if (!id) return;
+    Tasks = Tasks.filter((t) => t.id !== id); saveTasks(); renderTasks();
+  });
+  $('#clearDoneBtn').addEventListener('click', () => { Tasks = Tasks.filter((t) => !t.done); saveTasks(); renderTasks(); });
+  let resetArmed = 0;
+  $('#resetTasksBtn').addEventListener('click', (e) => {
+    const b = e.currentTarget;
+    if (!Tasks.length) return;
+    if (!resetArmed) { b.textContent = 'Click again to reset'; resetArmed = setTimeout(() => { resetArmed = 0; b.textContent = 'Reset list'; }, 3500); return; }
+    clearTimeout(resetArmed); resetArmed = 0; b.textContent = 'Reset list'; Tasks = []; saveTasks(); renderTasks();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+    const t = e.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+    if (document.querySelector('dialog[open]')) return;
+    const k = e.key, onButton = t && t.tagName === 'BUTTON';
+    if (T.phase === 'quiz') {
+      if (Q.step === 'question' && quizReadyForTaking() && k.length === 1) {
+        let i = '1234'.indexOf(k); if (i < 0) i = 'abcd'.indexOf(k.toLowerCase());
+        if (i >= 0) { e.preventDefault(); answer(i); return; }
+      }
+      if (k === 'Enter' && Q.step === 'feedback' && !onButton) { e.preventDefault(); nextQ(); return; }
+    }
+    if (k === ' ' || k === 'Spacebar') { if (onButton) return; e.preventDefault(); if (T.phase !== 'quiz') toggle(); }
+    else if (k === 'r' || k === 'R') reset();
+    else if (k === 's' || k === 'S') skip();
+    else if (k === 'd' || k === 'D') markDone();
+    else if (k === '+' || k === '=') addFive();
+    else if (k === 'l' || k === 'L') setLoop(!settings.loop);
+    else if (k === '?') $('#helpDlg').showModal();
+    else if (k === 'n' || k === 'N') { e.preventDefault(); $('#taskInput').focus(); }
+  });
+
+  // Any first interaction unlocks audio (browsers need a gesture).
+  const unlock = () => { Sound.ensure(); syncAmbience(); };
+  document.addEventListener('pointerdown', unlock, { passive: true });
+  document.addEventListener('keydown', unlock);
+  document.addEventListener('visibilitychange', () => { tick(); syncWake(); });
+  window.addEventListener('resize', () => { rulerKey = ''; renderRuler(); });
+  window.addEventListener('storage', (e) => { if (e.key === 'studybuddy.timer') { T = Object.assign(freshTimer(), Store.get('timer', {}) || {}); render(); } });
+}
+
+/* =====================================================================
+   Boot
+   ===================================================================== */
+function boot() {
+  applySkin();
+  initContextForm();
+  initSettings();
+  bind();
+  renderTasks();
+  // Recover a timer that ran out while the page was closed.
+  if (T.status === 'running' && T.endAt <= now()) {
+    const overdue = now() - T.endAt;
+    complete({ quiet: overdue > 5000, auto: overdue < 2 * MIN });
+  }
+  if (T.phase === 'study' && T.session && Q.gen === 'none' && hasTopic()) prefetchQuiz();
+  if (T.phase === 'quiz' && Q.gen === 'none' && hasTopic()) prefetchQuiz();
+  render();
+  setInterval(tick, 250);
+}
+boot();
+})();
+</script>
