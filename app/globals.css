@@ -1015,3 +1015,127 @@ p.share-row { display: flex; gap: 6px; }
 .heard .hint svg { width: 14px; height: 14px; flex: none; margin-top: 2px; }
 .heard-text { margin: 6px 0; max-height: 160px; overflow: auto; font-size: 13px; line-height: 1.5; color: var(--fg-2); }
 .foot .build { font-variant-numeric: tabular-nums; opacity: .8; }
+
+/* ---------- saved timers and the full-screen button (top of the timer card) ---------- */
+.stage { container: stage / inline-size; z-index: 2; } /* above the cards below it, so the menu isn't covered */
+.modes-row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 10px; }
+.modes-row .modes { margin: 0; grid-column: 2; }
+.timer-menu-wrap { position: relative; justify-self: start; min-width: 0; max-width: 100%; }
+.full-btn { justify-self: end; grid-column: 3; }
+.tm-btn { height: 38px; padding: 0 13px; font-size: 13.5px; max-width: 100%; }
+.tm-btn svg.i { width: 16px; height: 16px; flex: none; }
+.tm-btn-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; min-width: 0; }
+@container stage (max-width: 600px) {
+  .tm-btn { width: 40px; padding: 0; justify-content: center; }
+  .tm-btn-label { display: none; }
+}
+@container stage (max-width: 470px) {
+  .modes-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .modes-row .modes { grid-row: 2; grid-column: 1 / -1; justify-self: center; }
+  .full-btn { grid-column: 2; grid-row: 1; }
+  .modes-row .tm-btn { width: auto; padding: 0 13px; }
+  .modes-row .tm-btn .tm-btn-label { display: inline; }
+}
+.timer-menu {
+  position: absolute; left: 0; top: calc(100% + 8px); z-index: 35; width: min(350px, calc(100vw - 32px));
+  background: var(--card); border: 1px solid var(--rule); border-radius: var(--r-md); box-shadow: var(--shadow);
+  padding: 6px; display: grid; gap: 4px; text-align: left; transform-origin: top left;
+}
+.tm-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; max-height: min(300px, 45vh); overflow: auto; }
+.tm-row { display: flex; align-items: stretch; gap: 2px; }
+.tm-item { flex: 1; min-width: 0; display: grid; gap: 2px; text-align: left; border: 0; background: none; padding: 9px 10px; border-radius: var(--r-sm); color: var(--fg); }
+.tm-item:hover, .tm-item:focus-visible { background: var(--sunk); }
+.tm-item[aria-pressed="true"] { background: var(--accent-soft); }
+.tm-item b { display: flex; align-items: center; gap: 6px; font-size: 14.5px; min-width: 0; }
+.tm-item b svg.i { width: 15px; height: 15px; color: var(--accent); flex: none; }
+.tm-item span { font-size: 12.5px; color: var(--fg-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tm-del { flex: none; min-width: 40px; display: grid; place-items: center; border: 0; background: none; border-radius: var(--r-sm); color: var(--fg-3); font-weight: 700; font-size: 12.5px; padding: 0 8px; }
+.tm-del:hover, .tm-del:focus-visible { background: var(--sunk); color: var(--bad); }
+.tm-del.armed { color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, transparent); }
+.tm-del svg.i { width: 16px; height: 16px; }
+.tm-empty { margin: 4px 10px 8px; font-size: 13.5px; color: var(--fg-2); }
+.tm-save { display: flex; gap: 6px; padding: 8px 4px 2px; border-top: 1px solid var(--rule); }
+.tm-save input[type="text"] { flex: 1; min-width: 0; width: auto; }
+.tm-now { margin: 2px 6px 4px; font-size: 12px; color: var(--fg-3); }
+.tm-now span { font-weight: 700; }
+
+/* ---------- cards that fold shut (the next-session plan) ---------- */
+.fold { display: grid; grid-template-rows: 1fr; transition: grid-template-rows .42s cubic-bezier(.22,1,.36,1), opacity .3s ease; }
+.fold-inner { min-height: 0; overflow: hidden; margin: -4px; padding: 4px; } /* room for focus rings */
+.foldable.folded .fold { grid-template-rows: 0fr; opacity: 0; }
+.fold-h { position: relative; transition: margin-bottom .42s cubic-bezier(.22,1,.36,1); }
+.foldable.folded .fold-h { margin-bottom: 0; }
+.fold-btn { border: 0; background: none; padding: 0; font: inherit; color: inherit; letter-spacing: inherit; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; text-align: left; }
+.fold-btn::after { content: ""; position: absolute; inset: -8px -10px; border-radius: var(--r-sm); } /* the whole heading row is the button */
+.fold-btn:focus-visible { outline: none; }
+.fold-btn:focus-visible::after { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fold-btn svg.i { width: 18px; height: 18px; color: var(--fg-3); transition: transform .4s cubic-bezier(.22,1,.36,1); }
+.fold-h:hover .fold-btn svg.i { color: var(--fg); }
+.foldable.folded .fold-btn svg.i { transform: rotate(-90deg); }
+.fold-h .meta { position: relative; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .fold, .fold-h, .fold-btn svg.i { transition: none; } }
+
+/* ---------- full-screen timer (focus mode) ---------- */
+html:root[data-focus="on"] { overflow: hidden; }
+html:root[data-focus="on"] :is(.top, .foot, .assistant-fab, .col-main > :not(#stage), .col-side > :not(#musicCard)) { display: none; }
+html:root[data-focus="on"] .stage {
+  position: fixed; inset: 0; z-index: 40; border: 0; border-radius: 0; box-shadow: none; background: transparent;
+  display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; overflow: auto; padding: max(72px, env(safe-area-inset-top, 0px)) 24px 32px;
+  animation: focus-in .5s cubic-bezier(.22,1,.36,1);
+}
+@keyframes focus-in { from { opacity: 0; } }
+html:root[data-focus="on"] .stage-face { width: min(980px, 100%); }
+html:root[data-focus="on"] :is(.timer-menu-wrap, .full-btn, .stage-foot, .watch-row) { display: none; }
+/* The clock takes whatever width is left beside the buddy, sized so "00:00" always fits that width.
+   --clock-ch is how wide a digit is in each clock font (in em), as for the ring. */
+html:root[data-focus="on"] .clock-row > .clock-col { flex: 1 1 0; min-width: 0; container-type: inline-size; }
+html:root[data-focus="on"] .clock-row > .clock-col .clock { --clock-ch: .7; font-size: min(28vh, 240px, calc(96cqi / (4.55 * var(--clock-ch)))); }
+html:root[data-focus="on"]:is([data-skin="tomato"], [data-clockfont="rounded"]) .clock-row > .clock-col .clock { --clock-ch: .62; }
+html:root[data-focus="on"][data-skin="robotlab"] .clock-row > .clock-col .clock { --clock-ch: .9; }
+html:root[data-focus="on"][data-clockfont="mono"] .clock-row > .clock-col .clock { --clock-ch: .7; }
+html:root[data-focus="on"][data-clockfont="digital"] .clock-row > .clock-col .clock { --clock-ch: .9; }
+html:root[data-focus="on"][data-clockfont="condensed"] .clock-row > .clock-col .clock { --clock-ch: .42; }
+html:root[data-focus="on"][data-clockfont="serif"] .clock-row > .clock-col .clock { --clock-ch: .58; }
+html:root[data-focus="on"][data-clockfont="hand"] .clock-row > .clock-col .clock { --clock-ch: .5; }
+html:root[data-focus="on"] .clock-sub { font-size: 17px; }
+html:root[data-focus="on"] .clock-row { margin-top: clamp(16px, 5vh, 48px); gap: clamp(16px, 4vw, 44px); }
+html:root[data-focus="on"] .mascot-wrap { width: clamp(68px, 14vw, 190px); }
+html:root[data-focus="on"] .timer-ring { width: min(64vh, 80vw, 560px); }
+html:root[data-focus="on"] .timer-ring .clock { font-size: calc(66cqi / (4.55 * var(--clock-ch))); }
+html:root[data-focus="on"] .controls { margin-top: clamp(14px, 4vh, 36px); }
+html:root[data-focus="on"] .qcard { max-width: 760px; margin: 0 auto; }
+/* On a photo, the timer sits on a frosted panel so it stays readable. */
+html:root[data-focus="on"][data-bg="image"] .stage-face {
+  width: min(900px, 100%); padding: clamp(18px, 4vh, 36px) clamp(16px, 4vw, 44px);
+  background: color-mix(in srgb, var(--card) 70%, transparent); border-radius: 32px; box-shadow: var(--shadow);
+  -webkit-backdrop-filter: blur(22px) saturate(1.3); backdrop-filter: blur(22px) saturate(1.3);
+}
+.focus-bar {
+  position: fixed; z-index: 46; top: max(16px, env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;
+}
+.focus-bar .chip-btn { box-shadow: 0 6px 18px -10px rgba(0,0,0,.4); }
+/* The music widget becomes a small player in the corner. */
+html:root[data-focus="on"] #musicCard {
+  position: fixed; z-index: 45; right: max(20px, env(safe-area-inset-right, 0px)); bottom: max(20px, env(safe-area-inset-bottom, 0px));
+  width: min(390px, calc(100vw - 40px)); grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px 12px;
+  padding: 12px 14px; box-shadow: var(--shadow); animation: music-in .55s .12s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes music-in { from { opacity: 0; transform: translateY(18px) scale(.97); } }
+html:root[data-focus="on"] #musicCard .music-row { order: 0; gap: 12px; }
+html:root[data-focus="on"] #musicCard .music-controls { order: 1; gap: 6px; }
+html:root[data-focus="on"] #musicCard .music-progress { order: 2; grid-column: 1 / -1; }
+html:root[data-focus="on"] #musicCard .music-error { order: 3; grid-column: 1 / -1; }
+html:root[data-focus="on"] #musicCard :is(.music-device, .music-open) { display: none; }
+html:root[data-focus="on"] #musicCard .music-disc { width: 52px; height: 52px; }
+html:root[data-focus="on"] #musicCard .music-hole { width: 10px; height: 10px; margin: -5px 0 0 -5px; }
+html:root[data-focus="on"] #musicCard .music-play { width: 42px; height: 42px; }
+html:root[data-focus="on"] #musicCard .icon-btn { width: 36px; height: 36px; }
+html:root[data-focus="on"] #musicCard .music-title { font-size: 15px; }
+html:root[data-focus="on"] #musicCard.music-off { display: none; }
+html:root[data-focus="on"][data-focus-music="off"] #musicCard { display: none; }
+@media (max-width: 560px) {
+  html:root[data-focus="on"] #musicCard { left: 12px; right: 12px; width: auto; bottom: max(12px, env(safe-area-inset-bottom, 0px)); }
+  html:root[data-focus="on"]:not([data-focus-music="off"]) body:has(#musicCard.music:not(.music-off)) .stage { padding-bottom: 150px; }
+  html:root[data-focus="on"] .stage { padding-inline: 14px; }
+}

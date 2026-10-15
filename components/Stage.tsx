@@ -10,20 +10,47 @@ import { Icon } from './Icon';
 import { Mascot, type Mood } from './Mascot';
 import { DocProgress, ScreenTracker } from './Documents';
 import { EASE, SOFT, SPRING } from './motion';
+import { TimerMenu } from './TimerMenu';
+import { enterFocus, exitFocus, useFocusMode } from '@/lib/focus';
+import { useSpotify } from '@/lib/spotify';
 
 export function Stage({ onToggle, onScreenConsent }: { onToggle: () => void; onScreenConsent: () => void }) {
   const phase = useStudy((s) => s.timer.phase);
   const status = useStudy((s) => s.timer.status);
+  const focus = useFocusMode((s) => s.on);
   const entered = useRef(false);
   useEffect(() => { entered.current = true; }, []);
   return (
-    <section className="card stage" id="stage" data-phase={phase} data-status={status} aria-label="Timer">
+    <section className="card stage" id="stage" data-phase={phase} data-status={status} aria-label={focus ? 'Timer, full screen' : 'Timer'}>
+      {focus && <FocusBar />}
       {/* The new face glides in. No exit step: the quiz must never wait on an animation. */}
-      <motion.div key={phase === 'quiz' ? 'quiz' : 'timer'} initial={entered.current ? { opacity: 0, y: 14, filter: 'blur(6px)' } : false}
+      <motion.div className="stage-face" key={phase === 'quiz' ? 'quiz' : 'timer'} initial={entered.current ? { opacity: 0, y: 14, filter: 'blur(6px)' } : false}
         animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} transition={{ duration: 0.38, ease: EASE }}>
         {phase === 'quiz' ? <QuizFace /> : <TimerFace onToggle={onToggle} onScreenConsent={onScreenConsent} />}
       </motion.div>
     </section>
+  );
+}
+
+/** In full screen: show or hide the music widget, and the way back. */
+function FocusBar() {
+  const showMusic = useStudy((s) => s.settings.focusMusic);
+  const widget = useStudy((s) => s.settings.musicWidget);
+  const linked = useSpotify((s) => s.linked);
+  const hasMusic = widget && linked;
+  const { updateSettings } = useStudy.getState();
+  return (
+    <motion.div className="focus-bar" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={SOFT}>
+      {hasMusic && (
+        <button className="chip-btn" type="button" id="focusMusicBtn" aria-label={showMusic ? 'Hide music' : 'Show music'} title={showMusic ? 'Hide the music widget' : 'Show the music widget'}
+          onClick={() => updateSettings((x) => { x.focusMusic = !x.focusMusic; })}>
+          <Icon name="music" /><span>{showMusic ? 'Hide music' : 'Show music'}</span>
+        </button>
+      )}
+      <button className="chip-btn" type="button" id="exitFullBtn" aria-label="Exit full screen" title="Exit full screen (Esc or F)" onClick={exitFocus}>
+        <Icon name="shrink" /><span>Exit full screen</span>
+      </button>
+    </motion.div>
   );
 }
 
@@ -58,13 +85,17 @@ function TimerFace({ onToggle, onScreenConsent }: { onToggle: () => void; onScre
 
   return (
     <div id="timerFace">
-      <div className="modes" role="group" aria-label="Timer mode">
-        {(['study', 'short', 'long'] as const).map((m) => (
-          <button key={m} className="mode" type="button" aria-pressed={activeMode === m} disabled={T.status !== 'idle'} onClick={() => switchMode(m)}>
-            {activeMode === m && <motion.span className="mode-pill" layoutId="modePill" transition={SPRING} aria-hidden="true" />}
-            <span className="mode-label">{m === 'study' ? 'Study' : m === 'short' ? 'Short break' : 'Long break'}</span>
-          </button>
-        ))}
+      <div className="modes-row">
+        <TimerMenu />
+        <div className="modes" role="group" aria-label="Timer mode">
+          {(['study', 'short', 'long'] as const).map((m) => (
+            <button key={m} className="mode" type="button" aria-pressed={activeMode === m} disabled={T.status !== 'idle'} onClick={() => switchMode(m)}>
+              {activeMode === m && <motion.span className="mode-pill" layoutId="modePill" transition={SPRING} aria-hidden="true" />}
+              <span className="mode-label">{m === 'study' ? 'Study' : m === 'short' ? 'Short break' : 'Long break'}</span>
+            </button>
+          ))}
+        </div>
+        <button className="icon-btn full-btn" type="button" id="fullBtn" aria-label="Full screen timer" title="Full screen (F)" onClick={() => void enterFocus()}><Icon name="expand" /></button>
       </div>
       <div className="clock-row">
         <div className="mascot-wrap" aria-hidden="true"><Mascot mood={mood} kind={settings.mascotKind} /></div>

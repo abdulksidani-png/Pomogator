@@ -63,22 +63,22 @@ export function PlanCard() {
   const P = useStudy((s) => s.plan);
   const settings = useStudy((s) => s.settings);
   const aiStatus = useStudy((s) => s.aiStatus);
-  const { retryPlan, applyPlan } = useStudy.getState();
-  const head = (meta?: string) => (
-    <div className="card-h"><h2>Next-session plan</h2>{meta && <span className="meta">{meta}</span>}</div>
-  );
+  const open = !settings.folded.includes('plan');
+  const { retryPlan, applyPlan, toggleFold } = useStudy.getState();
+  let meta = '';
   let body: React.ReactNode;
   if (P.status === 'loading') {
-    body = <>{head(P.topic)}<p className="loading-line"><span className="spin" aria-hidden="true" />Writing your plan from this quiz and your history…</p></>;
+    meta = P.topic || '';
+    body = <p className="loading-line"><span className="spin" aria-hidden="true" />Writing your plan from this quiz and your history…</p>;
   } else if (P.status === 'failed') {
-    body = <>{head()}<p className="muted">{P.error || 'The plan didn\'t load.'}</p>
+    body = <><p className="muted">{P.error || 'The plan didn\'t load.'}</p>
       <div className="btn-row" style={{ marginTop: 10 }}><button className="btn" type="button" onClick={retryPlan}>Try again</button></div></>;
   } else if (P.status === 'ready' && P.data) {
     const d = P.data;
+    meta = `${P.topic ? `${P.topic} · ` : ''}Suggested ${d.suggestedMinutes} min`;
     const chips = (arr: string[], cls: string) => (arr.length ? arr.map((c, i) => <span key={i} className={`pill ${cls}`}>{c}</span>) : <span className="small muted">None yet</span>);
     body = (
       <>
-        {head(`${P.topic ? `${P.topic} · ` : ''}Suggested ${d.suggestedMinutes} min`)}
         {d.summary && <p className="plan-summary">{d.summary}</p>}
         <div className="plan-cols">
           <div><h3>Solid</h3><div className="pills">{chips(d.strong, 'good')}</div></div>
@@ -101,7 +101,6 @@ export function PlanCard() {
     const q = settings.questions;
     body = (
       <>
-        {head()}
         <p className="muted" style={{ margin: '0 0 12px' }}>After each quiz, StudyBuddy writes a plan for your next session from what you got right, what you missed and your history on the topic.</p>
         {aiStatus === 'off' && <p className="qchip warn" style={{ margin: '0 0 12px' }}>Quizzes and plans aren&apos;t switched on for this site yet. The timer works without them.</p>}
         <div className="loop-steps">
@@ -113,7 +112,17 @@ export function PlanCard() {
       </>
     );
   }
-  return <section className="card plan" id="planCard" aria-label="Next-session plan">{body}</section>;
+  // Click the heading to fold the plan away; it slides shut and open again.
+  return (
+    <section className={`card plan foldable${open ? '' : ' folded'}`} id="planCard" aria-label="Next-session plan">
+      <div className="card-h fold-h">
+        <h2><button className="fold-btn" type="button" aria-expanded={open} aria-controls="planBody" onClick={() => toggleFold('plan')}>
+          Next-session plan<Icon name="chevron" /></button></h2>
+        {meta && <span className="meta">{meta}</span>}
+      </div>
+      <div className="fold" id="planBody" inert={!open}><div className="fold-inner">{body}</div></div>
+    </section>
+  );
 }
 
 /* ---------------- what you're studying ---------------- */

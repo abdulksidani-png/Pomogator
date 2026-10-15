@@ -102,6 +102,20 @@ test('Spotify: connect, see what is playing, pause and skip', async ({ page }) =
   // The connection stays after a reload, and can be removed in Settings.
   await page.reload();
   await expect(card.locator('.music-title')).toHaveText('Electra');
+
+  // Full-screen timer: the player moves to a corner, and can be hidden and brought back.
+  await page.getByRole('button', { name: 'Full screen timer' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-focus', 'on');
+  await expect(card).toBeVisible();
+  expect(await card.evaluate((el) => getComputedStyle(el).position)).toBe('fixed');
+  await page.getByRole('button', { name: 'Hide music' }).click();
+  await expect(card).toBeHidden();
+  await page.getByRole('button', { name: 'Show music' }).click();
+  await expect(card).toBeVisible();
+  await page.getByRole('button', { name: 'Exit full screen' }).click();
+  await expect(page.locator('html')).not.toHaveAttribute('data-focus', 'on');
+  expect(await card.evaluate((el) => getComputedStyle(el).position)).not.toBe('fixed');
+
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.locator('#settingsDlg').getByRole('button', { name: 'Disconnect' }).click();
   await page.locator('#settingsDlg').getByRole('button', { name: 'Done' }).click();

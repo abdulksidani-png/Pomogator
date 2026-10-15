@@ -21,6 +21,7 @@ import { StatsView } from './Stats';
 import { fmt } from '@/lib/util';
 import { PhotoCredit } from './PhotoPicker';
 import { openAssistant } from '@/lib/assistant';
+import { exitFocus, toggleFocus, useFocusMode, watchFullscreen } from '@/lib/focus';
 
 /** The ambience that should be playing for the current timer state. */
 const desiredAmbience = (s: Store) =>
@@ -56,7 +57,18 @@ export default function StudyBuddyApp({ initialView = 'timer' }: { initialView?:
   const docsRef = useRef<HTMLDialogElement>(null);
   const screenRef = useRef<HTMLDialogElement>(null);
   const studyLive = useStudy((s) => s.timer.phase === 'study' && !!s.timer.session);
+  const focus = useFocusMode((s) => s.on);
+  const focusMusic = useStudy((s) => s.settings.focusMusic);
   useAppearance();
+
+  // Full-screen timer: the page shows only the timer (and the music widget, unless hidden).
+  useEffect(() => watchFullscreen(), []);
+  useEffect(() => {
+    const el = document.documentElement;
+    if (focus) { el.dataset.focus = 'on'; if (!focusMusic) el.dataset.focusMusic = 'off'; else delete el.dataset.focusMusic; }
+    else { delete el.dataset.focus; delete el.dataset.focusMusic; }
+  }, [focus, focusMusic]);
+  useEffect(() => { if (view !== 'timer') exitFocus(); }, [view]);
 
   /** Start/pause/resume, with a short sound. Screen sharing only starts from its own button. */
   const togglePlay = useRef(() => {
@@ -139,7 +151,7 @@ export default function StudyBuddyApp({ initialView = 'timer' }: { initialView?:
       if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
-      if (t?.closest?.('.assistant')) return; // keys pressed inside the chat panel belong to it
+      if (t?.closest?.('.assistant, .timer-menu')) return; // keys pressed inside the chat panel or a menu belong to it
       if (document.querySelector('dialog[open]')) return;
       const s = useStudy.getState();
       const k = e.key;
@@ -165,7 +177,9 @@ export default function StudyBuddyApp({ initialView = 'timer' }: { initialView?:
       else if (k === 'l' || k === 'L') s.setLoop(!s.settings.loop);
       else if (k === '?') helpRef.current?.showModal();
       else if (k === 'a' || k === 'A') { e.preventDefault(); openAssistant(); }
-      else if (k === 'n' || k === 'N') { e.preventDefault(); document.getElementById('taskInput')?.focus(); }
+      else if (k === 'f' || k === 'F') { e.preventDefault(); toggleFocus(); }
+      else if (k === 'Escape' && useFocusMode.getState().on) exitFocus();
+      else if ((k === 'n' || k === 'N') && !useFocusMode.getState().on) { e.preventDefault(); document.getElementById('taskInput')?.focus(); }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);

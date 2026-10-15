@@ -139,14 +139,14 @@ export function AppearanceDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialo
           <div className="buddy-grid" role="group" aria-label="Study buddy">
             {MASCOTS.map((m) => (
               <button key={m.id} type="button" className="buddy-card" aria-pressed={s.mascotKind === m.id}
-                onClick={() => update((x) => { x.mascotKind = m.id; if (x.mascot === 'off') x.mascot = 'auto'; })}>
+                onClick={() => update((x) => { x.mascotKind = m.id; x.mascot = 'on'; })}>
                 <span className="buddy-prev"><Mascot mood={s.mascotKind === m.id ? 'happy' : 'idle'} kind={m.id} /></span>
                 {m.name}
               </button>
             ))}
           </div>
           <Seg label="Show it" value={s.mascot} options={[{ id: 'auto', name: 'Automatic' }, { id: 'on', name: 'Always' }, { id: 'off', name: 'Hidden' }]} onPick={(v) => set('mascot', v)} />
-          <p className="hint">Automatic: the tomato appears with the Tomato theme; any other buddy you pick always appears.</p>
+          <p className="hint">Picking a buddy keeps it next to the timer in every theme. Automatic: the tomato only appears in the Tomato theme.</p>
         </fieldset>
 
         <fieldset>

@@ -12,16 +12,19 @@ export function Mascot({ mood, kind = 'tomato' }: { mood: Mood; kind?: MascotKin
   return <Tomato mood={mood} />;
 }
 
+// A tomato stays red with a green stem in every theme (the Tomato theme's own colors).
+const TOMATO_RED = '#D63A43', TOMATO_GREEN = '#3E9A5E';
+
 /** Tomato buddy, the original (and the Tomato theme's own). */
 function Tomato({ mood }: { mood: Mood }) {
   return (
-    <svg className="mascot" viewBox="0 0 120 124" data-mood={mood}>
+    <svg className="mascot tomato" viewBox="0 0 120 124" data-mood={mood}>
       <ellipse cx="60" cy="117" rx="32" ry="5" fill="var(--sunk)" />
       <g className="m-bob">
-        <path d="M60 30C90 29 108 50 106 75c-2 24-21 37-46 37S16 99 14 75C12 50 30 31 60 30z" fill="var(--accent)" />
+        <path d="M60 30C90 29 108 50 106 75c-2 24-21 37-46 37S16 99 14 75C12 50 30 31 60 30z" fill={TOMATO_RED} />
         <path d="M28 58c3-11 12-19 23-21" fill="none" stroke="#FFFFFF" strokeOpacity=".5" strokeWidth="5" strokeLinecap="round" />
-        <path d="M60 33c-6-6-15-8-22-6 5 3 10 6 14 9-7 0-14 3-17 8 7-1 15-1 23-4 8 3 16 3 23 4-3-5-10-8-17-8 4-3 9-6 14-9-7-2-16 0-22 6z" fill="var(--margin)" />
-        <rect x="57.5" y="14" width="5" height="18" rx="2.5" fill="var(--margin)" />
+        <path d="M60 33c-6-6-15-8-22-6 5 3 10 6 14 9-7 0-14 3-17 8 7-1 15-1 23-4 8 3 16 3 23 4-3-5-10-8-17-8 4-3 9-6 14-9-7-2-16 0-22 6z" fill={TOMATO_GREEN} />
+        <rect x="57.5" y="14" width="5" height="18" rx="2.5" fill={TOMATO_GREEN} />
         <ellipse cx="37" cy="83" rx="7" ry="4.5" fill="#FF9AA6" opacity=".75" />
         <ellipse cx="83" cy="83" rx="7" ry="4.5" fill="#FF9AA6" opacity=".75" />
         <g className="v v-idle v-quiz v-cheer" fill={INK}>

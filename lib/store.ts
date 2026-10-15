@@ -10,7 +10,7 @@ import { immer } from 'zustand/middleware/immer';
 import { current } from 'immer';
 import type {
   Account, AiStatus, Asked, BreakKind, BreakReason, ConceptStat, DayState, PlanState, QuizOutcome, QuizResult,
-  DocMeta, QuizState, SessionRecord, Settings, StudyContext, SyncState, Task, TimerState, Tier,
+  DocMeta, QuizState, SessionRecord, Settings, StudyContext, SyncState, Task, TimerPreset, TimerState, Tier,
 } from './types';
 import { DEFAULT_CONTEXT, DEFAULT_SETTINGS, freshQuiz, freshSync, freshTimer } from './defaults';
 import { breakFor } from './breaks';
@@ -19,6 +19,7 @@ import { aiErrorText } from './quiz';
 import { AI } from './ai-client';
 import { Sound } from './sound';
 import { MIN, clamp, mergeDeep, round1, timeOf, uid } from './util';
+import { applyPreset, cleanName, savePreset } from './presets';
 import { dayOf, detectTimeZone, todayFor } from './dates';
 
 export interface Data {
@@ -47,6 +48,12 @@ interface Actions {
   updateSettings: (fn: (s: Settings) => void) => void;
   setStudyMin: (m: number) => void;
   setLoop: (on: boolean) => void;
+  /** Saved timers: save the current setup under a name, switch to one, or delete one. */
+  saveTimer: (name: string) => TimerPreset | null;
+  applyTimer: (id: string) => void;
+  deleteTimer: (id: string) => void;
+  /** Fold a card shut or open it again. */
+  toggleFold: (id: string) => void;
   setContext: (patch: Partial<StudyContext>) => void;
   appendNotes: (text: string, name: string) => void;
   // timer
@@ -265,6 +272,37 @@ export const useStudy = create<Store>()(
         setLoop(on) {
           set((d) => { d.settings.loop = on; });
           toast(on ? 'Loop on: phases start automatically' : 'Loop off');
+        },
+        saveTimer(name) {
+          if (!cleanName(name)) return null;
+          const s = get().settings;
+          const r = savePreset(s.savedTimers, name, s);
+          set((d) => { d.settings.savedTimers = r.list; });
+          toast(`Saved "${r.preset.name}"`);
+          return r.preset;
+        },
+        applyTimer(id) {
+          const p = get().settings.savedTimers.find((x) => x.id === id);
+          if (!p) return;
+          const T0 = get().timer;
+          const later = T0.phase !== 'study' || T0.status !== 'idle' || !!T0.session;
+          set((d) => {
+            applyPreset(d.settings, p);
+            const T = d.timer;
+            if (T.phase === 'study' && T.status === 'idle' && !T.session) T.totalMs = T.remainingMs = d.settings.studyMin * MIN;
+          });
+          toast(`Switched to "${p.name}"${later && T0.totalMs !== get().settings.studyMin * MIN ? '. The new length starts with the next session.' : ''}`);
+        },
+        deleteTimer(id) {
+          const p = get().settings.savedTimers.find((x) => x.id === id);
+          set((d) => { d.settings.savedTimers = d.settings.savedTimers.filter((x) => x.id !== id); });
+          if (p) toast(`Deleted "${p.name}"`);
+        },
+        toggleFold(id) {
+          set((d) => {
+            const f = d.settings.folded;
+            d.settings.folded = f.includes(id) ? f.filter((x) => x !== id) : [...f, id];
+          });
         },
         setContext(patch) { set((d) => { Object.assign(d.context, patch); }); },
         appendNotes(text, name) {

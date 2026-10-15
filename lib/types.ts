@@ -103,7 +103,16 @@ export interface Settings {
   screenAudio: boolean;
   /** Short sounds when the timer starts, pauses or resumes. */
   controlSounds: boolean;
+  /** Saved timers: named setups (look + lengths) to switch between. */
+  savedTimers: TimerPreset[];
+  /** Cards folded shut, by id (e.g. 'plan'). */
+  folded: string[];
+  /** Show the music widget in the full-screen timer. */
+  focusMusic: boolean;
 }
+
+/** A saved timer: a name and the settings it brings back (see lib/presets.ts for which ones). */
+export interface TimerPreset { id: string; name: string; values: Partial<Settings> }
 
 export interface SliceVersions { settings: number; context: number; app: number; tasks: number }
 

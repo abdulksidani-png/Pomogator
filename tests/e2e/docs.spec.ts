@@ -198,8 +198,11 @@ test('tab sound: a shared lecture tab\'s speech becomes notes for the session', 
 
 test('study buddies: pick Albert or the robot, and they study at a desk while the timer runs', async ({ page }) => {
   await page.goto('/');
-  await expect(page.locator('.mascot-wrap')).toBeHidden(); // the tomato only shows in its theme
+  await expect(page.locator('.mascot-wrap')).toBeHidden(); // the tomato only shows in its theme, until you pick it
   await page.getByRole('button', { name: 'Appearance', exact: true }).click();
+  await page.locator('#lookDlg').getByRole('button', { name: 'Notebook' }).click();
+  await page.locator('#lookDlg').getByRole('button', { name: 'Tomato', exact: true }).click();
+  await expect(page.locator('.mascot-wrap .mascot.tomato')).toBeVisible();
   await page.locator('#lookDlg').getByRole('button', { name: /Albert/ }).click();
   await page.locator('#lookDlg').getByRole('button', { name: 'Done' }).click();
   await expect(page.locator('.mascot-wrap .mascot.gator')).toBeVisible();

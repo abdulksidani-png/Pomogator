@@ -38,6 +38,9 @@ export const DEFAULT_SETTINGS: Settings = {
   screenSec: 2,
   screenAudio: false,
   controlSounds: true,
+  savedTimers: [],
+  folded: [],
+  focusMusic: true,
 };
 
 export function freshSync(): SyncState {

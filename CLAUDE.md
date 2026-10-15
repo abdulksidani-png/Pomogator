@@ -84,8 +84,22 @@ Then (he confirmed these work on the live site, 2026-10-15):
   accounts added under User Management (max 5) can connect.
 - **Study buddies** (`mascotKind`): tomato, robot (vector, accent-colored lights), and 2-bit pixel gorilla and UF-colored
   gator (sprites + per-mood pixel overlays in `components/Mascot.tsx`; original designs, not UF's logo). "Automatic"
-  shows the tomato only in its theme but any other picked buddy always.
+  shows the tomato only in its theme but any other buddy always; clicking any buddy card sets `mascot: 'on'`, so a
+  picked tomato shows in every theme (it's always red/green now, not accent-colored).
 - `/api/config` tells the browser which services are on (`lib/config.ts`).
+
+**Built after Phase 6 (his requests, waiting on his test):**
+- **Saved timers** (`settings.savedTimers`, `lib/presets.ts`, `components/TimerMenu.tsx`): "My timers" button at the top
+  left of the timer card. Saves theme, accent, clock font, timer style, buddy, background/photo, cards, corners, spacing and
+  the lengths (`PRESET_KEYS`) under a name (same name replaces; max 12); one click switches; the button shows the matching
+  timer's name. Synced with settings. Tested in `tests/unit/presets.test.ts` and `tests/e2e/timer.spec.ts`.
+- **Full-screen timer** (`lib/focus.ts`): button at the top right of the timer card or `F`; asks the browser for real full
+  screen and falls back to filling the window. `html[data-focus="on"]` hides everything but `#stage` and `#musicCard`
+  (CSS turns the music card into a small corner player); "Hide music" / "Show music" (`settings.focusMusic`,
+  `data-focus-music="off"`); Esc, `F` or "Exit full screen" leave. The clock is sized in `cqi` of `.clock-col` so it fits
+  beside the buddy with any font (`--clock-ch` per font, like the ring).
+- **Fold-away plan card**: click the "Next-session plan" heading; `settings.folded` (ids) remembers it; CSS
+  `grid-template-rows` 0fr↔1fr transition (no rAF, so tests with a fake clock aren't affected); the body is `inert` when shut.
 
 Earlier requests, all done and confirmed:
 - sign out (Settings → Account, avatar menu), more file types, screen-share button under "Study material", appearance options
@@ -151,6 +165,7 @@ Earlier requests, all done and confirmed:
   - `Account.tsx`
   - `Assistant.tsx`: chat panel, corner button, reply formatting
   - `Music.tsx` (Spotify widget), `PhotoPicker.tsx` (Unsplash), `Mascot.tsx` (all buddies), `Stats.tsx` (Stats page)
+  - `TimerMenu.tsx` (saved timers menu)
 - `supabase/migrations/`: `…000000_core.sql`, `…010000_documents.sql`, `20261015000000_ai_usage.sql`. RLS restricts every table to
   `user_id = (select auth.uid())`. The owner pastes migrations into the SQL Editor by hand.
 
@@ -158,8 +173,9 @@ Earlier requests, all done and confirmed:
 ```bash
 npm run dev          # http://localhost:3000 (copies vendor files first)
 npm run typecheck
-npm test             # Vitest unit tests (74)
-npm run test:e2e     # Playwright: loop, documents, goals, screen tracking, tab sound, sounds, appearance, buddies, stats
+npm test             # Vitest unit tests (79)
+npm run test:e2e     # Playwright: loop, documents, goals, screen tracking, tab sound, sounds, appearance, buddies, stats,
+                     # saved timers, full screen, plan fold
 npm run test:ai      # Playwright: AI, Unsplash and Spotify against stand-ins (tests/fake-gemini; Spotify faked in-test)
 npm run test:sync    # two-device sync: needs local Postgres + PostgREST (PGHOST/PGPORT/PGUSER, POSTGREST_BIN)
 ```
