@@ -9,7 +9,9 @@ const BASE = () => (process.env.GEMINI_BASE_URL || 'https://generativelanguage.g
 /** "Latest" aliases follow Google's newest Flash models, so the site doesn't break when old ones retire. */
 const MODELS = () => [process.env.GEMINI_MODEL || 'gemini-flash-latest', process.env.GEMINI_MODEL_BACKUP || 'gemini-flash-lite-latest'];
 
-export const geminiConfigured = () => !!process.env.GEMINI_API_KEY;
+/** The key, trimmed (a pasted key often carries a space or line break). GOOGLE_API_KEY works too. */
+const apiKey = () => (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '').trim();
+export const geminiConfigured = () => !!apiKey();
 
 export interface Turn { role: 'user' | 'model'; text: string }
 export interface Image { mimeType: string; data: string }
@@ -27,7 +29,7 @@ async function call(model: string, body: unknown, signal?: AbortSignal): Promise
   try {
     r = await fetch(`${BASE()}/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY ?? '' },
+      headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey() },
       body: JSON.stringify(body),
       signal,
     });

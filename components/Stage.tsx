@@ -133,9 +133,7 @@ function Clock() {
   const m = Math.floor(secs / 60), s = secs % 60;
   return (
     <div className="clock" role="timer" aria-live="off" aria-label={`${m} minute${m === 1 ? '' : 's'} ${s} second${s === 1 ? '' : 's'} left`}>
-      {[...text].map((ch, i) => (ch === ':'
-        ? <span key={i} className="c">:</span>
-        : <motion.span key={`${i}-${ch}`} className="d" initial={{ y: '-0.12em', opacity: 0.35 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.28, ease: EASE }}>{ch}</motion.span>))}
+      {[...text].map((ch, i) => (ch === ':' ? <span key={i} className="c">:</span> : <span key={i} className="d">{ch}</span>))}
     </div>
   );
 }
