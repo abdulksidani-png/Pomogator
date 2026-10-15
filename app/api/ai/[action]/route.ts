@@ -1,10 +1,10 @@
 // Every AI feature: quiz, plan, day summary, weekly report, document digests and the study assistant.
 // Checks sign-in and the daily allowance, asks Gemini (lib/ai/gemini.ts), and validates the reply.
 import { askJson, geminiConfigured } from '@/lib/ai/gemini';
-import { LIMITS, assistantSystem, dayPrompt, digestPrompt, planPrompt, quizPrompt, weeklyPrompt } from '@/lib/ai/prompts';
+import { LIMITS, assistantSystem, dayPrompt, digestPrompt, planPrompt, quizPrompt, weeklyPrompt, workPlanPrompt } from '@/lib/ai/prompts';
 import { spendAiCall } from '@/lib/ai/quota';
 import { cleanAssistant, cleanDay, cleanDigest, cleanPlan, cleanQuiz, cleanWeekly } from '@/lib/quiz';
-import type { AiError, AssistantInput, DayInput, Material, PlanInput, QuizInput, WeeklyInput } from '@/lib/types';
+import type { AiError, AssistantInput, DayInput, Material, PlanInput, QuizImage, QuizInput, WeeklyInput, WorkPlanInput } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -18,12 +18,19 @@ const STATUS: Record<string, number> = {
 const fail = (e: AiError) => Response.json({ code: e.code, ...(e.code === 'not_configured' ? { message: e.message } : {}) }, { status: STATUS[e.code] ?? 502 });
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 
+/** Screen snapshots for the quiz: at most six small JPEG/PNG images, anything else is dropped. */
+function screenImages(v: unknown): QuizImage[] {
+  return (Array.isArray(v) ? v : []).filter(isObj)
+    .filter((im) => (im.mimeType === 'image/jpeg' || im.mimeType === 'image/png') && typeof im.data === 'string' && im.data.length < 600_000 && /^[A-Za-z0-9+/=]+$/.test(im.data.slice(0, 200)))
+    .slice(0, 6).map((im) => ({ mimeType: im.mimeType as string, data: im.data as string }));
+}
+
 export async function POST(req: Request, { params }: { params: Promise<{ action: string }> }) {
   const { action } = await params;
-  if (!['quiz', 'plan', 'day-summary', 'assistant', 'digest', 'weekly'].includes(action)) return fail({ code: 'not_found' });
+  if (!['quiz', 'plan', 'plan-now', 'day-summary', 'assistant', 'digest', 'weekly'].includes(action)) return fail({ code: 'not_found' });
   if (!geminiConfigured()) return fail({ code: 'not_configured', message: 'AI features are not set up on this site yet.' });
   const body = await req.json().catch(() => null);
-  const needsCtx = action === 'quiz' || action === 'plan' || action === 'assistant';
+  const needsCtx = action === 'quiz' || action === 'plan' || action === 'plan-now' || action === 'assistant';
   if (!isObj(body) || (needsCtx && !isObj(body.ctx)) || (action === 'digest' && !(isObj(body.material) && Array.isArray(body.material.pages)))) return fail({ code: 'bad_request' });
   const over = await spendAiCall();
   if (over) return fail(over);
@@ -32,13 +39,26 @@ export async function POST(req: Request, { params }: { params: Promise<{ action:
     if (action === 'quiz') {
       const input = body as unknown as QuizInput;
       const n = Math.min(3, Math.max(1, Number(input.n) || 3));
-      const raw = await askJson({ turns: [{ role: 'user', text: quizPrompt({ ...input, n, weak: input.weak ?? [], asked: input.asked ?? [] }) }], signal: req.signal });
+      const images = screenImages(input.images);
+      const raw = await askJson({ turns: [{ role: 'user', text: quizPrompt({ ...input, images, n, weak: input.weak ?? [], asked: input.asked ?? [] }) }], images, signal: req.signal });
       const questions = cleanQuiz(raw, n);
       if (!questions.length) return fail({ code: 'invalid_json' });
       return Response.json({ questions });
     }
     if (action === 'plan') {
       const raw = await askJson({ turns: [{ role: 'user', text: planPrompt(body as unknown as PlanInput) }], signal: req.signal });
+      return Response.json(cleanPlan(raw));
+    }
+    if (action === 'plan-now') {
+      const w = body as unknown as WorkPlanInput;
+      const input: WorkPlanInput = {
+        ctx: w.ctx, studyMin: Number(w.studyMin) || 25,
+        tasks: (Array.isArray(w.tasks) ? w.tasks : []).filter(isObj).slice(0, 30).map((t) => ({ text: String(t.text ?? '').slice(0, 200), done: !!t.done })),
+        uploads: (Array.isArray(w.uploads) ? w.uploads : []).filter(isObj).slice(0, 6).map((u) => ({ name: String(u.name ?? '').slice(0, 120), topic: String(u.topic ?? '').slice(0, 120), summary: String(u.summary ?? '').slice(0, 900), concepts: (Array.isArray(u.concepts) ? u.concepts : []).map(String).slice(0, 10) })),
+        ...(typeof w.screen === 'string' ? { screen: w.screen.slice(-8000) } : {}),
+        weak: (Array.isArray(w.weak) ? w.weak : []).filter(isObj).slice(0, 6).map((c) => ({ concept: String(c.concept ?? ''), missed: Number(c.missed) || 0, seen: Number(c.seen) || 0 })),
+      };
+      const raw = await askJson({ turns: [{ role: 'user', text: workPlanPrompt(input) }], signal: req.signal });
       return Response.json(cleanPlan(raw));
     }
     if (action === 'digest') {

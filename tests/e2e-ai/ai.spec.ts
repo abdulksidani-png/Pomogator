@@ -143,3 +143,72 @@ test('the weekly report gets an AI summary once, written from the week\'s real n
   await expect(page.locator('.week-hero h2')).toHaveText('A steady week of study.');
   expect(await weeklyCalls()).toHaveLength(1); // saved, not asked again
 });
+
+test('a quiz covers what was on the shared screen, not yesterday\'s slides; "Quiz me on" switches sources', async ({ page }) => {
+  test.setTimeout(150_000);
+  // The shared "window" shows Python code, not the philosophy deck that's selected.
+  await page.addInitScript(() => {
+    navigator.mediaDevices.getDisplayMedia = async () => {
+      const c = document.createElement('canvas');
+      c.width = 1280; c.height = 720;
+      const ctx = c.getContext('2d')!;
+      const paint = () => {
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 1280, 720);
+        ctx.fillStyle = '#111'; ctx.font = '44px monospace';
+        ['def total(numbers):', '    result = 0', '    for n in numbers:', '        result += n', '    return result', 'print(total([1, 2, 3]))']
+          .forEach((l, i) => ctx.fillText(l, 60, 110 + i * 80));
+      };
+      paint();
+      setInterval(paint, 200);
+      return c.captureStream(5);
+    };
+    localStorage.setItem('studybuddy.screenConsent', '1');
+  });
+  await page.goto('/');
+  await page.locator('#docInput').setInputFiles(fixture('lecture.pptx'));
+  await expect(page.locator('#docSelect')).toContainText('lecture.pptx', { timeout: 60_000 });
+  await page.getByRole('button', { name: 'Share screen to track slides' }).click();
+  await expect(page.locator('.watch-pill').first()).toContainText(/Sharing|Watching/);
+  await page.getByRole('button', { name: /Start studying/ }).click();
+  // Wait until the screen has been read (the text lands on the live session).
+  await expect.poll(async () => page.evaluate(() => (JSON.parse(localStorage.getItem('studybuddy.v1') || '{}').state?.timer?.session?.screen ?? '').length), { timeout: 60_000 }).toBeGreaterThan(40);
+
+  await page.getByRole('button', { name: /Finish session now/ }).click();
+  const picker = page.locator('.quiz-pick');
+  await expect(picker.getByRole('button', { name: 'What was on my screen' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(picker.getByRole('button', { name: /lecture\.pptx/ })).toHaveAttribute('aria-pressed', 'false');
+  await page.getByRole('button', { name: 'Start quiz' }).click();
+  await expect(page.locator('#qText')).toContainText('On your screen');
+
+  // What reached the AI: the screen's text and a snapshot, and not the slides.
+  const quizCalls = (await sent(page)).filter((s) => textOf(s).includes('retrieval-practice quizzes'));
+  const last = quizCalls.at(-1)!;
+  expect(textOf(last)).toContain('<<<SCREEN');
+  expect(textOf(last)).not.toContain('<<<MATERIAL');
+  expect(JSON.stringify(last.body.contents.at(-1))).toContain('inlineData');
+});
+
+test('"Quiz me on" can switch to the document, and plans can be cleared or made from the to-do list', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#docInput').setInputFiles(fixture('lecture.pptx'));
+  await expect(page.locator('#docSelect')).toContainText('lecture.pptx', { timeout: 60_000 });
+  await page.fill('#taskInput', 'Python quiz on loops');
+  await page.keyboard.press('Enter');
+
+  // Plan from the to-do list, then clear it.
+  await page.locator('#planCard').getByRole('button', { name: 'Plan my next session' }).click();
+  await expect(page.locator('#planCard')).toContainText('Next up: Python quiz on loops', { timeout: 15_000 });
+  await page.getByRole('button', { name: 'Clear plan' }).click();
+  await expect(page.locator('#planCard')).toContainText('Or make one now from your to-do list (1 open)');
+
+  // Quiz me on: no screen shared, so the document is on; turning it off rewrites the quiz from the topic alone.
+  await page.getByRole('button', { name: /Start studying/ }).click();
+  await page.getByRole('button', { name: /Finish session now/ }).click();
+  const docChip = page.locator('.quiz-pick').getByRole('button', { name: /lecture\.pptx/ });
+  await expect(docChip).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Start quiz' })).toBeVisible({ timeout: 15_000 });
+  await docChip.click();
+  await expect(docChip).toHaveAttribute('aria-pressed', 'false');
+  await page.getByRole('button', { name: 'Start quiz' }).click();
+  await expect(page.locator('#qText')).not.toContainText('slide');
+});

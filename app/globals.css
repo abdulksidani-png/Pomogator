@@ -1236,3 +1236,15 @@ html[data-ready] .splash { animation: splash-out .6s cubic-bezier(.22,1,.36,1) v
   .stats-page { gap: 12px; }
   * { animation: none !important; transition: none !important; }
 }
+
+/* ---------- "Quiz me on" and plan tools ---------- */
+.quiz-pick { display: grid; gap: 8px; margin: 4px 0 12px; padding: 12px 14px; border-radius: var(--r-md); background: var(--sunk); }
+.quiz-pick-label { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-3); }
+.quiz-pick-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pick-chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--rule); background: var(--card); color: var(--fg-2); border-radius: 999px; padding: 7px 13px; font-weight: 700; font-size: 13.5px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick-chip[aria-pressed="true"] { background: var(--accent); border-color: transparent; color: var(--on-accent); }
+.pick-chip svg.i { width: 14px; height: 14px; flex: none; }
+.pick-topic { flex: 1 1 200px; min-width: 0; }
+.pick-topic input[type="text"] { width: 100%; padding: 7px 12px; font-size: 14px; border-radius: 999px; }
+.plan-tools { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 12px; }
+.plan-tools .btn-quiet { padding-left: 0; }

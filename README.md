@@ -37,9 +37,12 @@ comes with an explanation and a memory aid, and **your score earns your break** 
 - **Your own material.** Upload a PDF, PowerPoint, Word file, text or photos of notes, then set a goal in plain words
   ("up to the Aristotle slide"). The AI reads every upload in the background (topic, summary, key concepts), and
   quizzes come only from the pages you covered.
-- **Follows along, privately.** Optional screen tracking works out which slide you're on by reading your slides window
-  with on-device OCR. Optional lecture-tab audio is transcribed on-device by a small Whisper model, so the quiz can
-  cover what the lecturer said.
+- **Quizzes on what you actually studied.** Optional screen sharing reads your window with on-device OCR: it follows
+  which slide you're on, and whatever else is on screen (code, notes, a website) goes to the quiz with a few snapshots.
+  Optional lecture-tab audio is transcribed on-device by a small Whisper model, so the quiz can cover what the lecturer
+  said. Before the quiz starts, "Quiz me on" lets you pick the sources and the topic.
+- **Plans on demand.** After every quiz you get a plan for the next session; "Plan my next session" makes one any time
+  from your to-do list, today's uploads and your shared screen.
 - **An AI study assistant.** A chat panel that sees your timer, to-do list and documents, answers questions, quizzes
   you, and turns "here's everything I need to do tonight" into a to-do list sized in Pomodoro sessions.
 - **A weekly report.** Every week gets a review: an AI-written summary, key numbers with ▲/▼ vs. last week, minutes
@@ -81,7 +84,8 @@ comes with an explanation and a memory aid, and **your score earns your break** 
   simply get a no-quiz break.
 - **On-device machine learning.** Screen tracking runs Tesseract.js OCR on changed frames only and matches the text
   to slides with IDF-weighted word overlap. Lecture audio is cut into clips by an AudioWorklet and transcribed by
-  Whisper (Transformers.js) in a Web Worker. Frames and audio never leave the device.
+  Whisper (Transformers.js) in a Web Worker. Audio never leaves the device; only the text read from the screen and up to
+  six small snapshots go to the AI when the quiz is written.
 - **Documents parsed in the browser** with pdf.js, PowerPoint slide XML (JSZip) and mammoth for Word.
 - **Security by default.** Row-level security on every table and a private, per-user file bucket; API keys stay on
   the server; Google's raw error text never reaches the browser; standard hardening headers. See
@@ -137,9 +141,9 @@ It runs with no keys at all, saving everything in the browser. To switch on acco
 
 ```bash
 npm run typecheck
-npm test            # 91 unit tests: break rules, AI reply validation, stats (time zones, 4 AM rollover, streak freezes), weekly reports, sync merging, saved timers
+npm test            # 97 unit tests: break rules, AI reply validation, stats (time zones, 4 AM rollover, streak freezes), weekly reports, sync merging, saved timers
 npm run test:e2e    # 24 browser tests: study → quiz → break, document goals, screen tracking, tab audio, appearance, stats, weekly report, focus mode
-npm run test:ai     # 7 browser tests of the AI, Unsplash and Spotify features against local stand-ins
+npm run test:ai     # 9 browser tests of the AI, Unsplash and Spotify features against local stand-ins
 npm run test:sync   # two devices syncing through real Postgres + PostgREST running the actual migrations
 ```
 

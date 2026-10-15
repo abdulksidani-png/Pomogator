@@ -2,7 +2,7 @@
 /**
  * Text recognition (OCR) that runs entirely in the browser with Tesseract.js.
  * Used for photos of notes, scanned PDFs and screen tracking. The engine files are
- * served by this site (public/vendor/tesseract), so images never leave the device.
+ * served by this site (public/vendor/tesseract), so reading an image happens on the device.
  */
 import type { Worker } from 'tesseract.js';
 import { pickTitle } from './match';

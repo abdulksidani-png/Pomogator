@@ -224,6 +224,10 @@ export function SettingsDialog({ dialogRef, onSignIn, onAppearance }: {
                 <label htmlFor="scrAudio">Also capture the tab&apos;s sound<span className="sub">For video lectures: what&apos;s said becomes notes for your quiz, on this device. Takes effect the next time you share.</span></label>
                 <input type="checkbox" className="switch" id="scrAudio" checked={s.screenAudio} onChange={(e) => { const v = e.target.checked; updateSettings((x) => { x.screenAudio = v; }); }} />
               </div>
+              <div className="set-row">
+                <label htmlFor="scrAI">Send screen snapshots to the AI<span className="sub">Up to 6 small snapshots per session help the quiz cover what you worked on, like code. Off: only the text read on this device is sent.</span></label>
+                <input type="checkbox" className="switch" id="scrAI" checked={s.screenAI} onChange={(e) => { const v = e.target.checked; updateSettings((x) => { x.screenAI = v; }); }} />
+              </div>
             </>
           )}
           <div className="set-row">

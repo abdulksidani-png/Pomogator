@@ -1,7 +1,9 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { useStudy, remainingAt, quizReadyForTaking } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
+import { useStudy, remainingAt, quizReadyForTaking, quizPick, quizSources, quizPages } from '@/lib/store';
+import type { QuizPick } from '@/lib/types';
 import { useNow, focusContext } from '@/lib/now';
 import { nextBreakKind, tierRows, tierSentence } from '@/lib/breaks';
 import { ctxKey, hasTopic, topicLabel } from '@/lib/context';
@@ -290,6 +292,47 @@ function StageFoot() {
 
 /* ---------------- quiz face ---------------- */
 
+/** "Quiz me on": what the quiz covers (the shared screen, the document, the lecture audio) and the topic.
+ *  Changing anything rewrites the quiz before it starts. */
+function QuizPicker() {
+  const has = useStudy(useShallow((s) => quizSources(s)));
+  const pick = useStudy(useShallow((s) => quizPick(s)));
+  const topic = useStudy((s) => s.context.topic);
+  const docName = useStudy((s) => s.docs.find((d) => d.id === s.context.docId)?.name ?? 'Your document');
+  const pages = useStudy(useShallow((s) => quizPages(s)));
+  const [draft, setDraft] = useState(topic);
+  useEffect(() => setDraft(topic), [topic]);
+  const { setQuizPick, setContext, prefetchQuiz } = useStudy.getState();
+  const saveTopic = () => {
+    const t = draft.trim();
+    if (!t || t === topic.trim()) return;
+    setContext({ topic: t });
+    void prefetchQuiz();
+  };
+  const chips: { key: keyof QuizPick; label: string; show: boolean }[] = [
+    { key: 'screen', label: 'What was on my screen', show: has.screen },
+    { key: 'doc', label: pages ? `${docName} · ${pages[0]}–${pages[1]}` : docName, show: has.doc },
+    { key: 'heard', label: 'The lecture audio', show: has.heard },
+  ];
+  return (
+    <div className="quiz-pick" role="group" aria-labelledby="quizPickLabel">
+      <span className="quiz-pick-label" id="quizPickLabel">Quiz me on</span>
+      <div className="quiz-pick-row">
+        {chips.filter((c) => c.show).map((c) => (
+          <button key={c.key} type="button" className="pick-chip" aria-pressed={pick[c.key]} onClick={() => setQuizPick({ [c.key]: !pick[c.key] })}>
+            {pick[c.key] && <Icon name="check" />}{c.label}
+          </button>
+        ))}
+        <span className="pick-topic">
+          <label className="sr-only" htmlFor="quizTopic">Topic</label>
+          <input id="quizTopic" type="text" value={draft} maxLength={140} placeholder="Topic, e.g. Python loops"
+            onChange={(e) => setDraft(e.target.value)} onBlur={saveTopic} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveTopic(); } }} />
+        </span>
+      </div>
+    </div>
+  );
+}
+
 const LETTERS = 'ABCD';
 
 function QuizFace() {
@@ -328,6 +371,7 @@ function QuizFace() {
         <div className="btn-row"><button className="btn btn-primary" type="button" onClick={() => focusContext(false)}>Add a topic</button>{skipBtn}</div></div>);
     } else if (Q.gen === 'loading') {
       body = (<div className="q-intro"><h2>Writing {settings.questions} question{plural(settings.questions)} on {topic}</h2>
+        <QuizPicker />
         <p className="loading-line"><span className="spin" aria-hidden="true" />Thinking…</p><p>This usually takes a few seconds.</p><div className="btn-row">{skipBtn}</div></div>);
     } else if (Q.gen === 'failed' || Q.gen === 'off' || aiStatus === 'off') {
       const canRetry = Q.gen === 'failed' && aiStatus !== 'off';
@@ -337,7 +381,7 @@ function QuizFace() {
           <button className={`btn${canRetry ? '' : ' btn-primary'}`} type="button" id="qBegin" onClick={act.skipQuiz}>Take a {breakNone}-min {kindWord}</button>
         </div></div>);
     } else {
-      body = (<div className="q-intro"><h2>Quiz on {topic}?</h2><p>PomoGator writes {settings.questions} question{plural(settings.questions)} from what you entered.</p>
+      body = (<div className="q-intro"><h2>Quiz on {topic}?</h2><QuizPicker /><p>PomoGator writes {settings.questions} question{plural(settings.questions)} from what you entered.</p>
         <div className="btn-row"><button className="btn btn-primary" type="button" id="qBegin" onClick={act.retryQuiz}>Write my quiz</button>{skipBtn}</div></div>);
     }
     return <div className="qcard">{head}{body}</div>;
@@ -349,6 +393,7 @@ function QuizFace() {
       <div className="qcard">{head}
         <div className="q-intro">
           <h2>Time&apos;s up. {n} quick question{plural(n)} on {topic}.</h2>
+          <QuizPicker />
           <p>Your score sets your {kindWord}: {tierSentence(n, settings.tiers[T.breakKind])}</p>
           <div className="btn-row">
             <button className="btn btn-primary" type="button" id="qBegin" onClick={act.beginQuiz}>Start quiz</button>

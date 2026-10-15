@@ -10,7 +10,7 @@ import { immer } from 'zustand/middleware/immer';
 import { current } from 'immer';
 import type {
   Account, AiStatus, Asked, BreakKind, BreakReason, ConceptStat, DayState, PlanState, QuizOutcome, QuizResult,
-  DocMeta, QuizState, SessionRecord, Settings, StudyContext, SyncState, Task, TimerPreset, TimerState, Tier, WeeklySaved,
+  DocMeta, QuizPick, QuizState, SessionRecord, Settings, StudyContext, SyncState, Task, TimerPreset, TimerState, Tier, WeeklySaved, WorkPlanInput,
 } from './types';
 import { DEFAULT_CONTEXT, DEFAULT_SETTINGS, freshQuiz, freshSync, freshTimer } from './defaults';
 import { breakFor } from './breaks';
@@ -85,6 +85,14 @@ interface Actions {
   // plan and day summary
   generatePlan: (result: QuizResult) => Promise<void>;
   retryPlan: () => void;
+  /** Forget the current plan. */
+  clearPlan: () => void;
+  /** Write a plan for the next session from the to-do list, today's uploads and what was on the shared screen. */
+  planFromWork: () => Promise<void>;
+  /** Choose what this session's quiz covers (the shared screen, the document, the lecture audio); rewrites the quiz. */
+  setQuizPick: (patch: Partial<QuizPick>) => void;
+  /** Add text read from the shared screen to the live session. */
+  addScreenText: (text: string) => void;
   applyPlan: () => void;
   summarizeDay: () => Promise<void>;
   // tasks and data
@@ -144,11 +152,35 @@ export function quizPages(d: Data): [number, number] | null {
   return [from, clamp(end, from, doc.pageCount)];
 }
 
-/** What a quiz is written from, beyond the context: the covered pages and the lecture transcript so far. */
+/** What there is to quiz on this session, beyond the topic. */
+export function quizSources(d: Data) {
+  const s = d.timer.session;
+  return {
+    screen: (s?.screen?.length ?? 0) >= 60,
+    doc: !!quizPages(d),
+    heard: (s?.heard?.length ?? 0) >= 80,
+    /** The shared screen showed the document's slides at least once. */
+    docOnScreen: s?.progressSource === 'screen',
+  };
+}
+
+/** What this session's quiz covers: the student's choice, or by default everything there is, except a document that
+ *  never appeared on a shared screen that showed something else (the student was working on other material). */
+export function quizPick(d: Data): QuizPick {
+  const has = quizSources(d);
+  const def: QuizPick = { screen: has.screen, doc: has.doc && (!has.screen || has.docOnScreen), heard: has.heard };
+  const p = d.timer.session?.quizPick;
+  return p ? { screen: p.screen && has.screen, doc: p.doc && has.doc, heard: p.heard && has.heard } : def;
+}
+
+/** What a quiz is written from, beyond the context: the chosen sources, the covered pages, and how much screen text
+ *  and lecture transcript there was (a quiz is rewritten when these change). */
 export function sourcesKey(d: Data): string {
-  const p = quizPages(d);
-  const heard = d.timer.session?.heard?.length ?? 0;
-  return `${p ? `${d.context.docId}:${p[0]}-${p[1]}` : ''}|${Math.floor(heard / 1500)}`;
+  const pick = quizPick(d);
+  const p = pick.doc ? quizPages(d) : null;
+  const heard = pick.heard ? d.timer.session?.heard?.length ?? 0 : 0;
+  const screen = pick.screen ? d.timer.session?.screen?.length ?? 0 : 0;
+  return `${p ? `${d.context.docId}:${p[0]}-${p[1]}` : ''}|${Math.floor(heard / 1500)}|s${Math.floor(screen / 1500)}`;
 }
 
 const quizReusable = (d: Data) =>
@@ -481,6 +513,8 @@ export const useStudy = create<Store>()(
             if (!s) return;
             const rec: SessionRecord = { ...current(s), quiz, endedAt: s.endedAt || Date.now() };
             delete rec.heard; // the lecture transcript only feeds this session's quiz
+            delete rec.screen; // and so does the text read from the shared screen
+            delete rec.quizPick;
             const doc = rec.docId ? d.docs.find((x) => x.id === rec.docId) : undefined;
             if (doc) {
               if (rec.endPage === undefined) { rec.endPage = rec.goalPage ?? rec.startPage; rec.progressSource = 'assumed'; }
@@ -541,14 +575,19 @@ export const useStudy = create<Store>()(
             if (typeof navigator !== 'undefined' && navigator.onLine === false) throw { code: 'offline' };
             const s = get();
             const tk = topicKey(s.context);
-            const pages = quizPages(s);
+            const pick = quizPick(s);
+            const pages = pick.doc ? quizPages(s) : null;
             const material = pages ? await (await import('./ai/material')).materialFor(s.context.docId, pages[0], pages[1]) : undefined;
-            const digest = s.context.docId ? (await import('./ai/digest')).useDigests.getState()[s.context.docId]?.data : undefined;
+            const digest = pages && s.context.docId ? (await import('./ai/digest')).useDigests.getState()[s.context.docId]?.data : undefined;
+            const screen = pick.screen ? s.timer.session?.screen?.slice(-12_000) : undefined;
+            const images = pick.screen && s.settings.screenAI ? (await import('./docs/screen')).screenSnapshots() : [];
             if (ctl !== quizCtl) return;
             const qs = await AI.quiz({
               ctx: { ...s.context }, n: s.settings.questions, difficulty: s.settings.difficulty,
               weak: weakConcepts(s.stats, tk).map((c) => c.concept), asked: askedToday(s.asked, todayFor(s.settings)).slice(-30),
-              ...(s.timer.session?.heard ? { heard: s.timer.session.heard.slice(-6000) } : {}),
+              ...(pick.heard && s.timer.session?.heard ? { heard: s.timer.session.heard.slice(-6000) } : {}),
+              ...(screen ? { screen } : {}),
+              ...(images.length ? { images } : {}),
               ...(material ? { material } : {}),
               ...(digest ? { digest: { summary: digest.summary, concepts: digest.concepts } } : {}),
             }, ctl.signal);
@@ -618,7 +657,7 @@ export const useStudy = create<Store>()(
             history: s.history.filter((h) => topicKey(h) === tk).slice(-8).map((h) => ({ date: h.date, studiedMin: h.studiedMin, score: h.quiz?.score ?? null, total: h.quiz?.total ?? 0 })),
             weak: weakConcepts(s.stats, tk, 6).map((c) => ({ concept: c.concept, missed: c.missed, seen: c.seen })),
           };
-          set((d) => { d.plan = { status: 'loading', topic: topicLabel(d.context), applied: false, input }; });
+          set((d) => { d.plan = { status: 'loading', kind: 'quiz', topic: topicLabel(d.context), applied: false, input }; });
           try {
             await AI.ready();
             if (!AI.available()) throw { code: 'not_configured' };
@@ -630,7 +669,42 @@ export const useStudy = create<Store>()(
             set((d) => { d.plan.status = 'failed'; d.plan.error = aiErrorText(e); });
           }
         },
-        retryPlan() { const r = get().plan.input?.result; if (r) void get().generatePlan(r); },
+        retryPlan() {
+          if (get().plan.kind === 'work') { void get().planFromWork(); return; }
+          const r = get().plan.input?.result; if (r) void get().generatePlan(r);
+        },
+        clearPlan() { planCtl?.abort(); set((d) => { d.plan = { status: 'none' }; }); },
+        async planFromWork() {
+          planCtl?.abort();
+          const ctl = (planCtl = new AbortController());
+          const s = get();
+          const today = todayFor(s.settings);
+          const { useDigests } = await import('./ai/digest');
+          const digests = useDigests.getState();
+          const uploads = s.docs
+            .filter((x) => x.id === s.context.docId || dayOf(x.createdAt, s.settings) === today)
+            .flatMap((x) => { const g = digests[x.id]?.data; return [{ name: x.name, topic: g?.topic ?? '', summary: g?.summary ?? '', concepts: g?.concepts ?? [] }]; })
+            .slice(0, 6);
+          const screen = s.timer.session?.screen || (await import('./docs/screen')).recentScreenText();
+          const tk = topicKey(s.context);
+          const input: WorkPlanInput = {
+            ctx: { ...s.context }, studyMin: s.settings.studyMin,
+            tasks: s.tasks.slice(0, 30).map((t) => ({ text: t.text, done: t.done })),
+            uploads, ...(screen ? { screen: screen.slice(-8000) } : {}),
+            weak: weakConcepts(s.stats, tk, 6).map((c) => ({ concept: c.concept, missed: c.missed, seen: c.seen })),
+          };
+          set((d) => { d.plan = { status: 'loading', kind: 'work', topic: 'Your to-do list and today\'s work', applied: false }; });
+          try {
+            await AI.ready();
+            if (!AI.available()) throw { code: 'not_configured' };
+            const data = await AI.planNow(input, ctl.signal);
+            if (ctl !== planCtl) return;
+            set((d) => { d.plan.data = data; d.plan.status = 'ready'; });
+          } catch (e) {
+            if (ctl !== planCtl || isCancel(e)) return;
+            set((d) => { d.plan.status = 'failed'; d.plan.error = aiErrorText(e); });
+          }
+        },
         applyPlan() {
           const P = get().plan;
           if (P.status !== 'ready' || !P.data) return;
@@ -742,6 +816,21 @@ export const useStudy = create<Store>()(
             if (!s) return;
             s.heard = ((s.heard ? s.heard + ' ' : '') + t).slice(-20_000);
           });
+        },
+        addScreenText(text) {
+          const t = text.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+          if (t.length < 20) return;
+          set((d) => {
+            const s = d.timer.session;
+            if (!s) return;
+            const prev = s.screen ?? '';
+            if (prev.includes(t.slice(0, 160))) return; // the same screen again
+            s.screen = (prev ? `${prev}\n---\n${t}` : t).slice(-24_000);
+          });
+        },
+        setQuizPick(patch) {
+          set((d) => { if (d.timer.session) d.timer.session.quizPick = { ...quizPick(d), ...patch }; });
+          void get().prefetchQuiz();
         },
         recordProgress(page, title, source, conf) {
           let reached = 0;

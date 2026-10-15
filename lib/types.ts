@@ -101,6 +101,8 @@ export interface Settings {
   screenSec: number;
   /** Also capture the shared tab's sound and turn speech into notes, on this device. */
   screenAudio: boolean;
+  /** Send the text and a few snapshots of the shared screen to the AI, so quizzes cover what was on it. */
+  screenAI: boolean;
   /** Short sounds when the timer starts, pauses or resumes. */
   controlSounds: boolean;
   /** Saved timers: named setups (look + lengths) to switch between. */
@@ -212,6 +214,10 @@ export interface SessionRecord {
   seen?: SeenEvent[];
   /** What was heard from a shared tab's sound during the live session (kept on this device only). */
   heard?: string;
+  /** Text read from the shared screen during the live session (kept on this device, dropped from history). */
+  screen?: string;
+  /** What this session's quiz should cover, when the student changed it (see quizPick in the store). */
+  quizPick?: QuizPick;
 }
 
 export interface LastResult {
@@ -292,6 +298,8 @@ export interface PlanInput {
 
 export interface PlanState {
   status: 'none' | 'loading' | 'ready' | 'failed';
+  /** 'quiz': written after a quiz; 'work': asked for, from the to-do list, today's uploads and the shared screen. */
+  kind?: 'quiz' | 'work';
   topic?: string;
   applied?: boolean;
   input?: PlanInput;
@@ -333,6 +341,25 @@ export interface QuizInput {
   material?: Material;
   /** The AI's notes on that document (key concepts), if it has read it. */
   digest?: Pick<DocDigest, 'summary' | 'concepts'>;
+  /** Text read from the shared screen during the session, and a few snapshots of it. */
+  screen?: string;
+  images?: QuizImage[];
+}
+
+/** A screen snapshot sent to the AI: a small JPEG, base64. */
+export interface QuizImage { mimeType: string; data: string }
+
+/** What a quiz is written from: the shared screen, the document, the lecture audio. The topic always counts. */
+export interface QuizPick { screen: boolean; doc: boolean; heard: boolean }
+
+/** A plan for the next session from the to-do list, today's uploads and the shared screen (no quiz needed). */
+export interface WorkPlanInput {
+  ctx: StudyContext;
+  tasks: { text: string; done: boolean }[];
+  uploads: { name: string; topic: string; summary: string; concepts: string[] }[];
+  screen?: string;
+  studyMin: number;
+  weak: { concept: string; missed: number; seen: number }[];
 }
 
 /** Pages of a document sent to the AI. */

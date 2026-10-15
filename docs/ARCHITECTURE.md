@@ -75,7 +75,13 @@ browser (lib/ai-client.ts) → POST /api/ai/{action} → sign-in + daily allowan
   searching from the resume point, and matches screen text to slides with IDF-weighted word overlap, a title bonus and
   visible slide counters ("4 / 20").
 - `lib/docs/screen.ts` uses the screen-share API only while a study session runs, skips frames that haven't changed,
-  reads text on the device, and keeps only page, title and confidence.
+  and reads text on the device. The text goes onto the live session (`session.screen`) and up to six snapshots stay in
+  memory (one per big change, at least 45 s apart, thinned out evenly), so the quiz covers whatever was on screen,
+  not just slides. Only slide page, title and confidence are kept in history.
+- **What the quiz covers** (`quizSources`, `quizPick` in the store): the shared screen, the document's covered pages and
+  the lecture transcript. By default it's all of them, except a document that never appeared on a shared screen showing
+  something else. "Quiz me on" on the quiz screen changes the choice (`session.quizPick`) and the topic, and the quiz is
+  rewritten (`sourcesKey` includes the choice).
 - `lib/docs/listen.ts` taps the shared tab's audio with an AudioWorklet, cuts 12-second clips (skipping silence), and
   `public/asr-worker.js` transcribes them with Whisper tiny.en (Transformers.js) in a Web Worker.
 

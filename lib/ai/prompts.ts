@@ -2,7 +2,7 @@
  * The instructions sent to the AI for each job. Ported from the reference prototype
  * (docs/reference/studybuddy.html) plus the study assistant. Pure functions, so they're unit-tested.
  */
-import type { AssistantInput, DayInput, Material, PlanInput, QuizInput, StudyContext, WeeklyInput } from '../types';
+import type { AssistantInput, DayInput, Material, PlanInput, QuizInput, StudyContext, WeeklyInput, WorkPlanInput } from '../types';
 
 const LEVEL_NAMES: Record<string, string> = { hs: 'High school', intro: 'Intro college', advanced: 'Advanced college', exam: 'Exam prep' };
 const levelText = (c: StudyContext) => (c.level === 'exam' ? `Exam prep${c.exam ? ` for ${c.exam}` : ''}` : LEVEL_NAMES[c.level] || 'Intro college');
@@ -13,7 +13,7 @@ const DIFF_TEXT: Record<string, string> = {
 };
 
 /** Caps for text sent to the AI, in characters. */
-export const LIMITS = { notes: 12_000, material: 60_000, heard: 6_000, chatTurns: 16, chatChars: 4_000 };
+export const LIMITS = { notes: 12_000, material: 60_000, heard: 6_000, screen: 12_000, chatTurns: 16, chatChars: 4_000 };
 
 /** A document excerpt as numbered pages, e.g. "[Slide 3] Title" then its text. */
 export function materialText(m: Material | undefined, cap = LIMITS.material): string {
@@ -60,11 +60,21 @@ export function digestPrompt(m: Material): string {
   ].join('\n');
 }
 
-export function quizPrompt({ ctx, n, difficulty, weak, asked, heard, material, digest }: QuizInput): string {
+export function quizPrompt({ ctx, n, difficulty, weak, asked, heard, material, digest, screen, images }: QuizInput): string {
   const notes = (ctx.notes || '').trim().slice(0, LIMITS.notes);
   const doc = materialText(material);
   const spoken = (heard || '').trim().slice(-LIMITS.heard);
+  const onScreen = (screen || '').trim().slice(-LIMITS.screen);
+  const shots = images?.length ?? 0;
   const sources: string[] = [];
+  if (onScreen || shots) {
+    sources.push([
+      'The student shared their screen while studying. This is the best evidence of what they actually worked on (code, notes, problems, web pages, slides), so build the quiz mainly from it.',
+      shots ? `${shots} snapshot${shots === 1 ? '' : 's'} of the screen ${shots === 1 ? 'is' : 'are'} attached, oldest first.` : '',
+      onScreen ? `Text read from the screen automatically (expect recognition errors, especially in code) is between the markers below.\n<<<SCREEN\n${onScreen}\nSCREEN>>>` : '',
+      'If it is code, ask about what the code does, its output, the concepts and syntax it uses, and likely bugs. If the screen shows something unrelated to the topic line, trust the screen: the topic line may be out of date.',
+    ].filter(Boolean).join('\n'));
+  }
   if (doc) sources.push(`The ${material!.unit}s the student covered this session, from "${material!.name}", are between the markers below.\n<<<MATERIAL\n${doc}\nMATERIAL>>>`);
   if (notes) sources.push(`The student's notes are between the markers below.\n<<<NOTES\n${notes}\nNOTES>>>`);
   if (spoken) sources.push(`What the lecture said (an automatic transcript, so expect small errors) is between the markers below.\n<<<LECTURE\n${spoken}\nLECTURE>>>`);
@@ -146,6 +156,36 @@ export function dayPrompt({ sessions, weak }: DayInput): string {
     'Reply with only this JSON and no other text:',
     '{"headline":"one sentence about the day","wins":["1-3 items"],"gaps":["1-3 concepts or skills still shaky"],"tomorrow":["2-3 concrete steps for tomorrow\'s first session"]}',
   ].join('\n');
+}
+
+/** A plan for the next session from what the student has to do and what they've been working on (no quiz needed). */
+export function workPlanPrompt(w: WorkPlanInput): string {
+  const open = w.tasks.filter((t) => !t.done).map((t) => `- ${t.text}`);
+  const done = w.tasks.filter((t) => t.done).map((t) => `- ${t.text}`);
+  return [
+    'You are a study coach. Write an actionable plan for this student\'s next study session, from their to-do list and what they have been working on today.',
+    '',
+    'STUDY CONTEXT',
+    ...contextLines(w.ctx),
+    '',
+    open.length ? `TO-DO LIST (still open):\n${open.join('\n')}` : 'TO-DO LIST: nothing open.',
+    done.length ? `Already done today:\n${done.join('\n')}` : '',
+    w.uploads.length ? `DOCUMENTS UPLOADED OR OPEN TODAY:\n${w.uploads.map((u) => `- "${u.name}"${u.topic ? `: ${u.topic}` : ''}${u.summary ? `. ${u.summary}` : ''}${u.concepts.length ? ` Key concepts: ${u.concepts.join('; ')}.` : ''}`).join('\n')}` : 'No documents uploaded today.',
+    w.screen ? `WHAT WAS ON THE STUDENT'S SHARED SCREEN (read automatically, expect errors):\n<<<SCREEN\n${w.screen.slice(-8000)}\nSCREEN>>>` : 'Nothing was shared on screen.',
+    w.weak.length ? `Concepts often missed: ${w.weak.map((c) => `${c.concept} (missed ${c.missed} of ${c.seen})`).join('; ')}` : '',
+    `Session length: ${w.studyMin} minutes.`,
+    '',
+    'RULES',
+    '- Pick the most useful thing to do next: open to-do items first, using the uploads and the screen to make each step specific (name the actual file, function, slide or problem).',
+    '- 2 to 4 actions, in order. Each names one concrete technique (practice problems, active recall, worked examples, debugging a small example, Feynman technique, flashcards, concept mapping, teach-back) and a specific step.',
+    '- "suggestedMinutes" is 25, 30, 35, 40 or 45, and the action minutes add up to it.',
+    '- "summary": 1-2 specific, encouraging sentences about what to do next and why. Never shaming.',
+    '- "strong": what they have already made progress on (short labels, may be empty). "review": what to tackle next (short labels).',
+    '- "nextGoal": one line under 12 words that starts with a verb.',
+    '',
+    'Reply with only this JSON and no other text:',
+    '{"summary":"...","strong":["..."],"review":["..."],"actions":[{"minutes":10,"technique":"Practice problems","step":"..."}],"suggestedMinutes":25,"nextGoal":"..."}',
+  ].filter((l) => l !== '').join('\n');
 }
 
 /** The weekly report's headline, summary and focus steps, from the week's numbers. */

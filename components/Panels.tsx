@@ -64,15 +64,29 @@ export function PlanCard() {
   const settings = useStudy((s) => s.settings);
   const aiStatus = useStudy((s) => s.aiStatus);
   const open = !settings.folded.includes('plan');
-  const { retryPlan, applyPlan, toggleFold } = useStudy.getState();
+  const { retryPlan, applyPlan, toggleFold, clearPlan, planFromWork } = useStudy.getState();
+  const tasksOpen = useStudy((s) => s.tasks.filter((t) => !t.done).length);
+  const aiOn = aiStatus !== 'off';
+  // Plan from the to-do list, today's uploads and the shared screen; or clear the plan to start fresh.
+  const tools = (
+    <div className="plan-tools">
+      {aiOn && P.status !== 'loading' && (
+        <button className="btn-quiet" type="button" id="planFromWork" onClick={() => void planFromWork()}
+          title="Uses your to-do list, today's uploads and what's on your shared screen">
+          <Icon name="sparkle" />{P.status === 'none' ? 'Plan my next session' : 'New plan from my to-do list'}
+        </button>
+      )}
+      {P.status !== 'none' && <button className="btn-quiet" type="button" id="planClear" onClick={clearPlan}><Icon name="x" />Clear plan</button>}
+    </div>
+  );
   let meta = '';
   let body: React.ReactNode;
   if (P.status === 'loading') {
     meta = P.topic || '';
-    body = <p className="loading-line"><span className="spin" aria-hidden="true" />Writing your plan from this quiz and your history…</p>;
+    body = <><p className="loading-line"><span className="spin" aria-hidden="true" />{P.kind === 'work' ? 'Writing a plan from your to-do list and today\'s work…' : 'Writing your plan from this quiz and your history…'}</p>{tools}</>;
   } else if (P.status === 'failed') {
     body = <><p className="muted">{P.error || 'The plan didn\'t load.'}</p>
-      <div className="btn-row" style={{ marginTop: 10 }}><button className="btn" type="button" onClick={retryPlan}>Try again</button></div></>;
+      <div className="btn-row" style={{ marginTop: 10 }}><button className="btn" type="button" onClick={retryPlan}>Try again</button></div>{tools}</>;
   } else if (P.status === 'ready' && P.data) {
     const d = P.data;
     meta = `${P.topic ? `${P.topic} · ` : ''}Suggested ${d.suggestedMinutes} min`;
@@ -95,13 +109,16 @@ export function PlanCard() {
             {P.applied ? <><Icon name="check" />Applied</> : `Apply plan · ${d.suggestedMinutes}-min session`}
           </button>
         </div>
+        {tools}
       </>
     );
   } else {
     const q = settings.questions;
     body = (
       <>
-        <p className="muted" style={{ margin: '0 0 12px' }}>After each quiz, PomoGator writes a plan for your next session from what you got right, what you missed and your history on the topic.</p>
+        <p className="muted" style={{ margin: '0 0 12px' }}>After each quiz, PomoGator writes a plan for your next session from what you got right, what you missed and your history on the topic.
+          {aiOn ? ` Or make one now from your to-do list${tasksOpen ? ` (${tasksOpen} open)` : ''}, today's uploads and your shared screen.` : ''}</p>
+        {aiOn && <div className="btn-row" style={{ margin: '0 0 14px' }}><button className="btn btn-primary" type="button" id="planFromWork" onClick={() => void planFromWork()}><Icon name="sparkle" />Plan my next session</button></div>}
         {aiStatus === 'off' && <p className="qchip warn" style={{ margin: '0 0 12px' }}>Quizzes and plans aren&apos;t switched on for this site yet. The timer works without them.</p>}
         <div className="loop-steps">
           <div className="loop-step"><span className="n">1</span><b>Study</b><span>{settings.studyMin} min on your topic</span></div>

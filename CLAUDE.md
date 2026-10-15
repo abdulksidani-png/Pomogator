@@ -119,6 +119,18 @@ Summaries live in the store as `weekly` (by week start, newest 26) + `weeklySeen
 Overview | Weekly report shared with Stats (`StatsTabs`), `WeekReviewBanner` on the timer page, "Save as image"
 (`lib/share-card.ts`, canvas 1080×1350) and "Save as PDF" (print CSS). Check-in streak tile waits for Phase 8.
 
+**Quizzes from the shared screen (2026-10-15, his report: a Python session got a quiz on yesterday's philosophy deck):**
+screen tracking used OCR only to match slides, so off-document work was ignored. Now `capture()` in `lib/docs/screen.ts`
+puts every read frame's text on the live session (`addScreenText` → `session.screen`, ≤24k chars, dropped from history like
+`heard`) and keeps ≤6 JPEG snapshots in memory (`screenSnapshots()`, one per big change ≥45 s apart, thinned evenly;
+`settings.screenAI`, default on, Settings → "Send screen snapshots to the AI"). Store: `quizSources`, `quizPick` (default:
+everything, except a document that never appeared on a shared screen that showed other things), `session.quizPick`
+via `setQuizPick` (rewrites the quiz; `sourcesKey` includes the pick). `quizPrompt` gets `screen` + `images` (sent as
+Gemini inlineData; the route keeps ≤6 jpeg/png). Quiz screen: "Quiz me on" chips + topic field (`QuizPicker` in Stage.tsx).
+Plan card: "Plan my next session" (`planFromWork`, action `plan-now`, `workPlanPrompt`: open to-dos, today's uploads +
+digests, screen text) and "Clear plan" (`clearPlan`); `plan.kind` 'quiz' | 'work'. Consent dialog + privacy page say the
+screen text and snapshots go to the AI.
+
 **Logo + loading screen (2026-10-15, his request):** the logo is now 2-bit pixel art like the buddies: Albert in study
 glasses peeking out of water inside a pixel timer ring (`lib/logo.ts` rows → `components/Brand.tsx`; `scripts/icon.mts`
 regenerates `app/icon.svg`). `components/Splash.tsx` (rendered by `ClientApp` in the first HTML): the ring fills pixel by
@@ -146,8 +158,8 @@ Earlier requests, all done and confirmed:
 ### Where the build differs from the spec (on purpose)
 - **Outlines** come from the file itself (PPTX slide titles, PDF largest text, DOCX headings) rather than `/api/ai/outline`.
   Phase 3 may add AI summaries and key concepts on top.
-- **Screen tracking** reads frames with on-device Tesseract OCR and IDF word matching (`lib/docs/match.ts`) rather than
-  sending frames to Claude. `/api/ai/frame` could be a fallback when the match isn't confident.
+- **Screen tracking** reads frames with on-device Tesseract OCR and IDF word matching (`lib/docs/match.ts`) to follow slides;
+  the OCR text and a few snapshots go to Gemini only when the quiz (or a plan) is written, not frame by frame.
 - **Tab sound** is transcribed on the device: `lib/docs/listen.ts` taps the shared stream with an AudioWorklet,
   cuts 12 s clips (silent ones skipped), and `public/asr-worker.js` runs Whisper tiny.en with Transformers.js loaded from
   jsDelivr (the npm package pulls in onnxruntime-node, whose install script downloads binaries). The model (~40 MB) comes
@@ -156,7 +168,7 @@ Earlier requests, all done and confirmed:
   stored in Vercel as `GEMINI_API_KEY`, no billing enabled). Keep the reference prototype's prompts and JSON shapes; use
   Gemini's JSON output mode. Free-tier limits are per project and shown only in AI Studio, so handle 429s gracefully
   ("quiz limit reached for today, enjoy a no-quiz break") and keep the app's own daily limits.
-- **AI routes**: `app/api/ai/[action]/route.ts` handles `quiz`, `plan`, `day-summary`, `assistant`, `digest` and `weekly`; prompts in
+- **AI routes**: `app/api/ai/[action]/route.ts` handles `quiz`, `plan`, `plan-now`, `day-summary`, `assistant`, `digest` and `weekly`; prompts in
   `lib/ai/prompts.ts` (ported from the prototype), Gemini REST calls in `lib/ai/gemini.ts` (JSON mode, one retry on bad JSON,
   falls back from `gemini-flash-latest` to `gemini-flash-lite-latest` on 429/404; override with `GEMINI_MODEL(_BACKUP)`),
   replies validated with `lib/quiz.ts` on the server and again in the browser. Daily allowance: `lib/ai/quota.ts` +
@@ -209,7 +221,7 @@ Earlier requests, all done and confirmed:
 ```bash
 npm run dev          # http://localhost:3000 (copies vendor files first)
 npm run typecheck
-npm test             # Vitest unit tests (91)
+npm test             # Vitest unit tests (97)
 npm run test:e2e     # Playwright: loop, documents, goals, screen tracking, tab sound, sounds, appearance, buddies, stats,
                      # saved timers, full screen, plan fold, weekly report, loading screen
 npm run test:ai      # Playwright: AI, Unsplash and Spotify against stand-ins (tests/fake-gemini; Spotify faked in-test)

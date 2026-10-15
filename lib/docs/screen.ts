@@ -2,7 +2,10 @@
 /**
  * Screen tracking (opt-in, desktop browsers). While a study session runs, it checks the
  * shared window every couple of seconds, reads it with on-device OCR when it changed, and works
- * out which slide is showing. Frames are only ever held in memory and are never saved or uploaded.
+ * out which slide is showing. The text it reads is kept on the live session, and a few snapshots
+ * are kept in memory, so the quiz can cover whatever was on screen (code, notes, a web page),
+ * not only an uploaded document. With Settings → "Send to the AI" on, that text and up to six small
+ * snapshots go to the AI when the quiz is written; nothing is saved after the session.
  * With "capture tab sound" on, the tab's speech is turned into notes too (see listen.ts).
  */
 import { create } from 'zustand';
@@ -12,6 +15,7 @@ import { buildIndex, changedFraction, confident, matchPage, type PageIndex } fro
 import { ocr, warmUpOcr } from './ocr';
 import { getPages } from './library';
 import { listenTo, prepareListening, stopListening } from './listen';
+import type { QuizImage } from '../types';
 
 export interface ScreenState {
   status: 'off' | 'starting' | 'watching';
@@ -46,6 +50,37 @@ let index: PageIndex | null = null;
 let titles: string[] = [];
 let indexFor = '';
 const frame = typeof document !== 'undefined' ? document.createElement('canvas') : null;
+
+/* ---------- snapshots and text for the AI ---------- */
+const MAX_SNAPS = 6;
+let snaps: { at: number; data: string }[] = [];
+let snapSession = '';
+let lastSnapThumb: Uint8ClampedArray | null = null;
+let recentText = '';
+
+/** Up to six small JPEG snapshots of the shared screen from this session, spread across it, oldest first. */
+export function screenSnapshots(): QuizImage[] {
+  return snaps.map((s) => ({ mimeType: 'image/jpeg', data: s.data }));
+}
+/** The text read from the shared screen most recently (this page load), e.g. for planning after a session ended. */
+export const recentScreenText = () => recentText;
+
+/** Keep a snapshot when the screen changed a lot and a while has passed; when full, thin out every other one. */
+function keepSnapshot(c: HTMLCanvasElement, t: Uint8ClampedArray, sessionId: string) {
+  if (sessionId !== snapSession) { snaps = []; snapSession = sessionId; lastSnapThumb = null; recentText = ''; }
+  const now = Date.now();
+  const last = snaps[snaps.length - 1];
+  if (last && (now - last.at < 45_000 || changedFraction(t, lastSnapThumb) < 0.06)) return;
+  const small = document.createElement('canvas');
+  const w = Math.min(1024, c.width);
+  small.width = w; small.height = Math.round((c.height / c.width) * w);
+  small.getContext('2d')!.drawImage(c, 0, 0, small.width, small.height);
+  const data = small.toDataURL('image/jpeg', 0.62).split(',')[1] ?? '';
+  if (!data) return;
+  lastSnapThumb = t;
+  snaps.push({ at: now, data });
+  if (snaps.length > MAX_SNAPS) snaps = snaps.filter((_, i) => i % 2 === 0 || i === snaps.length - 1).slice(-MAX_SNAPS);
+}
 const thumb = typeof document !== 'undefined' ? document.createElement('canvas') : null;
 
 function niceLabel(raw: string): string {
@@ -167,6 +202,10 @@ async function capture() {
     const r = await ocr(c);
     const now = useStudy.getState();
     if (now.timer.session) {
+      // Whatever is on screen counts as study material, document or not.
+      now.addScreenText(r.text);
+      recentText = (useStudy.getState().timer.session?.screen ?? recentText).slice(-12_000);
+      if (now.settings.screenAI) { try { keepSnapshot(c, t, now.timer.session.id); } catch { /* a tainted or lost frame: skip it */ } }
       const guess = index ? matchPage(r.text, index) : null;
       if (guess && confident(guess)) {
         const title = titles[guess.page - 1] ?? '';

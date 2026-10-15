@@ -12,6 +12,14 @@ const answer = (res, obj) => reply(res, 200, { candidates: [{ content: { role: '
 
 function quiz(prompt) {
   const n = Number(prompt.match(/Write exactly (\d+)/)?.[1] || 3);
+  const screenLine = prompt.match(/<<<SCREEN\n([^\n]+)/)?.[1];
+  if (screenLine) {
+    return { questions: Array.from({ length: n }, (_, i) => ({
+      id: `q${i + 1}`, concept: 'From your screen', question: `Q${i + 1}: On your screen: "${screenLine.slice(0, 60)}". What does it do?`,
+      options: ['The right answer', 'A near miss', 'A common mistake', 'Something else'], correctIndex: 0, explanation: 'Because.', memoryAid: 'Picture it.',
+      optionFeedback: ['Yes.', 'Close, but no.', 'A classic mix-up.', 'Unrelated.'],
+    })) };
+  }
   const slide = prompt.match(/\[Slide (\d+)\] ([^\n]+)/);
   return {
     questions: Array.from({ length: n }, (_, i) => ({
@@ -95,6 +103,11 @@ http.createServer((req, res) => {
       return answer(res, { topic: 'Ancient Greek philosophy', summary: 'Plato and Aristotle on forms and virtue.', concepts: ['Theory of Forms', 'Allegory of the cave', 'Eudaimonia'], sections: [{ from: 1, to: n, title: 'The whole deck', summary: 'From Plato to Aristotle.' }] });
     }
     if (prompt.includes('retrieval-practice quizzes')) return answer(res, quiz(prompt));
+    if (prompt.includes('from their to-do list and what they have been working on')) {
+      const task = prompt.match(/TO-DO LIST \(still open\):\n- ([^\n]+)/)?.[1] || 'your list';
+      const onScreen = /<<<SCREEN/.test(prompt);
+      return answer(res, { summary: `Next up: ${task}.${onScreen ? ' Building on what was on your screen.' : ''}`, strong: [], review: [task], actions: [{ minutes: 15, technique: 'Practice problems', step: `Work on ${task}.` }, { minutes: 10, technique: 'Active recall', step: 'Recall what you did.' }], suggestedMinutes: 25, nextGoal: `Finish ${task}` });
+    }
     if (prompt.includes('Write an actionable plan')) {
       return answer(res, { summary: 'Nice work.', strong: ['Forms'], review: ['Virtue'], actions: [{ minutes: 15, technique: 'Active recall', step: 'Recall the slides.' }, { minutes: 10, technique: 'Flashcards', step: 'Make 5 cards.' }], suggestedMinutes: 25, nextGoal: 'Finish the Aristotle slides' });
     }

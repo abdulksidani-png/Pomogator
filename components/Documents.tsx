@@ -321,7 +321,8 @@ export function ScreenConsentDialog({ dialogRef }: { dialogRef: RefObject<HTMLDi
           <li><strong>What:</strong> only the window or tab you pick. Choose the one with your slides, not your whole screen.</li>
           <li><strong>How often:</strong> a quick check every {useStudy.getState().settings.screenSec} second{useStudy.getState().settings.screenSec === 1 ? '' : 's'}, only while a study session is running. Paused sessions and breaks are never watched.</li>
           <li><strong>Sound (optional):</strong> with &ldquo;Capture the tab&apos;s sound&rdquo; on, what a lecture says is turned into text on this device. The sound itself is never saved or uploaded.</li>
-          <li><strong>What&apos;s kept:</strong> the slide number and title it read. The images themselves stay in memory on this device and are thrown away right after.</li>
+          <li><strong>What it&apos;s for:</strong> working out which slide you&apos;re on, and writing your quiz from whatever you studied, even if it isn&apos;t an uploaded file (like code or a website).</li>
+          <li><strong>What goes to the AI:</strong> when your quiz is written, the text read from your screen and up to 6 small snapshots (you can turn snapshots off in Settings). They aren&apos;t saved: the session keeps only slide numbers and titles.</li>
           <li><strong>How to stop:</strong> click Stop, end the session, or use your browser&apos;s &ldquo;Stop sharing&rdquo; button.</li>
         </ul>
       </div>

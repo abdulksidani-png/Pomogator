@@ -37,6 +37,7 @@ export const DEFAULT_SETTINGS: Settings = {
   screenTrack: false,
   screenSec: 2,
   screenAudio: false,
+  screenAI: true,
   controlSounds: true,
   savedTimers: [],
   folded: [],

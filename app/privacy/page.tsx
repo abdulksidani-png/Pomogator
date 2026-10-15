@@ -29,8 +29,10 @@ export default function Privacy() {
         its products, so don&apos;t upload anything private or sensitive. The API key stays on the server.</p>
 
       <h2>Screen sharing and lecture sound</h2>
-      <p>Screen tracking and lecture transcription run entirely on your device. Frames are read on the device and only the slide
-        number, title and confidence are kept; the lecture transcript lives only on the current session and is used for its quiz.</p>
+      <p>Screen tracking reads the window you share on your device. To write that session&apos;s quiz (and a plan, if you ask for
+        one), the text it read and up to six small snapshots are sent to the AI; you can turn snapshots off in Settings. Lecture
+        transcription runs entirely on your device. Neither the screen text, the snapshots nor the transcript is saved after the
+        session: only slide numbers and titles stay in your history.</p>
 
       <h2>Photos and music</h2>
       <p>Background photos load directly from <a href="https://unsplash.com">Unsplash</a>. If you connect
