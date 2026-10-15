@@ -2,5 +2,5 @@
 export const SITE = {
   name: 'PomoGator',
   tagline: 'Study, quiz yourself, earn your break',
-  repo: 'https://github.com/abdulksidani-png/studybuddy',
+  repo: 'https://github.com/abdulksidani-png/Pomogator',
 };

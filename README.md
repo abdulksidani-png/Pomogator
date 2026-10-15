@@ -11,7 +11,7 @@ and an AI-written plan sets up your next session.
 
 [**Try it live →**](https://pomo-gator.vercel.app) &nbsp;·&nbsp; [How it's built](#how-its-built) &nbsp;·&nbsp; [Architecture](docs/ARCHITECTURE.md) &nbsp;·&nbsp; [Run your own](docs/SETUP.md)
 
-[![CI](https://github.com/abdulksidani-png/studybuddy/actions/workflows/ci.yml/badge.svg)](https://github.com/abdulksidani-png/studybuddy/actions/workflows/ci.yml)
+[![CI](https://github.com/abdulksidani-png/Pomogator/actions/workflows/ci.yml/badge.svg)](https://github.com/abdulksidani-png/Pomogator/actions/workflows/ci.yml)
 ![Next.js 15](https://img.shields.io/badge/Next.js-15-000000?logo=nextdotjs)
 ![React 19](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
 ![TypeScript strict](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
@@ -118,7 +118,7 @@ flowchart LR
 ## Run it yourself
 
 ```bash
-git clone https://github.com/abdulksidani-png/studybuddy.git pomogator
+git clone https://github.com/abdulksidani-png/Pomogator.git
 cd pomogator
 npm install
 npm run dev        # http://localhost:3000

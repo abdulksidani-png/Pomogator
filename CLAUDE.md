@@ -13,7 +13,7 @@ optional screen tracking, sign-in with cloud sync, and appearance customization.
   nobody's saved data is lost. `lib/site.ts` holds the public name, tagline and repo URL.
 - **Live site:** https://pomo-gator.vercel.app (Vercel project `pomogator`; deploys every push to `main`). The old
   https://studybuddy-bay.vercel.app still points at it. `pomogator.com` was tried and dropped (not bought) on 2026-10-15.
-- **Repo:** github.com/abdulksidani-png/studybuddy (to be renamed `pomogator`; GitHub redirects the old URL)
+- **Repo:** github.com/abdulksidani-png/Pomogator (renamed from `studybuddy`; GitHub redirects the old URL)
 - **Public-facing docs:** `README.md` (for recruiters/visitors), `docs/SETUP.md` (deploy your own, click by click),
   `docs/ARCHITECTURE.md`, `LICENSE` (MIT). Screenshots in `docs/screenshots/` and the link preview
   `app/opengraph-image.png` come from `scripts/screenshots.mjs` (sample data, stand-in AI replies; see its header).
