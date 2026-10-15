@@ -79,6 +79,8 @@ interface Actions {
   summarizeDay: () => Promise<void>;
   // tasks and data
   addTask: (text: string) => void;
+  /** Add several tasks at once, optionally replacing the list (used by the assistant). */
+  addTasks: (texts: string[], replace?: boolean) => void;
   toggleTask: (id: string, done: boolean) => void;
   deleteTask: (id: string) => void;
   clearDone: () => void;
@@ -117,9 +119,28 @@ const isCancel = (e: unknown) => (e as { code?: string })?.code === 'cancelled' 
 
 export const remainingAt = (T: TimerState, now: number) => (T.status === 'running' ? Math.max(0, T.endAt - now) : T.remainingMs);
 
+/** The document pages a quiz should cover, as [from, to]: where the session started up to the furthest
+ *  slide seen on screen, or else up to the goal (or the next 10 pages). Null without a document. */
+export function quizPages(d: Data): [number, number] | null {
+  const c = d.context;
+  const doc = c.docId ? d.docs.find((x) => x.id === c.docId) : undefined;
+  if (!doc) return null;
+  const s = d.timer.session;
+  const from = clamp(s?.startPage ?? c.startPage, 1, doc.pageCount);
+  const end = s?.progressSource === 'screen' && s.endPage ? s.endPage : c.goalPage || from + 9;
+  return [from, clamp(end, from, doc.pageCount)];
+}
+
+/** What a quiz is written from, beyond the context: the covered pages and the lecture transcript so far. */
+export function sourcesKey(d: Data): string {
+  const p = quizPages(d);
+  const heard = d.timer.session?.heard?.length ?? 0;
+  return `${p ? `${d.context.docId}:${p[0]}-${p[1]}` : ''}|${Math.floor(heard / 1500)}`;
+}
+
 const quizReusable = (d: Data) =>
-  d.quiz.gen === 'ready' && d.quiz.ctxKey === ctxKey(d.context, d.settings) && !d.quiz.used && d.quiz.madeOn === todayFor(d.settings);
-export const quizMatches = (d: Data) => d.quiz.gen === 'ready' && d.quiz.ctxKey === ctxKey(d.context, d.settings) && !d.quiz.used;
+  d.quiz.gen === 'ready' && d.quiz.ctxKey === ctxKey(d.context, d.settings) && (d.quiz.sources ?? '') === sourcesKey(d) && !d.quiz.used && d.quiz.madeOn === todayFor(d.settings);
+export const quizMatches = (d: Data) => d.quiz.gen === 'ready' && d.quiz.ctxKey === ctxKey(d.context, d.settings) && (d.quiz.sources ?? '') === sourcesKey(d) && !d.quiz.used;
 export const quizReadyForTaking = (q: QuizState) => q.gen === 'ready' && !q.used && q.questions.length > 0;
 
 function initialData(): Data {
@@ -391,7 +412,8 @@ export const useStudy = create<Store>()(
           if (next === 'short') { get().finishSession({ status: 'too-short' }); get().startBreak(kind, null, 'short-session'); return; }
           const d = get();
           const key = ctxKey(d.context, d.settings);
-          if (!quizMatches(d) && !(d.quiz.gen === 'loading' && d.quiz.ctxKey === key) && !(d.quiz.gen === 'failed' && d.quiz.ctxKey === key)) void get().prefetchQuiz();
+          const same = d.quiz.ctxKey === key && (d.quiz.sources ?? '') === sourcesKey(d);
+          if (!quizMatches(d) && !(d.quiz.gen === 'loading' && same) && !(d.quiz.gen === 'failed' && same)) void get().prefetchQuiz();
           say('Study session complete. Quiz time.');
         },
         finishSession(quiz) {
@@ -449,10 +471,10 @@ export const useStudy = create<Store>()(
           if (!hasTopic(d0.context)) { if (d0.quiz.gen !== 'loading') set((d) => { d.quiz.gen = 'none'; }); return; }
           const key = ctxKey(d0.context, d0.settings);
           if (quizReusable(d0)) return;
-          if (d0.quiz.gen === 'loading' && d0.quiz.ctxKey === key) return;
+          if (d0.quiz.gen === 'loading' && d0.quiz.ctxKey === key && d0.quiz.sources === sourcesKey(d0)) return;
           quizCtl?.abort();
           const ctl = (quizCtl = new AbortController());
-          set((d) => { d.quiz = { ...freshQuiz(), ctxKey: key, gen: 'loading', forTopic: topicLabel(d.context) || 'your notes', step: d.quiz.step }; });
+          set((d) => { d.quiz = { ...freshQuiz(), ctxKey: key, sources: sourcesKey(d), gen: 'loading', forTopic: topicLabel(d.context) || 'your notes', step: d.quiz.step }; });
           try {
             await AI.ready();
             if (ctl !== quizCtl) return;
@@ -460,10 +482,14 @@ export const useStudy = create<Store>()(
             if (typeof navigator !== 'undefined' && navigator.onLine === false) throw { code: 'offline' };
             const s = get();
             const tk = topicKey(s.context);
+            const pages = quizPages(s);
+            const material = pages ? await (await import('./ai/material')).materialFor(s.context.docId, pages[0], pages[1]) : undefined;
+            if (ctl !== quizCtl) return;
             const qs = await AI.quiz({
               ctx: { ...s.context }, n: s.settings.questions, difficulty: s.settings.difficulty,
               weak: weakConcepts(s.stats, tk).map((c) => c.concept), asked: askedToday(s.asked, todayFor(s.settings)).slice(-30),
               ...(s.timer.session?.heard ? { heard: s.timer.session.heard.slice(-6000) } : {}),
+              ...(material ? { material } : {}),
             }, ctl.signal);
             if (ctl !== quizCtl) return;
             if (!qs.length) throw { code: 'invalid_json' };
@@ -584,6 +610,10 @@ export const useStudy = create<Store>()(
 
         /* ---------- tasks & data ---------- */
         addTask(text) { const t = text.trim(); if (t) set((d) => { d.tasks.push({ id: uid(), text: t, done: false }); }); },
+        addTasks(texts, replace = false) {
+          const items = texts.map((x) => x.trim().slice(0, 300)).filter(Boolean).map((text) => ({ id: uid(), text, done: false }));
+          set((d) => { d.tasks = [...(replace ? [] : d.tasks), ...items]; });
+        },
         toggleTask(id, done) { set((d) => { const t = d.tasks.find((x) => x.id === id); if (t) t.done = done; }); },
         deleteTask(id) { set((d) => { d.tasks = d.tasks.filter((x) => x.id !== id); }); },
         clearDone() { set((d) => { d.tasks = d.tasks.filter((x) => !x.done); }); },

@@ -1,4 +1,4 @@
-import type { AiError, DaySummary, Plan, QuizQuestion } from './types';
+import type { AiError, AssistantReply, DaySummary, Plan, ProposedTask, QuizQuestion } from './types';
 import { clamp, shuffle, uid } from './util';
 
 type Obj = Record<string, unknown>;
@@ -65,19 +65,39 @@ export function cleanDay(d: unknown): DaySummary {
   return { headline: str(d.headline), wins: list(d.wins, 5), gaps: list(d.gaps, 5), tomorrow: list(d.tomorrow, 5) };
 }
 
+/** Validate the assistant's reply: a message, plus any to-do items it proposed. */
+export function cleanAssistant(d: unknown): AssistantReply {
+  if (!isObj(d)) throw { code: 'invalid_json' } satisfies AiError;
+  const reply = str(d.reply).slice(0, 8000);
+  const tasks: ProposedTask[] = (Array.isArray(d.tasks) ? d.tasks : [])
+    .map((t) => ({
+      text: str(isObj(t) ? t.text : t).replace(/\s+/g, ' ').slice(0, 140),
+      sessions: clamp(Math.round(Number(isObj(t) ? t.sessions : 1) || 1), 1, 12),
+    }))
+    .filter((t) => t.text)
+    .slice(0, 20);
+  if (!reply && !tasks.length) throw { code: 'empty_completion' } satisfies AiError;
+  return { reply: reply || 'Here\'s a to-do list for you.', tasks };
+}
+
+/** How a proposed task reads in the to-do list, e.g. "Read chapter 4 · 2 sessions". */
+export const taskLine = (t: ProposedTask) => `${t.text} · ${t.sessions} session${t.sessions === 1 ? '' : 's'}`;
+
 /** Viewer-facing copy for every error code an AI call can fail with. */
 export function aiErrorText(e: unknown): string {
   const code = isObj(e) ? String(e.code ?? '') : '';
   switch (code) {
     case 'not_configured': return 'Quizzes aren\'t switched on for this site yet. The timer works without them.';
-    case 'unavailable': return 'Quizzes need Claude, which this site can\'t reach right now.';
+    case 'unavailable': return 'The AI can\'t be reached right now.';
     case 'offline': return 'You\'re offline, so no quiz this round.';
-    case 'daily_limit': return 'You\'ve used today\'s AI allowance. The timer keeps working, and quizzes come back tomorrow.';
-    case 'rate_limited': return 'Claude is busy right now. Try again in a minute.';
+    case 'daily_limit': return 'You\'ve used today\'s AI allowance. The timer keeps working, and the AI comes back tomorrow.';
+    case 'rate_limited': return 'The free AI limit was reached for now. Wait a minute and try again; if it keeps happening, it resets tomorrow.';
     case 'unauthorized': return 'Your sign-in expired. Sign in again, then try again.';
-    case 'refused': return 'Claude declined to write questions for this topic. Try rewording the topic.';
+    case 'refused': return 'The AI declined this request. Try rewording it.';
+    case 'bad_key': return 'The site\'s AI key isn\'t working. Check GEMINI_API_KEY in Vercel.';
+    case 'model_missing': return 'The AI model this site uses isn\'t available. Check GEMINI_MODEL in Vercel.';
     case 'prompt_too_large': return 'Your notes are too long. Trim them and try again.';
     case 'invalid_json': case 'empty_completion': return 'The reply came back incomplete. Try again.';
-    default: return 'Couldn\'t reach Claude. Check your connection and try again.';
+    default: return 'Couldn\'t reach the AI. Check your connection and try again.';
   }
 }

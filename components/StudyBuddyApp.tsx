@@ -15,6 +15,8 @@ import { AppearanceDialog, useAppearance } from './Appearance';
 import { DocumentsDialog, ScreenConsentDialog } from './Documents';
 import { signInWithGoogle } from '@/lib/auth';
 import { SPRING } from './motion';
+import { AssistantButton, AssistantPanel } from './Assistant';
+import { openAssistant } from '@/lib/assistant';
 
 /** The ambience that should be playing for the current timer state. */
 const desiredAmbience = (s: Store) =>
@@ -114,6 +116,7 @@ export default function StudyBuddyApp() {
       if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      if (t?.closest?.('.assistant')) return; // keys pressed inside the chat panel belong to it
       if (document.querySelector('dialog[open]')) return;
       const s = useStudy.getState();
       const k = e.key;
@@ -133,6 +136,7 @@ export default function StudyBuddyApp() {
       else if (k === '+' || k === '=') s.addFive();
       else if (k === 'l' || k === 'L') s.setLoop(!s.settings.loop);
       else if (k === '?') helpRef.current?.showModal();
+      else if (k === 'a' || k === 'A') { e.preventDefault(); openAssistant(); }
       else if (k === 'n' || k === 'N') { e.preventDefault(); document.getElementById('taskInput')?.focus(); }
     };
     document.addEventListener('keydown', onKey);
@@ -188,6 +192,8 @@ export default function StudyBuddyApp() {
       <HelpDialog dialogRef={helpRef} />
       <SignInDialog dialogRef={signInRef} />
       <ProfileDialog dialogRef={profileRef} />
+      <AssistantButton />
+      <AssistantPanel />
       <Toast />
       <Announcer />
     </MotionConfig>

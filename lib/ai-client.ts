@@ -1,9 +1,9 @@
 /**
  * Browser side of the AI features. Every call goes to this site's own /api/ai/* routes,
- * which hold the Claude API key on the server.
+ * which hold the Gemini API key on the server.
  */
-import type { AiError, AiStatus, DayInput, DaySummary, Plan, PlanInput, QuizInput, QuizQuestion } from './types';
-import { cleanDay, cleanPlan, cleanQuiz } from './quiz';
+import type { AiError, AiStatus, AssistantInput, AssistantReply, DayInput, DaySummary, Plan, PlanInput, QuizInput, QuizQuestion } from './types';
+import { cleanAssistant, cleanDay, cleanPlan, cleanQuiz } from './quiz';
 
 let status: AiStatus = 'checking';
 let readyP: Promise<AiStatus> | null = null;
@@ -25,7 +25,7 @@ async function post(path: string, body: unknown, signal?: AbortSignal): Promise<
 }
 
 export const AI = {
-  /** Asks the server once whether Claude is configured. */
+  /** Asks the server once whether the AI is configured. */
   ready(): Promise<AiStatus> {
     if (!readyP) {
       readyP = fetch('/api/ai/status')
@@ -37,7 +37,6 @@ export const AI = {
   },
   status: (): AiStatus => status,
   available: () => status === 'on',
-  canReadPhotos: () => status === 'on',
   async quiz(input: QuizInput, signal?: AbortSignal): Promise<QuizQuestion[]> {
     return cleanQuiz(await post('quiz', input, signal), input.n);
   },
@@ -47,14 +46,7 @@ export const AI = {
   async day(input: DayInput, signal?: AbortSignal): Promise<DaySummary> {
     return cleanDay(await post('day-summary', input, signal));
   },
-  async readPhoto(file: File): Promise<string> {
-    const fd = new FormData();
-    fd.append('image', file);
-    let r: Response;
-    try { r = await fetch('/api/ai/read-image', { method: 'POST', body: fd }); }
-    catch { throw { code: 'offline' } satisfies AiError; }
-    const j = (await r.json().catch(() => null)) as { text?: string; code?: string } | null;
-    if (!r.ok || typeof j?.text !== 'string') throw { code: j?.code || 'upstream_error' } satisfies AiError;
-    return j.text;
+  async assistant(input: AssistantInput, signal?: AbortSignal): Promise<AssistantReply> {
+    return cleanAssistant(await post('assistant', input, signal));
   },
 };

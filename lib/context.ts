@@ -18,7 +18,7 @@ export const hasTopic = (c: StudyContext) => !!(c.topic.trim() || c.subject.trim
 
 /** Changes whenever anything that shapes the quiz changes. */
 export const ctxKey = (c: StudyContext, s: Settings) =>
-  hash(JSON.stringify([c.subject, c.topic, c.level, c.exam, c.goal, c.notes, s.difficulty, s.questions]));
+  hash(JSON.stringify([c.subject, c.topic, c.level, c.exam, c.goal, c.notes, s.difficulty, s.questions, c.docId, c.startPage, c.goalPage]));
 
 /** One-word topics without notes make vague quizzes. */
 export function isVagueTopic(c: StudyContext): boolean {

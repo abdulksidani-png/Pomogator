@@ -30,13 +30,20 @@ optional screen tracking, sign-in with cloud sync, and appearance customization.
 | 4 | Documents: PDF/PPTX/DOCX/text/photos, outlines, goals, resume point, library | Done |
 | 5 | Screen tracking: opt-in, on-device OCR, slide matching, "slides seen" log | Done |
 | + | Appearance: themes, accent, clock fonts, timer styles, backgrounds | Done |
-| **3** | **AI routes (Gemini free tier): quiz, plan, day summary, OCR fallback, daily limits** | **Next** (needs `GEMINI_API_KEY` in Vercel) |
-| 6 | Stats engine (pure, tested) + Stats page | |
+| 3 | AI (Gemini free tier): quiz from covered pages, plan, day summary, study assistant, daily limits | Built, waiting on his test (key is in Vercel; migration 3 optional) |
+| **6** | **Stats engine (pure, tested) + Stats page** | **Next** |
 | 7 | Weekly report | |
 | 8 | Check-in streaks + celebrations (MyFitnessPal style) | |
 | 9 | Polish, export / delete account, full README guide | |
 
-The owner's latest requests, all done (he hadn't confirmed they work yet):
+Phase 3 also added the **study assistant** he asked for (`components/Assistant.tsx`, `lib/assistant.ts`): a corner
+"Ask StudyBuddy" button / `A` key opens a chat panel that sees the study panel, timer, to-do list, the selected
+document (whole deck if it fits 60k chars) and any lecture transcript. It answers anything, summarizes the document
+("Summarize with AI" under the document), quizzes in chat, and proposes to-do lists sized in study sessions
+("Plan with AI" on the To-do card); proposals are added only on a click, as "Task · N sessions" text so tasks sync unchanged.
+The chat is local only (`studybuddy.chat`).
+
+Earlier requests, all done (he hadn't confirmed they work yet):
 - sign out (Settings → Account, avatar menu), more file types, screen-share button under "Study material", appearance options
 - faster screen tracking (checks every 2 s by default, `screenSec` 1–15)
 - "Also capture the tab's sound": tab audio → on-device Whisper → `session.heard` (sent to the quiz as `heard`)
@@ -58,8 +65,16 @@ The owner's latest requests, all done (he hadn't confirmed they work yet):
   stored in Vercel as `GEMINI_API_KEY`, no billing enabled). Keep the reference prototype's prompts and JSON shapes; use
   Gemini's JSON output mode. Free-tier limits are per project and shown only in AI Studio, so handle 429s gracefully
   ("quiz limit reached for today, enjoy a no-quiz break") and keep the app's own daily limits.
-- **AI routes** are stubs: `app/api/ai/[action]/route.ts` returns 503 and `app/api/ai/status` returns `{configured:false}`.
-  The client side is ready in `lib/ai-client.ts` and `lib/quiz.ts`, which include validation.
+- **AI routes**: `app/api/ai/[action]/route.ts` handles `quiz`, `plan`, `day-summary` and `assistant`; prompts in
+  `lib/ai/prompts.ts` (ported from the prototype), Gemini REST calls in `lib/ai/gemini.ts` (JSON mode, one retry on bad JSON,
+  falls back from `gemini-flash-latest` to `gemini-flash-lite-latest` on 429/404; override with `GEMINI_MODEL(_BACKUP)`),
+  replies validated with `lib/quiz.ts` on the server and again in the browser. Daily allowance: `lib/ai/quota.ts` +
+  migration 3 (`ai_usage`, `use_ai()`): guests 40 calls/day, accounts 150 (`AI_DAILY_LIMIT_GUEST/USER`); skipped without
+  Supabase or before migration 3 is run. Not built yet: `/api/ai/read-image` (photos still use on-device OCR), `/goal`
+  (goals map locally), `/outline`, `/frame`, `/weekly`.
+- **Quizzes from documents**: `quizPages()` in the store picks start page → furthest slide seen on screen, else the goal
+  (else 10 pages); `sourcesKey()` (pages + transcript size) joins `ctxKey` in deciding when a quiz must be rewritten, so
+  the end of a session rewrites it if screen tracking or the lecture transcript changed what was covered.
 
 ## Stack
 - Next.js 15 App Router and React 19. The app is client-only: `components/ClientApp.tsx` loads `StudyBuddyApp` with `ssr:false`.
@@ -81,6 +96,7 @@ The owner's latest requests, all done (he hadn't confirmed they work yet):
   - `library.ts`: import, pages cache (memory → IndexedDB → server), delete
   - `match.ts`: goals, screen matching, change detection
   - `ocr.ts`, `screen.ts`, `listen.ts` (tab sound → text)
+- `lib/ai/`: `prompts.ts`, `gemini.ts` and `quota.ts` (server), `material.ts` (document excerpts, browser).
 - `lib/appearance.ts` + `components/Appearance.tsx`: look settings, applied as data attributes on `<html>`.
 - `components/`:
   - `StudyBuddyApp.tsx`: layout, dialogs, Start/consent wiring
@@ -89,15 +105,17 @@ The owner's latest requests, all done (he hadn't confirmed they work yet):
   - `Documents.tsx`
   - `Dialogs.tsx`: settings, help
   - `Account.tsx`
-- `supabase/migrations/`: `…000000_core.sql`, `…010000_documents.sql`. RLS restricts every table to
+  - `Assistant.tsx`: chat panel, corner button, reply formatting
+- `supabase/migrations/`: `…000000_core.sql`, `…010000_documents.sql`, `20261015000000_ai_usage.sql`. RLS restricts every table to
   `user_id = (select auth.uid())`. The owner pastes migrations into the SQL Editor by hand.
 
 ## Commands
 ```bash
 npm run dev          # http://localhost:3000 (copies vendor files first)
 npm run typecheck
-npm test             # Vitest unit tests (42)
+npm test             # Vitest unit tests (55)
 npm run test:e2e     # Playwright: loop, documents, goals, screen tracking, tab sound, sounds, appearance
+npm run test:ai      # Playwright: AI features against tests/fake-gemini (real /api/ai routes, fake Google)
 npm run test:sync    # two-device sync: needs local Postgres + PostgREST (PGHOST/PGPORT/PGUSER, POSTGREST_BIN)
 ```
 `tests/fake-supabase/server.mjs` runs the real migrations on Postgres behind PostgREST, with a fake auth server.

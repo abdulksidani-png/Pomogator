@@ -245,6 +245,7 @@ const SHORTCUTS: [string[], string][] = [
   [['Space'], 'Start or pause the timer'],
   [['R'], 'Reset the current timer'],
   [['S'], 'Skip to the next phase'],
+  [['A'], 'Open the study assistant'],
   [['D'], 'Finish the study session now and take the quiz'],
   [['+'], 'Add 5 minutes and keep going'],
   [['L'], 'Turn Loop on or off'],

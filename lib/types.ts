@@ -228,6 +228,8 @@ export interface QuizState {
   index: number;
   answers: (QuizAnswer | null)[];
   forTopic: string;
+  /** Which document pages and how much lecture transcript the quiz was written from (see sourcesKey). */
+  sources?: string;
 }
 
 export interface PlanAction { minutes: number; technique: string; step: string }
@@ -290,7 +292,45 @@ export interface QuizInput {
   asked: string[];
   /** Speech heard from a shared lecture tab this session, if any. */
   heard?: string;
+  /** The document pages covered this session, if a document is being studied. */
+  material?: Material;
 }
+
+/** Pages of a document sent to the AI. */
+export interface Material {
+  name: string;
+  /** "slide", "page" or "section". */
+  unit: string;
+  pageCount: number;
+  pages: { n: number; title: string; text: string }[];
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  text: string;
+  at: number;
+  /** Tasks the assistant proposed, waiting for the student to add them. */
+  tasks?: ProposedTask[];
+  /** What happened to the proposal. */
+  tasksAdded?: 'added' | 'replaced' | 'dismissed';
+  error?: boolean;
+}
+
+export interface ProposedTask { text: string; sessions: number }
+
+export interface AssistantInput {
+  messages: { role: 'user' | 'assistant'; text: string }[];
+  ctx: StudyContext;
+  timer: { studyMin: number; shortBreak: number; longBreak: number; longEvery: number; state: string };
+  tasks: { text: string; done: boolean }[];
+  material?: Material;
+  heard?: string;
+  /** The student's local date and time, e.g. "Tue 14 Oct, 3:05 PM". */
+  now?: string;
+}
+
+export interface AssistantReply { reply: string; tasks: ProposedTask[] }
 
 export interface DayInput {
   sessions: { time: string; topic: string; studiedMin?: number; quiz: string; missed: string[] }[];

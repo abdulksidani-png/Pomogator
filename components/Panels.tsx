@@ -11,6 +11,8 @@ import type { StudyContext } from '@/lib/types';
 import { Icon } from './Icon';
 import { ReachPicker, StudyMaterial } from './Documents';
 import { EASE, SOFT, SPRING } from './motion';
+import { TODO_PROMPT } from './Assistant';
+import { openAssistant } from '@/lib/assistant';
 
 /** A button that needs a second click within a few seconds, instead of a confirm() dialog. */
 function useArmed(ms = 3500) {
@@ -195,7 +197,10 @@ export function TasksCard() {
   const done = tasks.filter((t) => t.done).length;
   return (
     <section className="card side-card" id="tasksCard" aria-labelledby="tasksTitle">
-      <div className="card-h"><h2 id="tasksTitle">To-do</h2><span className="meta">{tasks.length ? `${done} of ${tasks.length} done` : ''}</span></div>
+      <div className="card-h"><h2 id="tasksTitle">To-do</h2>
+        <span className="meta">{tasks.length ? `${done} of ${tasks.length} done` : ''}</span>
+        <button className="btn-quiet plan-ai" type="button" onClick={() => openAssistant(TODO_PROMPT)}><Icon name="sparkle" />Plan with AI</button>
+      </div>
       <form className="task-add" onSubmit={(e) => { e.preventDefault(); addTask(text); setText(''); }}>
         <label className="sr-only" htmlFor="taskInput">New task</label>
         <input type="text" id="taskInput" placeholder="Add a task (N)" maxLength={160} value={text} onChange={(e) => setText(e.target.value)} />

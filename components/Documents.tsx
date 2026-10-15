@@ -9,6 +9,7 @@ import { docDownloadUrl } from '@/lib/sync';
 import type { DocMeta, DocPage, SeenEvent } from '@/lib/types';
 import { Icon } from './Icon';
 import { useArmed } from './Panels';
+import { openAssistant, sendToAssistant } from '@/lib/assistant';
 
 // A shared empty list: a fresh [] in a store selector would re-render forever.
 const NO_EVENTS: SeenEvent[] = [];
@@ -179,6 +180,12 @@ function DocPlan({ doc }: { doc: DocMeta }) {
           <button className="btn-quiet" type="button" onClick={() => { setText(''); setDocGoal('', 0); }}>Clear goal</button>
         </div>
       )}
+      <div className="ask-row">
+        <button className="btn-quiet" type="button" onClick={() => { openAssistant(); void sendToAssistant(`Summarize "${doc.name}": the main ideas ${unit} by ${unit}, then the 5 concepts most likely to be tested.`); }}>
+          <Icon name="sparkle" />Summarize with AI
+        </button>
+        <button className="btn-quiet" type="button" onClick={() => openAssistant(`About "${doc.name}": `)}><Icon name="sparkle" />Ask about this {unit === 'slide' ? 'deck' : 'document'}</button>
+      </div>
     </div>
   );
 }
