@@ -119,7 +119,7 @@ flowchart LR
 
 ```bash
 git clone https://github.com/abdulksidani-png/Pomogator.git
-cd pomogator
+cd Pomogator
 npm install
 npm run dev        # http://localhost:3000
 ```
