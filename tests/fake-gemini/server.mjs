@@ -98,6 +98,10 @@ http.createServer((req, res) => {
     if (prompt.includes('Write an actionable plan')) {
       return answer(res, { summary: 'Nice work.', strong: ['Forms'], review: ['Virtue'], actions: [{ minutes: 15, technique: 'Active recall', step: 'Recall the slides.' }, { minutes: 10, technique: 'Flashcards', step: 'Make 5 cards.' }], suggestedMinutes: 25, nextGoal: 'Finish the Aristotle slides' });
     }
+    if (prompt.includes('weekly report for')) {
+      const mins = Number(prompt.match(/THIS WEEK: study (\d+) min/)?.[1] || 0);
+      return answer(res, { headline: 'A steady week of study.', summary: `You studied ${mins} minutes this week. Keep the momentum going.`, focus: ['Review the Forms first.', 'Finish the Aristotle slides.', 'Study in the morning.'] });
+    }
     if (prompt.includes('end-of-day summary')) return answer(res, { headline: 'A good day.', wins: ['Studied'], gaps: ['Virtue'], tomorrow: ['Review'] });
     return reply(res, 400, { error: { code: 400, message: 'Unknown prompt' } });
   });

@@ -13,13 +13,18 @@ import './globals.css';
 
 const description = 'A Pomodoro study timer that quizzes you on what you studied, sets your break from your score, and plans your next session.';
 
+const SITE_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : 'https://pomo-gator.vercel.app';
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: 'PomoGator',
   applicationName: 'PomoGator',
   description,
   openGraph: { title: 'PomoGator: study, quiz yourself, earn your break', description, type: 'website', siteName: 'PomoGator' },
   twitter: { card: 'summary_large_image', title: 'PomoGator', description },
 };
+
+const EARLY_THEME = `try{var s=JSON.parse(localStorage.getItem('studybuddy.v1')||'{}').state;s=s&&s.settings;if(s){var e=document.documentElement;if(s.skin&&s.skin!=='auto')e.dataset.skin=s.skin;if(/^#[0-9a-f]{6}$/i.test(s.accent||''))e.style.setProperty('--accent',s.accent)}}catch(_){}`;
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -34,6 +39,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Put the saved theme and accent on the page before it paints, so the loading screen and first frame match it. */}
+        <script dangerouslySetInnerHTML={{ __html: EARLY_THEME }} />
+      </head>
       <body>{children}</body>
     </html>
   );

@@ -120,3 +120,26 @@ test('an upload is read by the AI in the background: topic, key ideas, and the a
   const chat = (await sent(page)).at(-1)!;
   expect(chat.body.systemInstruction!.parts[0].text).toContain('"lecture.pptx" (7 slides): Ancient Greek philosophy.');
 });
+
+test('the weekly report gets an AI summary once, written from the week\'s real numbers', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (localStorage.getItem('studybuddy.v1')) return;
+    const d = new Date(); d.setHours(10, 0, 0, 0);
+    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const items = [{ concept: 'Forms', question: 'Q', chosen: 'a', answer: 'a', correct: true }];
+    const history = [{ id: 'w1', date: iso, startedAt: d.getTime(), endedAt: d.getTime() + 40 * 60000, plannedMin: 40, studiedMin: 40, subject: '', topic: 'Philosophy',
+      level: 'intro', goal: '', quiz: { status: 'done', score: 1, total: 1, items } }];
+    localStorage.setItem('studybuddy.v1', JSON.stringify({ state: { history }, version: 1 }));
+  });
+  await page.goto('/weekly');
+  await expect(page.locator('.week-hero h2')).toHaveText('A steady week of study.');
+  await expect(page.locator('.week-hero')).toContainText('You studied 40 minutes this week.');
+  await expect(page.locator('.focus-list')).toContainText('Finish the Aristotle slides.');
+  const weeklyCalls = async () => (await sent(page)).filter((s) => textOf(s).includes('weekly report for'));
+  const [call] = await weeklyCalls();
+  expect(textOf(call)).toContain('THIS WEEK: study 40 min in 1 sessions');
+  expect(textOf(call)).toContain('never shaming');
+  await page.reload();
+  await expect(page.locator('.week-hero h2')).toHaveText('A steady week of study.');
+  expect(await weeklyCalls()).toHaveLength(1); // saved, not asked again
+});

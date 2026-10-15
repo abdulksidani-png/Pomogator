@@ -53,6 +53,11 @@ const digest = {
   concepts: ['Theory of Forms', 'Allegory of the cave', 'Socratic method', 'Form and matter', 'Eudaimonia', 'Golden mean', 'Stoicism'],
   sections: [{ from: 1, to: 3, title: 'Before Plato', summary: 'Presocratics and Socrates.' }, { from: 4, to: 5, title: 'Plato and the Forms', summary: 'The Forms and Aristotle\'s reply.' }, { from: 6, to: 7, title: 'Aristotle and after', summary: 'Virtue ethics and the Hellenistic schools.' }],
 };
+const weekly = {
+  headline: 'Your most consistent week yet',
+  summary: 'You studied on six days and kept your quiz accuracy high across philosophy and biology. The Theory of Forms is the idea to revisit first, and the lecture deck is almost done.',
+  focus: ['Open Monday\'s first session with 5 minutes of recall on the Theory of Forms.', 'Finish lecture.pptx: the last 2 slides on Aristotle and the Hellenistic schools.', 'Keep your hardest sessions in the morning, when your accuracy was highest.'],
+};
 const assistant = {
   reply: 'Here\'s tonight in 25-minute sessions:\n- **Sessions 1–2:** finish slides 6–7 (Aristotle\'s ethics, the Hellenistic schools)\n- **Session 3:** Krebs cycle flashcards, then draw the cycle from memory\n- **Session 4:** Calc II problem set 4, problems 1–3\n\nYour long break lands after session 4. Want a quick quiz on the Forms before you start?',
   tasks: [{ text: 'Finish philosophy slides 6–7', sessions: 2 }, { text: 'Krebs cycle flashcards', sessions: 1 }, { text: 'Calc II problem set 4: problems 1–3', sessions: 1 }],
@@ -67,6 +72,7 @@ async function newPage({ w = 1440, h = 900, dpr = 1.5, settings = {}, tasks = []
   await page.route('**/api/ai/quiz', (r) => r.fulfill({ json: quiz }));
   await page.route('**/api/ai/plan', (r) => r.fulfill({ json: plan }));
   await page.route('**/api/ai/day-summary', (r) => r.fulfill({ json: { headline: 'A focused day.', wins: ['Forms'], gaps: ['Golden mean'], tomorrow: ['Slides 6–7'] } }));
+  await page.route('**/api/ai/weekly', (r) => r.fulfill({ json: weekly }));
   await page.route('**/api/ai/assistant', async (r) => { await wait(600); return r.fulfill({ json: assistant }); });
   await page.route('https://api.spotify.com/v1/me/player**', (r) => r.fulfill({ json: { is_playing: true, progress_ms: 98000, device: { name: 'MacBook Air' },
     item: { name: 'Sunset Lover', duration_ms: 202000, artists: [{ name: 'Petit Biscuit' }], album: { name: 'Presence', images: [{ url: 'https://i.scdn.co/image/a', width: 300 }] }, external_urls: { spotify: 'https://open.spotify.com/' } } } }));
@@ -122,6 +128,7 @@ const shot = (page, name, opts = {}) => page.screenshot({ path: `${OUT}/${name}.
 if (!only || only === 'loop') {
   const page = await newPage({ settings: { skin: 'gator', mascotKind: 'gator', mascot: 'on', musicWidget: true }, tasks: TASKS });
   await page.goto(BASE);
+  await page.locator('.splash').waitFor({ state: 'hidden' }).catch(() => {});
   await page.locator('#docInput').setInputFiles(FIXTURE);
   await page.locator('#docSelect').waitFor();
   await page.getByText('Read by AI').waitFor({ timeout: 30000 });
@@ -161,9 +168,19 @@ if (!only || only === 'loop') {
   await page.context().close();
 }
 
+if (!only || only === 'weekly') {
+  const page = await newPage({ settings: { skin: 'notebook', mascotKind: 'gator', mascot: 'on' }, withDoc: true });
+  await page.goto(`${BASE}/weekly`);
+  await page.locator('.week-hero h2', { hasText: 'consistent' }).waitFor();
+  await wait(1500);
+  await shot(page, 'weekly');
+  await page.context().close();
+}
+
 if (!only || only === 'stats') {
   const page = await newPage({ settings: { skin: 'notebook', mascotKind: 'gator', mascot: 'on' }, withDoc: true });
   await page.goto(`${BASE}/stats`);
+  await page.locator('.splash').waitFor({ state: 'hidden' }).catch(() => {});
   await page.getByRole('heading', { name: 'Your stats' }).waitFor();
   await page.getByRole('button', { name: 'Last 30 days' }).click().catch(() => {});
   await wait(1500);
@@ -174,6 +191,7 @@ if (!only || only === 'stats') {
 if (!only || only === 'assistant') {
   const page = await newPage({ settings: { skin: 'midnight', mascotKind: 'robot', mascot: 'on' }, tasks: TASKS.slice(0, 1) });
   await page.goto(BASE);
+  await page.locator('.splash').waitFor({ state: 'hidden' }).catch(() => {});
   await page.locator('#stage').waitFor();
   await page.fill('#ctxTopic', 'Ancient Greek philosophy');
   await page.locator('#ctxTopic').blur();
@@ -190,6 +208,7 @@ if (!only || only === 'assistant') {
 if (!only || only === 'focus') {
   const page = await newPage({ settings: { skin: 'midnight', mascotKind: 'gator', mascot: 'on', timerStyle: 'ring', clockFont: 'mono' }, withHistory: false });
   await page.goto(BASE);
+  await page.locator('.splash').waitFor({ state: 'hidden' }).catch(() => {});
   await page.locator('#stage').waitFor();
   await page.keyboard.press('f');
   await page.keyboard.press('Space');
@@ -209,6 +228,7 @@ if (!only || only === 'phones') {
   for (const [i, look] of looks.entries()) {
     const page = await newPage({ w: 390, h: 844, dpr: 2, mobile: true, settings: { ...look, mascot: 'on', musicWidget: false }, withHistory: false });
     await page.goto(BASE);
+  await page.locator('.splash').waitFor({ state: 'hidden' }).catch(() => {});
     await page.locator('#stage').waitFor();
     await page.fill('#ctxTopic', ['Ancient Greek philosophy', 'Cellular respiration', 'Calculus II', 'Organic chemistry'][i]);
     await page.locator('#ctxTopic').blur();

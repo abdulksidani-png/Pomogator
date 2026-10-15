@@ -9,14 +9,14 @@ import { SOFT } from './motion';
 
 type Range = 'week' | 'month' | 'all';
 const RANGES: { id: Range; name: string }[] = [{ id: 'week', name: 'This week' }, { id: 'month', name: 'Last 30 days' }, { id: 'all', name: 'All time' }];
-const SLOT_NAMES = { morning: 'Mornings', afternoon: 'Afternoons', evening: 'Evenings', night: 'Nights' };
+export const SLOT_NAMES = { morning: 'Mornings', afternoon: 'Afternoons', evening: 'Evenings', night: 'Nights' };
 
-const hm = (min: number) => (min >= 60 ? `${Math.floor(min / 60)} h${min % 60 ? ` ${min % 60} min` : ''}` : `${min} min`);
-const shortDate = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString([], { month: 'short', day: 'numeric', timeZone: 'UTC' });
-const dayName = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString([], { weekday: 'short', timeZone: 'UTC' });
+export const hm = (min: number) => (min >= 60 ? `${Math.floor(min / 60)} h${min % 60 ? ` ${min % 60} min` : ''}` : `${min} min`);
+export const shortDate = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString([], { month: 'short', day: 'numeric', timeZone: 'UTC' });
+export const dayName = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString([], { weekday: 'short', timeZone: 'UTC' });
 
 /** The Stats page: totals for a time range, charts, best times, topics, documents and concepts. */
-export function StatsView({ onBack }: { onBack: () => void }) {
+export function StatsView({ onBack, onWeekly }: { onBack: () => void; onWeekly: () => void }) {
   const history = useStudy((s) => s.history);
   const docs = useStudy((s) => s.docs);
   const settings = useStudy((s) => s.settings);
@@ -38,6 +38,7 @@ export function StatsView({ onBack }: { onBack: () => void }) {
     <div className="stats-page">
       <div className="stats-head">
         <button className="btn-quiet" type="button" onClick={onBack}><span aria-hidden="true">←</span> Back to the timer</button>
+        <StatsTabs on="stats" onStats={() => {}} onWeekly={onWeekly} />
         <h1>Your stats</h1>
         <div className="seg" role="group" aria-label="Time range">
           {RANGES.map((r) => <button key={r.id} type="button" aria-pressed={range === r.id} onClick={() => setRange(r.id)}>{r.name}</button>)}
@@ -120,8 +121,18 @@ export function StatsView({ onBack }: { onBack: () => void }) {
   );
 }
 
+/** Stats and the weekly report are two tabs of one page. */
+export function StatsTabs({ on, onStats, onWeekly }: { on: 'stats' | 'weekly'; onStats: () => void; onWeekly: () => void }) {
+  return (
+    <nav className="stats-tabs" aria-label="Stats pages">
+      <button type="button" aria-current={on === 'stats' ? 'page' : undefined} onClick={onStats}>Overview</button>
+      <button type="button" aria-current={on === 'weekly' ? 'page' : undefined} onClick={onWeekly}>Weekly report</button>
+    </nav>
+  );
+}
+
 /** A "?" that shows how a number is worked out, on hover or focus. */
-function Def({ text }: { text: string }) {
+export function Def({ text }: { text: string }) {
   return <span className="def" tabIndex={0} role="note" aria-label={text} data-def={text}>?</span>;
 }
 
@@ -136,7 +147,7 @@ function Tile({ label, def, value, note, i }: { label: string; def: string; valu
 }
 
 /** One floating tooltip per chart, positioned over the hovered or focused mark. */
-function useTip() {
+export function useTip() {
   const box = useRef<HTMLDivElement>(null);
   const [tip, setTip] = useState<{ x: number; y: number; body: ReactNode } | null>(null);
   const show = (el: Element, body: ReactNode) => {
@@ -154,7 +165,7 @@ function useTip() {
 }
 
 /** Minutes per day as thin columns, rounded at the top and square at the baseline. */
-function Columns({ days }: { days: DayStat[] }) {
+export function Columns({ days }: { days: DayStat[] }) {
   const { box, handlers, el } = useTip();
   const max = Math.max(...days.map((d) => d.minutes));
   const top = max <= 0 ? 60 : Math.ceil(max / 30) * 30; // a clean ceiling: 30, 60, 90 …
@@ -190,7 +201,7 @@ function Columns({ days }: { days: DayStat[] }) {
 const heatLevel = (min: number) => (min <= 0 ? 0 : min < 25 ? 1 : min < 50 ? 2 : min < 100 ? 3 : 4);
 
 /** A calendar of the last 12 weeks: one cell per day, darker for more minutes. */
-function Heatmap({ days, weekStart, today }: { days: DayStat[]; weekStart: number; today: string }) {
+export function Heatmap({ days, weekStart, today }: { days: DayStat[]; weekStart: number; today: string }) {
   const { box, handlers, el } = useTip();
   const byDate = new Map(days.map((d) => [d.date, d]));
   const first = weekStartOf(addDays(today, -83), weekStart);
@@ -222,7 +233,7 @@ function Heatmap({ days, weekStart, today }: { days: DayStat[]; weekStart: numbe
 }
 
 /** Horizontal bars of accuracy, each with its value at the tip. */
-function Bars({ rows }: { rows: { label: string; pct: number | null; sub: string }[] }) {
+export function Bars({ rows }: { rows: { label: string; pct: number | null; sub: string }[] }) {
   return (
     <ul className="hbars">
       {rows.map((r, i) => (

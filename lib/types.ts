@@ -389,3 +389,27 @@ export interface DayInput {
 
 /** Error shape every AI call rejects with. */
 export interface AiError { code: string; message?: string }
+
+/** What the AI gets to write the weekly report's summary (lib/weekly.ts → weeklyInput). */
+export interface WeeklyInput {
+  week: string;
+  inProgress: boolean;
+  daysLeft: number;
+  now: { studyMin: number; sessions: number; accuracy: number | null; goalsPct: number | null; streak: number; studyDays: number };
+  prev: { studyMin: number; sessions: number; accuracy: number | null; goalsPct: number | null; streak: number; studyDays: number };
+  days: { day: string; minutes: number; accuracy: number | null }[];
+  topics: { topic: string; minutes: number; accuracy: number | null }[];
+  missed: { concept: string; topic: string; missed: number }[];
+  mastered: string[];
+  docs: { name: string; pct: number; coveredThisWeek: number; unit: string }[];
+  bestDay: string;
+  bestTime: string;
+  /** Focus steps worked out from the numbers, which the AI may sharpen. */
+  hints: string[];
+}
+
+/** The AI's part of a weekly report. */
+export interface WeeklyAi { headline: string; summary: string; focus: string[] }
+
+/** A saved summary for one week (keyed by the week's first day), with the numbers it was written from. */
+export interface WeeklySaved extends WeeklyAi { sig: string; at: number }

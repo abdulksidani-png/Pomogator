@@ -18,6 +18,7 @@ import { SPRING } from './motion';
 import { AssistantButton, AssistantPanel } from './Assistant';
 import { MusicCard } from './Music';
 import { StatsView } from './Stats';
+import { WeekReviewBanner, WeeklyView } from './Weekly';
 import { fmt } from '@/lib/util';
 import { PhotoCredit } from './PhotoPicker';
 import { BrandMark, BrandName } from './Brand';
@@ -29,20 +30,23 @@ import { exitFocus, toggleFocus, useFocusMode, watchFullscreen } from '@/lib/foc
 const desiredAmbience = (s: Store) =>
   s.timer.status !== 'running' ? 'none' : s.timer.phase === 'study' ? s.settings.ambStudy : s.timer.phase === 'break' ? s.settings.ambBreak : 'none';
 
-type View = 'timer' | 'stats';
-const viewFromUrl = (): View => (window.location.pathname.startsWith('/stats') ? 'stats' : 'timer');
+type View = 'timer' | 'stats' | 'weekly';
+const viewFromUrl = (): View => (window.location.pathname.startsWith('/stats') ? 'stats' : window.location.pathname.startsWith('/weekly') ? 'weekly' : 'timer');
+const PATHS: Record<View, string> = { timer: '/', stats: '/stats', weekly: '/weekly' };
 
 export default function PomoGatorApp({ initialView = 'timer' }: { initialView?: View }) {
   // Timer and Stats are two pages of one app, so a running session carries on while you look at stats.
   const [view, setView] = useState<View>(initialView);
   const viewRef = useRef(view);
   viewRef.current = view;
-  const go = useRef((v: View) => {
-    if (v === viewRef.current) return;
-    window.history.pushState(null, '', v === 'stats' ? '/stats' : '/');
+  const go = useRef((v: View, query = '') => {
+    if (v === viewRef.current && !query) return;
+    window.history.pushState(null, '', PATHS[v] + query);
     setView(v);
+    setViewKey((k) => k + 1);
     window.scrollTo({ top: 0 });
   }).current;
+  const [viewKey, setViewKey] = useState(0);
   useEffect(() => {
     const back = () => setView(viewFromUrl());
     window.addEventListener('popstate', back);
@@ -90,6 +94,13 @@ export default function PomoGatorApp({ initialView = 'timer' }: { initialView?: 
     const onFocus = () => { if (useStudy.getState().account.pendingEmail) void recheckAccount(); };
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
+  }, []);
+
+  // The app is on screen: fade the splash out, keeping it up for at least ~0.9 s after the page started loading.
+  useEffect(() => {
+    const el = document.documentElement;
+    el.style.setProperty('--splash-delay', `${Math.max(0, 0.9 - performance.now() / 1000).toFixed(2)}s`);
+    el.dataset.ready = '1';
   }, []);
 
   // Boot once: recover an expired timer, check whether AI is available.
@@ -199,7 +210,7 @@ export default function PomoGatorApp({ initialView = 'timer' }: { initialView?: 
             <span className="brand-tag">{SITE.tagline}</span>
           </div>
           <div className="top-actions">
-            {view === 'stats' ? <TimerPill onClick={() => go('timer')} /> : (
+            {view !== 'timer' ? <TimerPill onClick={() => go('timer')} /> : (
               <button className="chip-btn" type="button" onClick={() => go('stats')} title="Your stats"><Icon name="chart" /><span>Stats</span></button>
             )}
             <AccountButton onSignIn={() => signInRef.current?.showModal()} onProfile={() => profileRef.current?.showModal()} />
@@ -211,9 +222,11 @@ export default function PomoGatorApp({ initialView = 'timer' }: { initialView?: 
             <button className="icon-btn" type="button" aria-label="Settings" title="Settings" onClick={() => settingsRef.current?.showModal()}><Icon name="gear" /></button>
           </div>
         </header>
-        {view === 'stats' ? <main className="stats-main"><StatsView onBack={() => go('timer')} /></main> : (
+        {view === 'stats' ? <main className="stats-main"><StatsView onBack={() => go('timer')} onWeekly={() => go('weekly')} /></main>
+          : view === 'weekly' ? <main className="stats-main"><WeeklyView key={viewKey} onBack={() => go('timer')} onStats={() => go('stats')} /></main> : (
         <main className="desk">
           <div className="col-main">
+            <WeekReviewBanner onOpen={(w) => go('weekly', `?week=${w}`)} />
             <Stage onToggle={togglePlay} onScreenConsent={() => screenRef.current?.showModal()} />
             <ResultBanner />
             <PlanCard />

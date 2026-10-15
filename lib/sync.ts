@@ -183,7 +183,7 @@ function watchLocalChanges() {
     const bump: Partial<SliceVersions> = {};
     if (s.settings !== prev.settings) bump.settings = next('settings');
     if (s.context !== prev.context) bump.context = next('context');
-    if (s.timer !== prev.timer || s.quiz !== prev.quiz || s.plan !== prev.plan || s.day !== prev.day || s.asked !== prev.asked) bump.app = next('app');
+    if (s.timer !== prev.timer || s.quiz !== prev.quiz || s.plan !== prev.plan || s.day !== prev.day || s.asked !== prev.asked || s.weekly !== prev.weekly || s.weeklySeen !== prev.weeklySeen) bump.app = next('app');
     if (s.tasks !== prev.tasks) bump.tasks = next('tasks');
     const historyChanged = s.history !== prev.history || s.sync.clearPending !== prev.sync.clearPending;
     if (Object.keys(bump).length) {
@@ -205,7 +205,7 @@ export async function flush() {
   await push();
 }
 
-const appStateOf = (s: Data) => ({ timer: s.timer, quiz: s.quiz, plan: s.plan, day: s.day, asked: s.asked });
+const appStateOf = (s: Data) => ({ timer: s.timer, quiz: s.quiz, plan: s.plan, day: s.day, asked: s.asked, weekly: s.weekly, weeklySeen: s.weeklySeen });
 
 async function push(): Promise<void> {
   if (!sb || !userId) return;
@@ -368,6 +368,9 @@ async function pull({ adopt = false }: { adopt?: boolean } = {}) {
         if (sv.app > d.sync.v.app && prof.app_state) {
           const a = normalizeData({ ...prof.app_state, settings: d.settings });
           d.timer = a.timer; d.quiz = a.quiz; d.plan = a.plan; d.day = a.day; d.asked = a.asked;
+          // Weekly summaries from either device are kept (the newer copy of a week wins).
+          for (const [k, w] of Object.entries(a.weekly)) if (!d.weekly[k] || w.at > d.weekly[k].at) d.weekly[k] = w;
+          if (a.weeklySeen > d.weeklySeen) d.weeklySeen = a.weeklySeen;
         }
         const serverTasks = rowsToTasks((t.data ?? []) as TaskRow[]);
         if (adopt && serverTasks.length && d.tasks.length) {

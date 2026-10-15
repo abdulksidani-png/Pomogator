@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="app/icon.svg" width="84" alt="PomoGator logo: a gator peeking out of the water inside a Pomodoro timer ring">
+<img src="app/icon.svg" width="84" alt="PomoGator logo: a pixel-art gator in study glasses peeking out of the water inside a Pomodoro timer ring">
 
 # PomoGator
 
@@ -42,6 +42,9 @@ comes with an explanation and a memory aid, and **your score earns your break** 
   cover what the lecturer said.
 - **An AI study assistant.** A chat panel that sees your timer, to-do list and documents, answers questions, quizzes
   you, and turns "here's everything I need to do tonight" into a to-do list sized in Pomodoro sessions.
+- **A weekly report.** Every week gets a review: an AI-written summary, key numbers with ▲/▼ vs. last week, minutes
+  and accuracy per day, documents covered, concepts missed and mastered, and three focus steps for next week. Browse
+  past weeks, and save any week as a shareable image or a PDF.
 - **Stats.** Study time, streaks (with streak freezes), minutes per day, a 12-week heatmap, quiz accuracy by concept,
   and slide-by-slide coverage of each document.
 - **Make it yours.** 12 themes, 5 study buddies that put on glasses and study at a desk while you do (including Albert,
@@ -56,10 +59,13 @@ comes with an explanation and a memory aid, and **your score earns your break** 
 | --- | --- |
 | <img src="docs/screenshots/quiz.jpg" alt="A quiz question answered wrong, showing the right answer, why the chosen one was wrong, and a memory aid"> | <img src="docs/screenshots/plan.jpg" alt="A 2/3 score earning a 10-minute break, and a next-session plan with timed active-recall, elaboration and flashcard steps"> |
 | **Quiz feedback.** The right answer, why yours was wrong, and a memory aid. | **Score → break → plan.** What you missed becomes the next session. |
-| <img src="docs/screenshots/stats.jpg" alt="Stats page with study time, quiz accuracy, streak, a minutes-per-day column chart and a 12-week heatmap"> | <img src="docs/screenshots/assistant.jpg" alt="The study assistant turning an evening's to-dos into four Pomodoro sessions, with buttons to add them to the to-do list"> |
-| **Stats.** Totals, streaks, minutes per day and a 12-week heatmap. | **Study assistant.** Plans your evening in Pomodoro sessions. |
-| <img src="docs/screenshots/focus.jpg" alt="Full-screen focus mode with a ring timer, Albert studying, and a small Spotify player in the corner"> | <img src="docs/screenshots/themes.jpg" alt="Four phones showing the Gator, Jungle, Robot lab and Sakura themes with different study buddies"> |
-| **Focus mode.** Full screen, with the music player in the corner. | **Themes and buddies,** on any screen size. |
+| <img src="docs/screenshots/weekly.jpg" alt="The weekly report: an AI summary, key numbers with arrows vs. last week, minutes per day and quiz accuracy per day"> | <img src="docs/screenshots/stats.jpg" alt="Stats page with study time, quiz accuracy, streak, a minutes-per-day column chart and a 12-week heatmap"> |
+| **Weekly report.** Your week in review, compared with last week. | **Stats.** Totals, streaks, minutes per day and a 12-week heatmap. |
+| <img src="docs/screenshots/assistant.jpg" alt="The study assistant turning an evening's to-dos into four Pomodoro sessions, with buttons to add them to the to-do list"> | <img src="docs/screenshots/focus.jpg" alt="Full-screen focus mode with a ring timer, Albert studying, and a small Spotify player in the corner"> |
+| **Study assistant.** Plans your evening in Pomodoro sessions. | **Focus mode.** Full screen, with the music player in the corner. |
+
+<img src="docs/screenshots/themes.jpg" alt="Four phones showing the Gator, Jungle, Robot lab and Sakura themes with different study buddies">
+<p align="center"><b>Themes and study buddies,</b> on any screen size.</p>
 
 ## How it's built
 
@@ -131,9 +137,9 @@ It runs with no keys at all, saving everything in the browser. To switch on acco
 
 ```bash
 npm run typecheck
-npm test            # 79 unit tests: break rules, AI reply validation, stats (time zones, 4 AM rollover, streak freezes), sync merging, saved timers
-npm run test:e2e    # 21 browser tests: study → quiz → break, document goals, screen tracking, tab audio, appearance, stats, focus mode
-npm run test:ai     # 6 browser tests of the AI, Unsplash and Spotify features against local stand-ins
+npm test            # 91 unit tests: break rules, AI reply validation, stats (time zones, 4 AM rollover, streak freezes), weekly reports, sync merging, saved timers
+npm run test:e2e    # 24 browser tests: study → quiz → break, document goals, screen tracking, tab audio, appearance, stats, weekly report, focus mode
+npm run test:ai     # 7 browser tests of the AI, Unsplash and Spotify features against local stand-ins
 npm run test:sync   # two devices syncing through real Postgres + PostgREST running the actual migrations
 ```
 
@@ -154,7 +160,6 @@ docs/                 setup guide, architecture notes, the original spec and pro
 
 ## Roadmap
 
-- Weekly report: a recap of the week's study time, quiz accuracy and weak spots.
 - Check-in streaks and celebrations.
 - Export your data and delete your account in one click.
 

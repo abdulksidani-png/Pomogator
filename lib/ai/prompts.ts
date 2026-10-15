@@ -2,7 +2,7 @@
  * The instructions sent to the AI for each job. Ported from the reference prototype
  * (docs/reference/studybuddy.html) plus the study assistant. Pure functions, so they're unit-tested.
  */
-import type { AssistantInput, DayInput, Material, PlanInput, QuizInput, StudyContext } from '../types';
+import type { AssistantInput, DayInput, Material, PlanInput, QuizInput, StudyContext, WeeklyInput } from '../types';
 
 const LEVEL_NAMES: Record<string, string> = { hs: 'High school', intro: 'Intro college', advanced: 'Advanced college', exam: 'Exam prep' };
 const levelText = (c: StudyContext) => (c.level === 'exam' ? `Exam prep${c.exam ? ` for ${c.exam}` : ''}` : LEVEL_NAMES[c.level] || 'Intro college');
@@ -146,6 +146,30 @@ export function dayPrompt({ sessions, weak }: DayInput): string {
     'Reply with only this JSON and no other text:',
     '{"headline":"one sentence about the day","wins":["1-3 items"],"gaps":["1-3 concepts or skills still shaky"],"tomorrow":["2-3 concrete steps for tomorrow\'s first session"]}',
   ].join('\n');
+}
+
+/** The weekly report's headline, summary and focus steps, from the week's numbers. */
+export function weeklyPrompt(w: WeeklyInput): string {
+  const n = (x: number | null, unit = '') => (x === null ? 'n/a' : `${x}${unit}`);
+  const line = (k: WeeklyInput['now']) => `study ${k.studyMin} min in ${k.sessions} sessions on ${k.studyDays} days · quiz accuracy ${n(k.accuracy, '%')} · goals met ${n(k.goalsPct, '%')} · streak ${k.streak} days`;
+  return [
+    `You are a study coach writing a student's weekly report for ${w.week}${w.inProgress ? ` (the week is still going: ${w.daysLeft} day${w.daysLeft === 1 ? '' : 's'} left)` : ''}.`,
+    '',
+    `THIS WEEK: ${line(w.now)}`,
+    `LAST WEEK: ${line(w.prev)}`,
+    `By day: ${w.days.map((d) => `${d.day} ${d.minutes} min${d.accuracy === null ? '' : ` (${d.accuracy}% right)`}`).join(', ') || 'no study yet'}`,
+    w.topics.length ? `Topics: ${w.topics.map((t) => `${t.topic} ${t.minutes} min, ${n(t.accuracy, '%')} right`).join('; ')}` : 'Topics: none yet',
+    w.missed.length ? `Missed most: ${w.missed.map((m) => `${m.concept} (${m.topic}, missed ${m.missed})`).join('; ')}` : 'Missed most: nothing',
+    w.mastered.length ? `Newly mastered: ${w.mastered.join('; ')}` : 'Newly mastered: none',
+    w.docs.length ? `Documents: ${w.docs.map((d) => `${d.name} ${d.pct}% done, ${d.coveredThisWeek} ${d.unit} covered this week`).join('; ')}` : 'Documents: none',
+    w.bestDay ? `Most study on ${w.bestDay}s.` : '',
+    w.bestTime ? `Best quiz accuracy in the ${w.bestTime}.` : '',
+    `Suggested focus steps: ${w.hints.join(' | ')}`,
+    '',
+    'Write like a supportive coach: specific (use the real numbers and names), encouraging, never shaming. If the week was light, focus on the next step, not on what was missed.',
+    'Reply with only this JSON and no other text:',
+    '{"headline":"one short sentence, max 12 words","summary":"2-3 sentences about the week","focus":["exactly 3 concrete steps for next week, each one sentence"]}',
+  ].filter((l) => l !== '').join('\n');
 }
 
 /** The assistant's standing instructions, with everything it knows about the student right now. */

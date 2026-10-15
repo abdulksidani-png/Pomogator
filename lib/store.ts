@@ -10,7 +10,7 @@ import { immer } from 'zustand/middleware/immer';
 import { current } from 'immer';
 import type {
   Account, AiStatus, Asked, BreakKind, BreakReason, ConceptStat, DayState, PlanState, QuizOutcome, QuizResult,
-  DocMeta, QuizState, SessionRecord, Settings, StudyContext, SyncState, Task, TimerPreset, TimerState, Tier,
+  DocMeta, QuizState, SessionRecord, Settings, StudyContext, SyncState, Task, TimerPreset, TimerState, Tier, WeeklySaved,
 } from './types';
 import { DEFAULT_CONTEXT, DEFAULT_SETTINGS, freshQuiz, freshSync, freshTimer } from './defaults';
 import { breakFor } from './breaks';
@@ -35,6 +35,9 @@ export interface Data {
   asked: Asked;
   sync: SyncState;
   docs: DocMeta[];
+  /** Weekly report summaries by week (its first day), and the last week whose review was opened or dismissed. */
+  weekly: Record<string, WeeklySaved>;
+  weeklySeen: string;
 }
 interface Flash { msg: string; id: number }
 interface Ui { toast: Flash | null; announce: Flash | null; aiStatus: AiStatus; booted: boolean; account: Account }
@@ -88,6 +91,9 @@ interface Actions {
   addTask: (text: string) => void;
   /** Add several tasks at once, optionally replacing the list (used by the assistant). */
   addTasks: (texts: string[], replace?: boolean) => void;
+  /** Keep a weekly summary (only the newest 26 weeks), and remember that a week's review was seen. */
+  saveWeekly: (week: string, data: WeeklySaved) => void;
+  markWeekSeen: (week: string) => void;
   toggleTask: (id: string, done: boolean) => void;
   deleteTask: (id: string) => void;
   clearDone: () => void;
@@ -164,7 +170,20 @@ function initialData(): Data {
     asked: { date: '', items: [] },
     sync: freshSync(),
     docs: [],
+    weekly: {},
+    weeklySeen: '',
   };
+}
+
+/** Saved weekly summaries in the right shape, whatever came back from storage or another device. */
+export function cleanWeeklyMap(v: unknown): Record<string, WeeklySaved> {
+  const out: Record<string, WeeklySaved> = {};
+  if (!v || typeof v !== 'object') return out;
+  for (const [k, x] of Object.entries(v as Record<string, Partial<WeeklySaved>>)) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(k) || !x || typeof x.summary !== 'string') continue;
+    out[k] = { headline: String(x.headline ?? ''), summary: x.summary, focus: Array.isArray(x.focus) ? x.focus.filter((f) => typeof f === 'string').slice(0, 3) : [], sig: String(x.sig ?? ''), at: Number(x.at) || 0 };
+  }
+  return out;
 }
 
 /** Fill in defaults and undo half-finished states (requests that a reload interrupted). */
@@ -189,6 +208,8 @@ export function normalizeData(p: Partial<Data> | undefined): Data {
     stats: p.stats ?? {},
     asked: p.asked ?? { date: '', items: [] },
     docs: p.docs ?? [],
+    weekly: cleanWeeklyMap(p.weekly),
+    weeklySeen: typeof p.weeklySeen === 'string' ? p.weeklySeen : '',
     sync: p.sync
       ? { ...fs, ...p.sync, v: { ...fs.v, ...p.sync.v }, acked: { ...fs.acked, ...p.sync.acked }, pushed: { ...(p.sync.pushed || {}) } }
       : fs,
@@ -650,6 +671,14 @@ export const useStudy = create<Store>()(
 
         /* ---------- tasks & data ---------- */
         addTask(text) { const t = text.trim(); if (t) set((d) => { d.tasks.push({ id: uid(), text: t, done: false }); }); },
+        saveWeekly(week, data) {
+          set((d) => {
+            d.weekly[week] = data;
+            const keep = Object.keys(d.weekly).sort().slice(-26);
+            for (const k of Object.keys(d.weekly)) if (!keep.includes(k)) delete d.weekly[k];
+          });
+        },
+        markWeekSeen(week) { set((d) => { if (week > d.weeklySeen) d.weeklySeen = week; }); },
         addTasks(texts, replace = false) {
           const items = texts.map((x) => x.trim().slice(0, 300)).filter(Boolean).map((text) => ({ id: uid(), text, done: false }));
           set((d) => { d.tasks = [...(replace ? [] : d.tasks), ...items]; });
@@ -768,6 +797,7 @@ export const useStudy = create<Store>()(
       partialize: (s): Data => ({
         settings: s.settings, context: s.context, timer: s.timer, quiz: s.quiz, plan: s.plan, day: s.day,
         tasks: s.tasks, history: s.history, stats: s.stats, asked: s.asked, sync: s.sync, docs: s.docs,
+        weekly: s.weekly, weeklySeen: s.weeklySeen,
       }),
       merge: (persisted, cur) => ({ ...cur, ...normalizeData(persisted as Partial<Data> | undefined) }),
     },

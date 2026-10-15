@@ -21,6 +21,7 @@ export const DEFINITIONS = {
   bestTime: 'Morning (5–12), afternoon (12–5), evening (5–9) or night (9–5), by quiz accuracy (at least 3 answers).',
   docProgress: 'The furthest page reached ÷ the number of pages. Studied pages came up in a session; quizzed pages were in a session that ended with a quiz.',
   mastered: 'Missed at least once, then answered right twice in a row.',
+  weekStreak: 'Days in a row with at least one counted session, as of your last study day that week.',
 } as const;
 
 /** "2026-10-14" → weekday (0 = Sunday), independent of the device's time zone. */

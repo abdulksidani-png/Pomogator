@@ -40,8 +40,8 @@ optional screen tracking, sign-in with cloud sync, and appearance customization.
 | + | Appearance: themes, accent, clock fonts, timer styles, backgrounds | Done |
 | 3 | AI (Gemini free tier): quiz from covered pages, plan, day summary, study assistant, daily limits | Done (confirmed; migration 3 optional) |
 | 6 | Stats engine (pure, tested) + Stats page | Built, waiting on his test |
-| **7** | **Weekly report** | **Next** |
-| 8 | Check-in streaks + celebrations (MyFitnessPal style) | |
+| 7 | Weekly report: summary, ▲/▼ numbers, charts, archive, image/PDF | Built, waiting on his test |
+| **8** | **Check-in streaks + celebrations (MyFitnessPal style)** | **Next** |
 | 9 | Polish, export / delete account, full README guide | |
 
 Phase 3 also added the **study assistant** he asked for (`components/Assistant.tsx`, `lib/assistant.ts`): a corner
@@ -110,6 +110,22 @@ Then (he confirmed these work on the live site, 2026-10-15):
 - **Fold-away plan card**: click the "Next-session plan" heading; `settings.folded` (ids) remembers it; CSS
   `grid-template-rows` 0fr↔1fr transition (no rAF, so tests with a fake clock aren't affected); the body is `inert` when shut.
 
+**Phase 7 (built):** `lib/weekly.ts` (pure, `tests/unit/weekly.test.ts`): `weekReport` (from `computeStats`; this week vs.
+last; days with `future`; pages covered; missed this week; mastered this week = mastered at week end but not at its start;
+week streak = streak as of the week's last study day), `focusSteps`, `plainSummary` (no-AI text, never shaming),
+`weeksWithStudy`, `unseenLastWeek`, `reportSig`, `weeklyInput`. AI action `weekly` (`weeklyPrompt`, `cleanWeekly`).
+Summaries live in the store as `weekly` (by week start, newest 26) + `weeklySeen`, synced inside profiles.app_state
+(deliberately no `weekly_reports` table, so no migration). View `/weekly` (`components/Weekly.tsx`, `?week=`), tabs
+Overview | Weekly report shared with Stats (`StatsTabs`), `WeekReviewBanner` on the timer page, "Save as image"
+(`lib/share-card.ts`, canvas 1080×1350) and "Save as PDF" (print CSS). Check-in streak tile waits for Phase 8.
+
+**Logo + loading screen (2026-10-15, his request):** the logo is now 2-bit pixel art like the buddies: Albert in study
+glasses peeking out of water inside a pixel timer ring (`lib/logo.ts` rows → `components/Brand.tsx`; `scripts/icon.mts`
+regenerates `app/icon.svg`). `components/Splash.tsx` (rendered by `ClientApp` in the first HTML): the ring fills pixel by
+pixel; `PomoGatorApp` sets `html[data-ready]` and `--splash-delay` (min ~0.9 s from navigation), CSS fades it; it never
+blocks clicks (`pointer-events: none`) and needs no JS timer, so tests with a fake clock still work. `app/layout.tsx` has
+an inline script that applies the saved skin/accent before paint.
+
 **Public launch (2026-10-15):** rename to PomoGator (logo `components/Brand.tsx` + `app/icon.svg`: a gator peeking
 out of the water inside the timer ring; "Gator" in the accent color), Albert the gator is the default buddy for new
 visitors, `/privacy` page (plain words: what's stored, Gemini free tier may use content, on-device OCR/audio), footer
@@ -140,13 +156,13 @@ Earlier requests, all done and confirmed:
   stored in Vercel as `GEMINI_API_KEY`, no billing enabled). Keep the reference prototype's prompts and JSON shapes; use
   Gemini's JSON output mode. Free-tier limits are per project and shown only in AI Studio, so handle 429s gracefully
   ("quiz limit reached for today, enjoy a no-quiz break") and keep the app's own daily limits.
-- **AI routes**: `app/api/ai/[action]/route.ts` handles `quiz`, `plan`, `day-summary` and `assistant`; prompts in
+- **AI routes**: `app/api/ai/[action]/route.ts` handles `quiz`, `plan`, `day-summary`, `assistant`, `digest` and `weekly`; prompts in
   `lib/ai/prompts.ts` (ported from the prototype), Gemini REST calls in `lib/ai/gemini.ts` (JSON mode, one retry on bad JSON,
   falls back from `gemini-flash-latest` to `gemini-flash-lite-latest` on 429/404; override with `GEMINI_MODEL(_BACKUP)`),
   replies validated with `lib/quiz.ts` on the server and again in the browser. Daily allowance: `lib/ai/quota.ts` +
   migration 3 (`ai_usage`, `use_ai()`): guests 40 calls/day, accounts 150 (`AI_DAILY_LIMIT_GUEST/USER`); skipped without
   Supabase or before migration 3 is run. Not built yet: `/api/ai/read-image` (photos still use on-device OCR), `/goal`
-  (goals map locally), `/outline`, `/frame`, `/weekly`.
+  (goals map locally), `/outline`, `/frame`.
 - **Quizzes from documents**: `quizPages()` in the store picks start page → furthest slide seen on screen, else the goal
   (else 10 pages); `sourcesKey()` (pages + transcript size) joins `ctxKey` in deciding when a quiz must be rewritten, so
   the end of a session rewrites it if screen tracking or the lecture transcript changed what was covered.
@@ -172,6 +188,7 @@ Earlier requests, all done and confirmed:
   - `library.ts`: import, pages cache (memory → IndexedDB → server), delete
   - `match.ts`: goals, screen matching, change detection
   - `ocr.ts`, `screen.ts`, `listen.ts` (tab sound → text)
+- `lib/weekly.ts` (weekly report engine), `lib/share-card.ts` (weekly image), `lib/logo.ts` (pixel logo data).
 - `lib/ai/`: `prompts.ts`, `gemini.ts` and `quota.ts` (server), `material.ts` (document excerpts, browser).
 - `lib/appearance.ts` + `components/Appearance.tsx`: look settings, applied as data attributes on `<html>`.
 - `components/`:
@@ -184,7 +201,7 @@ Earlier requests, all done and confirmed:
   - `Account.tsx`
   - `Assistant.tsx`: chat panel, corner button, reply formatting
   - `Music.tsx` (Spotify widget), `PhotoPicker.tsx` (Unsplash), `Mascot.tsx` (all buddies), `Stats.tsx` (Stats page)
-  - `TimerMenu.tsx` (saved timers menu)
+  - `TimerMenu.tsx` (saved timers menu), `Weekly.tsx` (weekly report, review banner), `Splash.tsx` (loading screen)
 - `supabase/migrations/`: `…000000_core.sql`, `…010000_documents.sql`, `20261015000000_ai_usage.sql`. RLS restricts every table to
   `user_id = (select auth.uid())`. The owner pastes migrations into the SQL Editor by hand.
 
@@ -192,9 +209,9 @@ Earlier requests, all done and confirmed:
 ```bash
 npm run dev          # http://localhost:3000 (copies vendor files first)
 npm run typecheck
-npm test             # Vitest unit tests (79)
+npm test             # Vitest unit tests (91)
 npm run test:e2e     # Playwright: loop, documents, goals, screen tracking, tab sound, sounds, appearance, buddies, stats,
-                     # saved timers, full screen, plan fold
+                     # saved timers, full screen, plan fold, weekly report, loading screen
 npm run test:ai      # Playwright: AI, Unsplash and Spotify against stand-ins (tests/fake-gemini; Spotify faked in-test)
 npm run test:sync    # two-device sync: needs local Postgres + PostgREST (PGHOST/PGPORT/PGUSER, POSTGREST_BIN)
 ```

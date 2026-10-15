@@ -711,7 +711,6 @@ dialog[open]::backdrop { animation: fade-in .26s ease-out; }
 }
 
 /* ---------- website additions ---------- */
-.boot-shell { min-height: 60vh; display: grid; place-items: center; color: var(--fg-3); font-size: 15px; }
 .mascot text { font-family: "Fredoka Variable", system-ui, sans-serif; font-weight: 700; }
 
 /* ---------- accounts ---------- */
@@ -1159,3 +1158,81 @@ html:root[data-clockfont="hand"] .clock { --clock-ch: .5; }
 html:root[data-mascot="off"] .stage { --clock-side: 0px; }
 @media (max-width: 560px) { .stage { --clock-side: 96px; } }
 .clock-row > .clock-col .clock { font-size: min(var(--clock-size), calc((100cqi - var(--clock-side)) / (4.55 * var(--clock-ch)))); }
+
+/* ---------- loading screen (components/Splash.tsx) ---------- */
+.splash { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: var(--bg); color: var(--fg); pointer-events: none; }
+html[data-ready] .splash { animation: splash-out .6s cubic-bezier(.22,1,.36,1) var(--splash-delay, 0s) forwards; }
+@keyframes splash-out { to { opacity: 0; visibility: hidden; transform: scale(1.03); } }
+.splash-inner { display: grid; justify-items: center; gap: 6px; animation: splash-in .5s cubic-bezier(.22,1,.36,1) both; }
+@keyframes splash-in { from { opacity: 0; transform: translateY(8px); } }
+.splash-mark { width: 120px; height: 120px; margin-bottom: 14px; image-rendering: pixelated; }
+.splash-name { margin: 0; font-family: var(--f-display); font-weight: 800; font-size: 34px; letter-spacing: -.02em; }
+.splash-name span { color: var(--accent); }
+.splash-tag { margin: 0; font-size: 15px; color: var(--fg-3); }
+.splash-bar { width: 120px; height: 4px; margin-top: 18px; border-radius: 99px; background: var(--rule); overflow: hidden; }
+.splash-bar span { display: block; width: 40%; height: 100%; border-radius: inherit; background: var(--accent); animation: splash-bar 1.1s ease-in-out infinite; }
+@keyframes splash-bar { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+/* The logo comes alive: the ring's arc lights up pixel by pixel, Albert bobs and the water ripples, in 2-bit steps. */
+.logo-live .logo-arc rect { opacity: 0; animation: px-on .01s steps(1) forwards; animation-delay: calc(.15s + var(--i) * 14ms); }
+@keyframes px-on { to { opacity: 1; } }
+.logo-live .logo-head { animation: logo-bob 1.2s steps(1) infinite; }
+@keyframes logo-bob { 50% { transform: translateY(-1px); } }
+.logo-live .logo-wave { animation: logo-wave 1.2s steps(1) infinite; }
+@keyframes logo-wave { 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) {
+  .splash-inner, .splash-bar span, .logo-live .logo-head, .logo-live .logo-wave { animation: none; }
+  .logo-live .logo-arc rect { animation: none; opacity: 1; }
+  html[data-ready] .splash { animation-duration: .01s; }
+}
+
+/* ---------- weekly report (components/Weekly.tsx) ---------- */
+.stats-tabs { display: flex; gap: 4px; padding: 4px; background: var(--sunk); border-radius: 999px; width: max-content; flex: 0 0 auto; }
+.stats-tabs button { border: 0; background: transparent; color: var(--fg-2); font-weight: 700; font-size: 14px; padding: 8px 16px; border-radius: 999px; }
+.stats-tabs button[aria-current="page"] { background: var(--card); color: var(--fg); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.week-head { display: flex; align-items: flex-end; gap: 12px 18px; flex-wrap: wrap; }
+.week-head > div:first-child { flex: 1; min-width: 200px; }
+.week-head h1 { margin: 4px 0 0; font-family: var(--f-display); font-size: 30px; font-weight: 800; letter-spacing: -.015em; }
+.week-nav { display: flex; align-items: center; gap: 6px; }
+.week-nav select { width: auto; min-width: 190px; }
+.week-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.week-hero { padding: 24px 26px; background: linear-gradient(135deg, var(--accent-soft), var(--card) 70%); }
+.week-hero h2 { margin: 0 0 8px; font-family: var(--f-display); font-size: 26px; font-weight: 800; letter-spacing: -.01em; display: flex; align-items: center; gap: 10px; }
+.week-summary { margin: 0; font-size: 17px; line-height: 1.55; color: var(--fg-2); max-width: 70ch; }
+.week-hero .btn-quiet { margin-top: 12px; padding-left: 0; }
+.week-tiles { grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); }
+.tile-note.delta.up { color: var(--good); font-weight: 700; }
+.tile-note.delta.down { color: var(--fg-3); font-weight: 700; }
+.week-covered { margin: 6px 0 0; }
+.focus-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; counter-reset: f; }
+.focus-list li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start; font-size: 15.5px; }
+.focus-list .n { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); font: 700 14px/1 var(--f-mono); }
+.week-focus .card-h { align-items: center; }
+/* accuracy line */
+.line-plot { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; height: 230px; margin-top: 8px; padding-top: 8px; }
+.line-area { position: relative; padding-bottom: 22px; }
+.line-box { position: absolute; inset: 0 0 22px 0; }
+.line-box svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.line-grid { stroke: var(--rule); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.line-path { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+.line-dot { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: var(--accent); border: 2px solid var(--card); outline-offset: 2px; }
+.line-x { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; font: 500 11px/1 var(--f-mono); color: var(--fg-3); }
+.line-x span { width: 0; display: flex; justify-content: center; white-space: nowrap; }
+.line-plot .col-axis { padding-bottom: 22px; }
+/* "Your week in review" on the timer page */
+.week-banner { display: flex; align-items: center; gap: 12px 14px; padding: 14px 16px; flex-wrap: wrap; border-color: color-mix(in srgb, var(--accent) 35%, var(--rule)); background: linear-gradient(120deg, var(--accent-soft), var(--card) 75%); }
+.week-banner-icon { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); flex: none; }
+.week-banner-text { flex: 1; min-width: 180px; display: grid; gap: 2px; }
+.week-banner-text span { font-size: 13.5px; color: var(--fg-2); }
+@media (max-width: 560px) { .week-head h1 { font-size: 24px; } .week-nav select { min-width: 0; flex: 1; } .week-nav { flex: 1 1 100%; } }
+
+/* Save as PDF: print just the report. */
+@media print {
+  html, body { background: #fff !important; }
+  html:root { --bg: #fff; --card: #fff; }
+  .top, .foot, .assistant-fab, .assistant, .toast-wrap, .splash, .stats-tabs, .stats-head .btn-quiet, .week-nav, .week-actions, .week-hero .btn-quiet,
+  .week-focus .btn-quiet, .table-view, .chart-tip, .def, .music { display: none !important; }
+  .app { max-width: none; padding: 0; }
+  .card { box-shadow: none !important; break-inside: avoid; }
+  .stats-page { gap: 12px; }
+  * { animation: none !important; transition: none !important; }
+}

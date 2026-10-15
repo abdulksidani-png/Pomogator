@@ -1,4 +1,4 @@
-import type { AiError, AssistantReply, DaySummary, DocDigest, Plan, ProposedTask, QuizQuestion } from './types';
+import type { AiError, AssistantReply, DaySummary, DocDigest, Plan, ProposedTask, QuizQuestion, WeeklyAi } from './types';
 import { clamp, shuffle, uid } from './util';
 
 type Obj = Record<string, unknown>;
@@ -63,6 +63,15 @@ export function cleanPlan(d: unknown): Plan {
 export function cleanDay(d: unknown): DaySummary {
   if (!isObj(d)) throw { code: 'invalid_json' } satisfies AiError;
   return { headline: str(d.headline), wins: list(d.wins, 5), gaps: list(d.gaps, 5), tomorrow: list(d.tomorrow, 5) };
+}
+
+/** Validate the weekly report's AI part: a headline, a 2–3 sentence summary and three focus steps. */
+export function cleanWeekly(d: unknown, fallbackFocus: string[] = []): WeeklyAi {
+  if (!isObj(d)) throw { code: 'invalid_json' } satisfies AiError;
+  const summary = str(d.summary).slice(0, 700);
+  if (!summary) throw { code: 'empty_completion' } satisfies AiError;
+  const focus = list(d.focus, 3).map((f) => f.slice(0, 220));
+  return { headline: str(d.headline).slice(0, 120), summary, focus: focus.length ? focus : fallbackFocus.slice(0, 3) };
 }
 
 /** Validate a document digest: a topic, a summary, key concepts and section notes. */

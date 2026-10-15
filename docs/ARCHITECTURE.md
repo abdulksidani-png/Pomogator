@@ -54,6 +54,18 @@ browser (lib/ai-client.ts) → POST /api/ai/{action} → sign-in + daily allowan
 - **Background reading:** each upload is "digested" once (topic, summary, key concepts, sections), stored in IndexedDB,
   and fed to quizzes and to the assistant's view of your library.
 
+## Weekly report
+
+- `lib/weekly.ts` is pure and unit-tested: `weekReport()` builds one week (the profile's week start, Monday by default)
+  from `computeStats`, so it always agrees with the Stats page, plus last week for the ▲/▼ comparisons, pages covered,
+  concepts missed and newly mastered, and three focus steps worked out from the numbers. A week's streak is the run it
+  reached as of its last study day.
+- The AI writes the headline, a 2–3 sentence summary and sharper focus steps (`/api/ai/weekly`) from a compact summary of
+  the numbers. It's written once per week and kept with the account's synced app state (no extra table), and the in-progress
+  week offers "Update" when its numbers change. Without AI, `plainSummary()` writes it from the numbers.
+- The first visit of a new week shows "Your week in review" on the timer page. Weeks can be browsed at `/weekly?week=…`,
+  saved as a 1080×1350 image drawn on a canvas (`lib/share-card.ts`), or printed to PDF with print styles.
+
 ## Documents, goals and screen tracking
 
 - `lib/docs/parse.ts` turns PDF (pdf.js), PowerPoint (slide XML via JSZip), Word (mammoth), text and photos (Tesseract
@@ -82,12 +94,17 @@ browser (lib/ai-client.ts) → POST /api/ai/{action} → sign-in + daily allowan
 - Every table uses row-level security (`user_id = (select auth.uid())`), and Storage policies restrict each user to
   their own folder. `tests/db/rls-check.sql` checks it.
 
-## Appearance
+## Appearance and brand
 
 Look settings (theme, accent, clock font, timer style, background, cards, corners, spacing, study buddy) are applied
 as `data-*` attributes and CSS variables on `<html>` (`lib/appearance.ts`), with the styles in `app/globals.css`. The
 clock is sized with container query units so "00:00" always fits its card, its ring or the full-screen view, whatever
 the font. Saved timers (`lib/presets.ts`) snapshot a chosen set of these settings plus the session lengths.
+
+The logo is pixel art in the same 2-bit style as the study buddies, stored as rows of letters in `lib/logo.ts`
+(`scripts/icon.mts` writes `app/icon.svg` from it). The loading screen (`components/Splash.tsx`) is part of the first
+HTML: the logo's ring fills pixel by pixel until the app mounts and sets `data-ready`, then CSS fades it out. An inline
+script in `app/layout.tsx` applies the saved theme before the first paint, so the loading screen already matches it.
 
 ## Testing
 
