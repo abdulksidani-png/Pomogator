@@ -11,7 +11,8 @@ optional screen tracking, sign-in with cloud sync, and appearance customization.
 - **Name:** PomoGator (renamed from StudyBuddy on 2026-10-15; the owner is a UF student). Browser storage keys
   (`studybuddy.v1`, `studybuddy.chat`, `studybuddy.spotify`, IndexedDB `studybuddy`) keep the old name on purpose so
   nobody's saved data is lost. `lib/site.ts` holds the public name, tagline and repo URL.
-- **Live site:** https://studybuddy-bay.vercel.app (Vercel deploys every push to `main`; a pomogator domain may replace it)
+- **Live site:** https://pomo-gator.vercel.app (Vercel project `pomogator`; deploys every push to `main`). The old
+  https://studybuddy-bay.vercel.app still points at it. `pomogator.com` was tried and dropped (not bought) on 2026-10-15.
 - **Repo:** github.com/abdulksidani-png/studybuddy (to be renamed `pomogator`; GitHub redirects the old URL)
 - **Public-facing docs:** `README.md` (for recruiters/visitors), `docs/SETUP.md` (deploy your own, click by click),
   `docs/ARCHITECTURE.md`, `LICENSE` (MIT). Screenshots in `docs/screenshots/` and the link preview
@@ -67,9 +68,10 @@ IndexedDB `digest:<id>` (per device; another device reads it again on first open
 feeds the quiz (`digest.concepts`) and the assistant (`library` of every read document).
 
 **Setup gotchas he hit:** sign-in landing on an old version = Supabase Auth → URL Configuration "Site URL" pointing at an
-old immutable Vercel deployment URL; it must be `https://studybuddy-bay.vercel.app` with `https://studybuddy-bay.vercel.app/**`
-in Redirect URLs. Spotify "redirect_uri: Not matching configuration" = the app's Redirect URIs must contain exactly
-`https://studybuddy-bay.vercel.app/spotify` (Settings → Music shows it with a Copy button).
+old immutable Vercel deployment URL; it must be the main address (`https://pomo-gator.vercel.app`), with `/**` entries for
+it and for `https://studybuddy-bay.vercel.app` in Redirect URLs. Spotify "redirect_uri: Not matching configuration" = the
+app's Redirect URIs must contain exactly `<address>/spotify` for each address used (Settings → Music shows it with a Copy
+button). Removing a domain in Vercel → Domains only removes that address; re-add it with Add Existing.
 
 **Buddies, round 2 (built with Phase 6):** Panfer (FIU-style gold panther in a navy jersey, original pixel art; the owner
 shared FIU's loading sprite only as a style reference) and the gator is now named Albert. While studying (`focus` mood)

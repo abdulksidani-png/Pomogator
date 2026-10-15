@@ -9,7 +9,7 @@
 A Pomodoro timer that writes a quick quiz on what you just studied. Your score sets your break,
 and an AI-written plan sets up your next session.
 
-[**Try it live →**](https://studybuddy-bay.vercel.app) &nbsp;·&nbsp; [How it's built](#how-its-built) &nbsp;·&nbsp; [Architecture](docs/ARCHITECTURE.md) &nbsp;·&nbsp; [Run your own](docs/SETUP.md)
+[**Try it live →**](https://pomo-gator.vercel.app) &nbsp;·&nbsp; [How it's built](#how-its-built) &nbsp;·&nbsp; [Architecture](docs/ARCHITECTURE.md) &nbsp;·&nbsp; [Run your own](docs/SETUP.md)
 
 [![CI](https://github.com/abdulksidani-png/studybuddy/actions/workflows/ci.yml/badge.svg)](https://github.com/abdulksidani-png/studybuddy/actions/workflows/ci.yml)
 ![Next.js 15](https://img.shields.io/badge/Next.js-15-000000?logo=nextdotjs)
@@ -79,7 +79,7 @@ comes with an explanation and a memory aid, and **your score earns your break** 
 - **Documents parsed in the browser** with pdf.js, PowerPoint slide XML (JSZip) and mammoth for Word.
 - **Security by default.** Row-level security on every table and a private, per-user file bucket; API keys stay on
   the server; Google's raw error text never reaches the browser; standard hardening headers. See
-  [Privacy](https://studybuddy-bay.vercel.app/privacy).
+  [Privacy](https://pomo-gator.vercel.app/privacy).
 - **Accessible.** Full keyboard control (press `?` in the app), screen-reader labels and live regions, focus
   management through the quiz, and reduced-motion support.
 
