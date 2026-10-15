@@ -50,13 +50,19 @@ export function SettingsDialog({ dialogRef, onSignIn, onAppearance }: {
     <dialog ref={dialogRef} id="settingsDlg" aria-labelledby="setTitle" onClick={closeOnBackdrop}>
       <DialogHead id="setTitle" title="Settings" close={close} />
       <div className="dlg-body">
+        {!supabaseConfigured() && (
+          <fieldset>
+            <legend>Account</legend>
+            <p className="hint">Sign-in isn&apos;t set up on this copy of the site, so everything is saved in this browser only. (The site owner needs to add the Supabase keys in Vercel.)</p>
+          </fieldset>
+        )}
         {supabaseConfigured() && (
           <fieldset>
             <legend>Account</legend>
             <div className="set-row">
               <span className="field-label">
                 {account.status === 'user' ? 'Signed in' : account.status === 'guest' ? 'Studying as a guest' : 'Not connected'}
-                <span className="sub">{account.status === 'user' ? (account.email || account.name) : 'Sign in to keep your progress on every device'}</span>
+                <span className="sub">{account.status === 'user' ? (account.email || account.name) : 'Nothing to sign out of yet. Sign in to keep your progress on every device'}</span>
               </span>
               {account.status === 'user'
                 ? <button className="btn" type="button" onClick={() => { close(); void signOut(); }}>Sign out</button>

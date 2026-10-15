@@ -63,6 +63,47 @@ export function StudyMaterial({ onManage }: { onManage: () => void }) {
       {err && <p className="hint warn" role="alert">{err}</p>}
       <p className="hint">PDF, PowerPoint, Word, text, or photos of your notes.{docs.length > 0 && <> <button className="btn-link" type="button" onClick={onManage}>Manage documents</button></>}</p>
       {doc && <DocPlan key={doc.id} doc={doc} />}
+      <ScreenShareRow />
+    </div>
+  );
+}
+
+/** Open the screen-tracking explainer (the dialog lives at the app root). */
+export function openScreenConsent() {
+  (document.getElementById('screenDlg') as HTMLDialogElement | null)?.showModal();
+}
+
+/** Start screen tracking from a click: turn it on, then explain first or go straight to the share picker. */
+export function beginScreenShare() {
+  const s = useStudy.getState();
+  if (!s.settings.screenTrack) s.updateSettings((x) => { x.screenTrack = true; });
+  let agreed = false;
+  try { agreed = localStorage.getItem('studybuddy.screenConsent') === '1'; } catch { /* blocked */ }
+  if (agreed) void startWatching(); else openScreenConsent();
+}
+
+/** Screen sharing, right under the study material so it's easy to find. */
+function ScreenShareRow() {
+  const scr = useScreen();
+  const [ok, setOk] = useState<boolean | null>(null);
+  useEffect(() => { setOk(screenSupported()); }, []);
+  if (ok === null) return null;
+  if (!ok) return <p className="hint share-row"><Icon name="monitor" /> Screen tracking works in a computer browser (Chrome, Edge, Firefox or Safari).</p>;
+  if (scr.status === 'watching') {
+    return (
+      <div className="share-row on">
+        <span className="watch-pill"><span className="rec" aria-hidden="true" />Sharing {scr.label}</span>
+        <button className="btn-quiet" type="button" onClick={stopWatching}>Stop sharing</button>
+        <p className="hint">It reads your slides only while a study session is running.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="share-row">
+      <button className="btn" type="button" id="shareScreenBtn" disabled={scr.status === 'starting'} onClick={beginScreenShare}>
+        <Icon name="monitor" />{scr.status === 'starting' ? 'Choose a window…' : 'Share screen to track slides'}
+      </button>
+      <span className="hint">Optional. Follows which slide you&apos;re on.</span>
     </div>
   );
 }
@@ -182,12 +223,10 @@ export function ScreenTracker({ onConsent }: { onConsent: () => void }) {
   const scr = useScreen();
   const { showToast } = useStudy.getState();
   useEffect(() => { if (scr.error) { showToast(scr.error); useScreen.setState({ error: '' }); } }, [scr.error, showToast]);
-  if (!enabled || phase !== 'study' || !screenSupported()) return null;
-  const begin = () => {
-    let agreed = false;
-    try { agreed = localStorage.getItem('studybuddy.screenConsent') === '1'; } catch { /* blocked */ }
-    if (agreed) void startWatching(); else onConsent();
-  };
+  if (phase !== 'study' || !screenSupported()) return null;
+  if (!enabled && scr.status !== 'watching') return null;
+  void onConsent;
+  const begin = beginScreenShare;
   if (scr.status !== 'watching') {
     return (
       <div className="watch-row">

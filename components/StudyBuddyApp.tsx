@@ -40,7 +40,9 @@ export default function StudyBuddyApp() {
   }).current;
 
   // Screen tracking ends with the session: never during breaks or quizzes.
-  useEffect(() => { if (!studyLive) stopWatching(); }, [studyLive]);
+  // Sharing can start before a session; it stops when that session ends.
+  const wasLive = useRef(studyLive);
+  useEffect(() => { if (wasLive.current && !studyLive) stopWatching(); wasLive.current = studyLive; }, [studyLive]);
 
   // After an email link was opened in another tab, coming back here picks up the sign-in.
   useEffect(() => {
@@ -173,7 +175,7 @@ export default function StudyBuddyApp() {
         </main>
         <footer className="foot">
           <SyncStatus />
-          <span>Press <kbd>?</kbd> for shortcuts</span>
+          <span>Press <kbd>?</kbd> for shortcuts · <span className="build" title="Version">v{process.env.NEXT_PUBLIC_BUILD}</span></span>
         </footer>
       </div>
       <SettingsDialog dialogRef={settingsRef} onSignIn={() => signInRef.current?.showModal()} onAppearance={() => lookRef.current?.showModal()} />

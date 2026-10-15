@@ -610,3 +610,10 @@ html:root[data-timer="minimal"] .clock { font-size: clamp(72px, 18vw, 150px); }
 .doc-outline li .n { font: 600 12px/1 var(--f-mono); color: var(--fg-3); min-width: 26px; }
 .doc-outline li svg.i { width: 14px; height: 14px; color: var(--good); margin-left: auto; }
 @media (max-width: 560px) { .mat-row .btn { padding: 0 12px; } }
+
+/* screen share row under study material */
+.share-row { margin-top: 12px; display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; }
+.share-row .hint { margin: 0; }
+.share-row.on .hint { flex-basis: 100%; }
+p.share-row { display: flex; gap: 6px; }
+.foot .build { font-variant-numeric: tabular-nums; opacity: .8; }

@@ -93,15 +93,20 @@ test('screen tracking reads the shared slides window and follows along', async (
   await page.goto('/');
   await upload(page, 'lecture.pptx');
 
+  // The share button sits right under the study material; it works before a session starts.
+  await page.getByRole('button', { name: 'Share screen to track slides' }).click();
+  await expect(page.locator('#screenDlg')).toBeVisible();          // first time: explain before sharing
+  await page.getByRole('button', { name: 'Choose window to share' }).click();
+  await expect(page.locator('.share-row .watch-pill')).toContainText('Sharing');
+  // Sharing turned screen tracking on in Settings, where its options now show.
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
-  await page.locator('#scrToggle').check();
+  await expect(page.locator('#scrToggle')).toBeChecked();
   await page.locator('#scrEvery').fill('10');
   await page.locator('#settingsDlg').getByRole('button', { name: 'Done' }).click();
 
   await page.getByRole('button', { name: /Start studying/ }).click();
-  await expect(page.locator('#screenDlg')).toBeVisible();          // first time: explain before sharing
-  await page.getByRole('button', { name: 'Choose window to share' }).click();
-  await expect(page.locator('.watch-pill')).toContainText('Watching');
+  await expect(page.locator('#screenDlg')).not.toBeVisible();      // already sharing: no second ask
+  await expect(page.locator('.watch-row .watch-pill')).toContainText('Watching');
   await expect(page.locator('.doc-progress')).toContainText('Slide 4 of 7', { timeout: 60_000 });
 
   await page.evaluate(() => { (window as unknown as { __slide: number }).__slide = 6; });
@@ -112,6 +117,7 @@ test('screen tracking reads the shared slides window and follows along', async (
   // Ending the session stops the sharing.
   await page.getByRole('button', { name: /Finish session now/ }).click();
   await expect(page.locator('.watch-pill')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Share screen to track slides' })).toBeVisible();
   await expect(page.locator('#reached')).toHaveValue('6');
 });
 
