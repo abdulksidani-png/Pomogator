@@ -60,6 +60,7 @@ function FocusBar() {
 
 function TimerFace({ onToggle, onScreenConsent }: { onToggle: () => void; onScreenConsent: () => void }) {
   const T = useStudy((s) => s.timer);
+  const together = useStudy((s) => !!s.collab);
   const settings = useStudy((s) => s.settings);
   const { reset, skip, addFive, markDone, switchMode } = useStudy.getState();
   const style = settings.timerStyle;
@@ -91,7 +92,7 @@ function TimerFace({ onToggle, onScreenConsent }: { onToggle: () => void; onScre
         <TimerMenu />
         <div className="modes" role="group" aria-label="Timer mode">
           {(['study', 'short', 'long'] as const).map((m) => (
-            <button key={m} className="mode" type="button" aria-pressed={activeMode === m} disabled={T.status !== 'idle'} onClick={() => switchMode(m)}>
+            <button key={m} className="mode" type="button" aria-pressed={activeMode === m} disabled={T.status !== 'idle' || together} onClick={() => switchMode(m)}>
               {activeMode === m && <motion.span className="mode-pill" layoutId="modePill" transition={SPRING} aria-hidden="true" />}
               <span className="mode-label">{m === 'study' ? 'Study' : m === 'short' ? 'Short break' : 'Long break'}</span>
             </button>
@@ -234,6 +235,7 @@ function RulerFill() {
 
 function StageFoot() {
   const T = useStudy((s) => s.timer);
+  const together = useStudy((s) => s.collab);
   const settings = useStudy((s) => s.settings);
   const context = useStudy((s) => s.context);
   const Q = useStudy((s) => s.quiz);
@@ -281,10 +283,14 @@ function StageFoot() {
             <>What are you studying? <button className="btn-link" type="button" onClick={() => focusContext(false)}>Add a topic</button> to get a quiz.</>
           )}
         </div>
-        <div className="tiers">
-          <span>{kind === 'long' ? 'Long break' : 'Break'} by score</span>
-          {tierRows(n, settings.tiers[kind]).map((r) => <span key={r.score} className="tier">{r.score}/{n} → {r.mins}m</span>)}
-        </div>
+        {together ? (
+          <div className="tiers"><span>Group break</span><span className="tier">{together.breakMin}m for everyone</span></div>
+        ) : (
+          <div className="tiers">
+            <span>{kind === 'long' ? 'Long break' : 'Break'} by score</span>
+            {tierRows(n, settings.tiers[kind]).map((r) => <span key={r.score} className="tier">{r.score}/{n} → {r.mins}m</span>)}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -355,6 +361,7 @@ function QuizFace() {
   const T = useStudy((s) => s.timer);
   const Q = useStudy((s) => s.quiz);
   const settings = useStudy((s) => s.settings);
+  const together = useStudy((s) => s.collab);
   const context = useStudy((s) => s.context);
   const aiStatus = useStudy((s) => s.aiStatus);
   const act = useStudy.getState();
@@ -374,8 +381,8 @@ function QuizFace() {
 
   const topic = Q.forTopic || topicLabel(context) || 'your notes';
   const studied = T.session ? Math.round(T.session.studiedMin || 0) : 0;
-  const breakNone = settings.tiers[T.breakKind].none;
-  const kindWord = T.breakKind === 'long' ? 'long break' : 'break';
+  const breakNone = together ? together.breakMin : settings.tiers[T.breakKind].none;
+  const kindWord = together ? 'group break' : T.breakKind === 'long' ? 'long break' : 'break';
   const head = <div className="q-head"><span className="q-num">SESSION COMPLETE</span><span className="q-concept">{studied} min studied</span></div>;
   const skipBtn = <button className="btn" type="button" onClick={act.skipQuiz}>Skip quiz · {breakNone}-min {kindWord}</button>;
   const plural = (n: number) => (n === 1 ? '' : 's');
@@ -410,10 +417,10 @@ function QuizFace() {
         <div className="q-intro">
           <div className="q-main"><h2>Time&apos;s up. {n} quick question{plural(n)} on {topic}.</h2><QuizBuddy mood="cheer" /></div>
           <QuizPicker />
-          <p>Your score sets your {kindWord}: {tierSentence(n, settings.tiers[T.breakKind])}</p>
+          <p>{together ? `In this group session everyone gets a ${together.breakMin}-minute break, whatever the score. The quiz is for you.` : <>Your score sets your {kindWord}: {tierSentence(n, settings.tiers[T.breakKind])}</>}</p>
           <div className="btn-row">
             <button className="btn btn-primary" type="button" id="qBegin" onClick={act.beginQuiz}>Start quiz</button>
-            <button className="btn" type="button" onClick={act.addFive}><Icon name="plus" />5 more minutes</button>
+            {!together && <button className="btn" type="button" onClick={act.addFive}><Icon name="plus" />5 more minutes</button>}
             <button className="btn-quiet" type="button" onClick={act.skipQuiz}>Skip quiz</button>
           </div>
         </div>

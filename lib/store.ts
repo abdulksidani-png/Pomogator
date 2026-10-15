@@ -9,7 +9,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { current } from 'immer';
 import type {
-  Account, AiStatus, Asked, BreakKind, BreakReason, ConceptStat, DayState, PlanState, QuizOutcome, QuizResult,
+  Account, AiStatus, CollabRoom, Asked, BreakKind, BreakReason, ConceptStat, DayState, PlanState, QuizOutcome, QuizResult,
   DocMeta, QuizPick, QuizState, SessionRecord, Settings, StudyContext, SyncState, Task, TimerPreset, TimerState, Tier, WeeklySaved, WorkPlanInput,
 } from './types';
 import { DEFAULT_CONTEXT, DEFAULT_SETTINGS, freshQuiz, freshSync, freshTimer } from './defaults';
@@ -22,6 +22,18 @@ import { MIN, clamp, mergeDeep, round1, timeOf, uid } from './util';
 import { applyPreset, cleanName, savePreset } from './presets';
 import { dayOf, detectTimeZone, todayFor } from './dates';
 import { celebrationFor, cleanBadges, cleanDates, type Celebration } from './checkins';
+import type { Press } from './collab-core';
+
+/**
+ * Studying together (lib/collab.ts registers this while you're in a room): presses on the shared timer go to
+ * the room, and the room's state comes back through `fromTheRoom`, which changes the local timer directly.
+ */
+export interface CollabCtl { press: (p: Press) => void; sync: () => void }
+let collabCtl: CollabCtl | null = null;
+let fromRoom = false;
+export function setCollabCtl(c: CollabCtl | null) { collabCtl = c; }
+export function fromTheRoom(fn: () => void) { const was = fromRoom; fromRoom = true; try { fn(); } finally { fromRoom = was; } }
+const shared = () => !fromRoom && !!collabCtl && !!useStudy.getState().collab;
 
 export interface Data {
   settings: Settings;
@@ -51,6 +63,8 @@ interface Ui {
   toast: Flash | null; announce: Flash | null; aiStatus: AiStatus; booted: boolean; account: Account;
   /** Today's first check-in just happened: the celebration is waiting for sync to say whether another device showed it. */
   checkinDue: string;
+  /** The study-together room I'm in, if any (kept on the server; see lib/collab.ts). */
+  collab: CollabRoom | null;
 }
 interface EndOpts { quiet?: boolean; auto?: boolean }
 
@@ -318,6 +332,7 @@ export const useStudy = create<Store>()(
         booted: false,
         account: { status: 'local', syncing: false },
         checkinDue: '',
+        collab: null,
         showToast: toast,
         say,
 
@@ -395,12 +410,13 @@ export const useStudy = create<Store>()(
           const s = get();
           if (s.timer.phase === 'quiz' || s.timer.status === 'running') return;
           s.checkIn();
+          if (shared()) { collabCtl!.press('start'); return; }
           let needQuiz = false;
           set((d) => {
             const T = d.timer;
             if (T.phase === 'study' && !T.session) {
               T.session = {
-                id: uid(), date: dayOf(Date.now(), d.settings), startedAt: Date.now(), plannedMin: d.settings.studyMin,
+                id: uid(), date: dayOf(Date.now(), d.settings), startedAt: Date.now(), plannedMin: d.collab?.studyMin ?? d.settings.studyMin,
                 subject: d.context.subject, topic: d.context.topic, level: d.context.level, goal: d.context.goal,
               };
               const doc = d.docs.find((x) => x.id === d.context.docId);
@@ -420,6 +436,7 @@ export const useStudy = create<Store>()(
           if (needQuiz) void get().prefetchQuiz();
         },
         pause() {
+          if (shared()) { collabCtl!.press('pause'); return; }
           set((d) => {
             const T = d.timer;
             if (T.status !== 'running') return;
@@ -430,16 +447,22 @@ export const useStudy = create<Store>()(
         },
         toggle() { if (get().timer.status === 'running') get().pause(); else get().start(); },
         reset() {
+          if (shared()) { collabCtl!.press('reset'); return; }
           set((d) => {
             const T = d.timer;
             if (T.phase === 'quiz') return;
-            if (T.phase === 'study') { T.totalMs = d.settings.studyMin * MIN; T.session = null; }
+            if (T.phase === 'study') { T.totalMs = (d.collab?.studyMin ?? d.settings.studyMin) * MIN; T.session = null; }
             T.status = 'idle'; T.remainingMs = T.totalMs; T.endAt = 0;
           });
         },
         addFive() {
           Sound.ensure();
           const { timer: T, quiz: Q } = get();
+          if (shared()) {
+            if (T.phase === 'quiz') toast('In a group session the break starts for everyone together, so there are no extra minutes here.');
+            else collabCtl!.press('addFive');
+            return;
+          }
           if (T.phase === 'quiz') {
             if (Q.step !== 'intro' && Q.answers.some(Boolean)) return; // only before any answer
             set((d) => {
@@ -463,11 +486,16 @@ export const useStudy = create<Store>()(
         },
         skip() {
           const T = get().timer;
+          if (shared() && T.phase !== 'quiz') { collabCtl!.press(T.phase === 'study' ? 'finish' : 'skipBreak'); return; }
           if (T.phase === 'study') { if (T.status === 'idle' && !T.session) return; get().endStudy('skip'); }
           else if (T.phase === 'break') get().endBreak('skip');
           else get().skipQuiz();
         },
-        markDone() { const T = get().timer; if (T.phase === 'study' && T.session) get().endStudy('done'); },
+        markDone() {
+          const T = get().timer;
+          if (shared() && T.phase === 'study') { collabCtl!.press('finish'); return; }
+          if (T.phase === 'study' && T.session) get().endStudy('done');
+        },
         complete(opts = {}) {
           const T = get().timer;
           if (T.phase === 'study') get().endStudy('time', opts);
@@ -486,6 +514,7 @@ export const useStudy = create<Store>()(
           }
         },
         switchMode(mode) {
+          if (get().collab) return; // the group's timer decides
           set((d) => {
             const T = d.timer;
             if (T.status !== 'idle' || T.phase === 'quiz') return;
@@ -556,12 +585,13 @@ export const useStudy = create<Store>()(
           let mins = 0;
           set((d) => {
             const tier: Tier = d.settings.tiers[kind];
-            mins = result ? breakFor(result.score, result.total, tier) : tier.none;
+            // Together, everyone gets the break agreed in the invite, whatever the score.
+            mins = d.collab ? d.collab.breakMin : result ? breakFor(result.score, result.total, tier) : tier.none;
             const T = d.timer;
             if (kind === 'long') T.cycleDone = 0;
             Object.assign(T, {
               phase: 'break', breakKind: kind, breakReason: reason, totalMs: mins * MIN, remainingMs: mins * MIN, status: 'idle', endAt: 0, countedCycle: false,
-              lastResult: { score: result?.score ?? null, total: result?.total ?? 0, items: result?.items ?? [], mins, kind, reason, at: Date.now() },
+              lastResult: { score: result?.score ?? null, total: result?.total ?? 0, items: result?.items ?? [], mins, kind, reason, at: Date.now(), ...(d.collab ? { together: true } : {}) },
             });
             if (T.lastSessionId && reason !== 'manual') {
               const h = d.history.find((x) => x.id === T.lastSessionId);
@@ -569,17 +599,20 @@ export const useStudy = create<Store>()(
             }
           });
           say(`${mins}-minute ${kind} break.`);
+          if (get().collab && collabCtl) { if (!fromRoom) collabCtl.sync(); return; } // the group's break is already running
           if (get().settings.loop && opts.auto !== false) get().start();
         },
         endBreak(reason, opts = {}) {
           set((d) => {
+            const min = d.collab?.studyMin ?? d.settings.studyMin;
             Object.assign(d.timer, {
-              phase: 'study', status: 'idle', totalMs: d.settings.studyMin * MIN, remainingMs: d.settings.studyMin * MIN,
+              phase: 'study', status: 'idle', totalMs: min * MIN, remainingMs: min * MIN,
               endAt: 0, session: null, breakReason: '', lastResult: null,
             });
           });
           if (reason === 'time') signalEnd('Break is over', 'Ready for the next study session?', opts);
           say('Break over. Next study session ready.');
+          if (get().collab && collabCtl) { if (!fromRoom) collabCtl.sync(); return; }
           if (get().settings.loop && reason === 'time' && opts.auto !== false) get().start();
         },
 

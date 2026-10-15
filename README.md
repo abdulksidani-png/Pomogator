@@ -52,6 +52,11 @@ comes with an explanation and a memory aid, and **your score earns your break** 
 - **Streaks and celebrations.** Your first study action each day checks you in: a celebration card shows your streak
   and the last 7 days, milestones (3, 7, 14, 30, 50, 100, 365 days) earn badges with confetti, and streak freezes cover
   a missed day. It shows once a day per account, across all your devices.
+- **Friends.** Add friends with a friend code or invite link. A small widget shows who's online, what they're doing
+  ("Studying · 23 min in"), what they're listening to, and their streaks and stats, each only if they choose to share
+  it. Once a day you can send a friend a message of support, which your study buddy walks onto their screen to deliver.
+- **Study together.** Invite up to 3 friends to a shared session. Everyone's timer stays in sync (anyone can start or
+  pause), everyone still gets a quiz, and the break is the length agreed in the invite, the same for the whole group.
 - **Stats.** Study time, check-in and study streaks, minutes per day, a 12-week heatmap, quiz accuracy by concept,
   your badges, and slide-by-slide coverage of each document.
 - **Make it yours.** 12 themes, 5 study buddies that put on glasses and study at a desk while you do (including Albert,
@@ -147,10 +152,10 @@ It runs with no keys at all, saving everything in the browser. To switch on acco
 
 ```bash
 npm run typecheck
-npm test            # 106 unit tests: break rules, AI reply validation, stats (time zones, 4 AM rollover, streak freezes), check-in streaks, weekly reports, sync merging, saved timers
+npm test            # 110 unit tests: break rules, AI reply validation, stats (time zones, 4 AM rollover, streak freezes), check-in streaks, weekly reports, sync merging, saved timers
 npm run test:e2e    # 34 browser tests: study → quiz → break, document goals, screen tracking, tab audio, appearance, stats, streaks, weekly report, focus mode, the tour, data export/delete, accessibility (axe)
 npm run test:ai     # 10 browser tests of the AI, Unsplash and Spotify features against local stand-ins
-npm run test:sync   # two devices syncing through real Postgres + PostgREST running the actual migrations
+npm run test:sync   # two devices and two accounts through real Postgres + PostgREST running the actual migrations: sync, streaks, friends, studying together, account deletion
 ```
 
 GitHub Actions runs the typecheck, unit tests, build and both browser suites on every push.

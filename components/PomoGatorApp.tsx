@@ -24,6 +24,8 @@ import { PhotoCredit } from './PhotoPicker';
 import { BrandMark, BrandName } from './Brand';
 import { CelebrationHost, StreakPills } from './Streaks';
 import { Tour } from './Tour';
+import { FriendsCard, FriendsDialog, SocialHost, SupportPopup } from './Friends';
+import { InviteBanner, RoomPanel, TogetherDialog } from './Together';
 import { SITE } from '@/lib/site';
 import { openAssistant } from '@/lib/assistant';
 import { exitFocus, toggleFocus, useFocusMode, watchFullscreen } from '@/lib/focus';
@@ -63,6 +65,10 @@ export default function PomoGatorApp({ initialView = 'timer' }: { initialView?: 
   const profileRef = useRef<HTMLDialogElement>(null);
   const lookRef = useRef<HTMLDialogElement>(null);
   const docsRef = useRef<HTMLDialogElement>(null);
+  const friendsRef = useRef<HTMLDialogElement>(null);
+  const [friendCode, setFriendCode] = useState('');
+  const openFriends = (code = '') => { setFriendCode(code); friendsRef.current?.showModal(); };
+  const [togetherWith, setTogetherWith] = useState<string | null>(null);
   const screenRef = useRef<HTMLDialogElement>(null);
   const studyLive = useStudy((s) => s.timer.phase === 'study' && !!s.timer.session);
   const focus = useFocusMode((s) => s.on);
@@ -230,6 +236,8 @@ export default function PomoGatorApp({ initialView = 'timer' }: { initialView?: 
         <main className="desk">
           <div className="col-main">
             <WeekReviewBanner onOpen={(w) => go('weekly', `?week=${w}`)} />
+            <InviteBanner />
+            <RoomPanel />
             <Stage onToggle={togglePlay} onScreenConsent={() => screenRef.current?.showModal()} />
             <ResultBanner />
             <PlanCard />
@@ -238,6 +246,7 @@ export default function PomoGatorApp({ initialView = 'timer' }: { initialView?: 
             <MusicCard />
             <ContextCard onManageDocs={() => docsRef.current?.showModal()} />
             <TasksCard />
+            <FriendsCard onSignIn={() => signInRef.current?.showModal()} onOpen={() => openFriends()} onTogether={(id) => setTogetherWith(id)} />
             <TodayCard />
           </aside>
         </main>
@@ -254,6 +263,10 @@ export default function PomoGatorApp({ initialView = 'timer' }: { initialView?: 
       <ScreenConsentDialog dialogRef={screenRef} />
       <HelpDialog dialogRef={helpRef} />
       <SignInDialog dialogRef={signInRef} />
+      <FriendsDialog dialogRef={friendsRef} code={friendCode} />
+      <SocialHost onOpenFriends={(c) => openFriends(c)} />
+      <SupportPopup />
+      <TogetherDialog friendId={togetherWith} onClose={() => setTogetherWith(null)} />
       <ProfileDialog dialogRef={profileRef} />
       <AssistantButton />
       <AssistantPanel />

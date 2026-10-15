@@ -157,7 +157,8 @@ grant execute on function public.server_now_ms() to authenticated;
 
 /* ---------------------------------------------------------------- my profile */
 
--- Creates my friend profile the first time (with a fresh friend code) and updates name and buddy.
+-- Creates my friend profile the first time (with a fresh friend code and the given name); later calls only update
+-- the buddy. The name is changed in the friends dialog (a direct update of my own row).
 create or replace function public.social_me(p_name text default null, p_buddy text default null)
 returns setof public.social_profiles
 language plpgsql security definer set search_path = '' as $$
@@ -179,11 +180,8 @@ begin
       end;
     end loop;
   else
-    update public.social_profiles set
-      name = case when nullif(trim(p_name), '') is null then name else left(trim(p_name), 40) end,
-      buddy = coalesce(left(p_buddy, 20), buddy),
-      updated_at = now()
-    where user_id = me;
+    update public.social_profiles set buddy = coalesce(left(p_buddy, 20), buddy), updated_at = now()
+    where user_id = me and p_buddy is not null;
   end if;
   return query select * from public.social_profiles where user_id = me;
 end $$;

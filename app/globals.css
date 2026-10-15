@@ -1378,3 +1378,88 @@ html[data-ready] .splash { animation: splash-out .6s cubic-bezier(.22,1,.36,1) v
 .tour-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .tour-nav { display: flex; gap: 8px; }
 @media (prefers-reduced-motion: reduce) { .tour-spot { transition: none; } }
+
+/* ---------- Friends ---------- */
+.small-icon { width: 34px; height: 34px; }
+.small-icon svg.i { width: 17px; height: 17px; }
+#friendsCard .card-h { align-items: center; }
+#friendsCard .card-h .meta { margin-left: auto; }
+.friends-empty { display: grid; gap: 10px; justify-items: start; }
+.friends-empty p { margin: 0; color: var(--fg-2); font-size: 14px; }
+.friend-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.friend { border-radius: var(--r-md); transition: background-color .18s; }
+.friend[data-open] { background: var(--sunk); }
+.friend-row { width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px; border: 0; background: none; color: inherit; text-align: left; border-radius: var(--r-md); }
+.friend-row:hover:not(:disabled) { background: var(--sunk); }
+.friend-row:disabled { cursor: default; opacity: .85; }
+.friend-ava { width: 42px; height: 42px; flex: none; display: block; }
+.friend-ava .mascot { width: 100%; height: 100%; }
+.friend[data-online="0"] .friend-ava { filter: grayscale(.85); opacity: .7; }
+.friend-main { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.friend-main strong { font-size: 15px; }
+.friend-doing, .friend-main > span { font-size: 13px; color: var(--fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.friend-music { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.friend-music svg.i { width: 13px; height: 13px; color: #1DB954; flex: none; }
+.friend-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--rule); flex: none; }
+.friend[data-online="1"] .friend-dot { background: #2EB872; box-shadow: 0 0 0 3px color-mix(in srgb, #2EB872 25%, transparent); }
+.friend-request { display: flex; align-items: center; gap: 10px; padding: 8px; margin-bottom: 6px; border-radius: var(--r-md); background: var(--accent-soft); flex-wrap: wrap; }
+.friend-req-btns { display: flex; gap: 6px; align-items: center; }
+.friend-req-btns .btn { padding: 7px 12px; min-height: 0; font-size: 13.5px; }
+.friend-more { padding: 4px 10px 12px; display: grid; gap: 12px; }
+.friend-stats { display: grid; gap: 10px; }
+.fs-today { display: grid; gap: 1px; }
+.fs-label { font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--fg-3); }
+.fs-label small { text-transform: none; letter-spacing: 0; font-weight: 500; }
+.fs-today strong { font-family: var(--f-display); font-size: 24px; font-weight: 800; }
+.fs-today span:last-child { font-size: 13px; color: var(--fg-2); }
+.fs-grid { margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fs-grid div { background: var(--card); border-radius: 10px; padding: 8px 10px; }
+.fs-grid dt { font-size: 12px; color: var(--fg-2); }
+.fs-grid dd { margin: 2px 0 0; font-weight: 700; font-size: 15px; display: grid; }
+.fs-grid dd small { font-weight: 500; font-size: 12px; color: var(--fg-2); }
+.fs-badges { display: flex; gap: 4px; flex-wrap: wrap; }
+.fs-badges .medal { width: 30px; height: 36px; }
+.fs-badges .medal-face { height: 26px; }
+.fs-badges .medal-ribbon { width: 16px; height: 14px; }
+.fs-badges .medal-face b { font-size: 10px; }
+.support-pick { display: grid; gap: 8px; }
+.support-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.support-chips .chip { padding: 6px 10px; font-size: 12.5px; }
+.support-chips .chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--fg); }
+.support-done { margin: 0; display: flex; gap: 6px; align-items: center; font-size: 13.5px; font-weight: 600; color: var(--good); }
+.support-done svg.i { width: 15px; height: 15px; flex: none; }
+.friend-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.code-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.friend-code { font: 700 22px/1 var(--f-mono); letter-spacing: .12em; padding: 10px 14px; border-radius: 12px; background: var(--sunk); user-select: all; }
+#myName { max-width: 220px; }
+
+/* A friend's buddy walks in with their message. */
+.support-pop { position: fixed; left: 20px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 70; display: flex; align-items: flex-end; gap: 6px; max-width: min(420px, calc(100vw - 40px)); }
+.support-buddy { width: 96px; flex: none; display: block; filter: drop-shadow(0 8px 14px rgba(0,0,0,.25)); }
+.support-bubble { position: relative; background: var(--card); color: var(--fg); border: 1px solid var(--rule); border-radius: 18px 18px 18px 6px;
+  padding: 14px 16px; box-shadow: 0 18px 40px -16px rgba(0,0,0,.45); display: grid; gap: 8px; justify-items: start; margin-bottom: 40px; transform-origin: bottom left; }
+.support-bubble::before { content: ""; position: absolute; left: -9px; bottom: 14px; width: 16px; height: 16px; background: var(--card); border-left: 1px solid var(--rule); border-bottom: 1px solid var(--rule); transform: rotate(45deg); }
+.support-text { margin: 0; font-family: var(--f-display); font-size: 18px; font-weight: 700; line-height: 1.3; }
+.support-from { margin: 0; font-size: 13px; color: var(--fg-2); }
+.support-bubble .btn { padding: 7px 14px; min-height: 0; }
+@media (max-width: 640px) { .support-pop { left: 12px; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); } .support-buddy { width: 72px; } }
+
+/* ---------- Studying together ---------- */
+.together-pick { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 260px; overflow: auto; }
+.together-pick label { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: var(--r-md); cursor: pointer; }
+.together-pick label:hover { background: var(--sunk); }
+.together-pick label > span:last-child { display: grid; font-weight: 600; }
+.together-pick small { font-weight: 500; color: var(--fg-2); font-size: 12.5px; }
+.together-pick .friend-ava { width: 36px; height: 36px; }
+.invite-ava { width: 52px; flex: none; display: block; }
+.invite-banner .hint { font-size: 13px; }
+.room-panel { display: flex; align-items: center; gap: 12px 16px; padding: 12px 16px; flex-wrap: wrap;
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--rule)); background: linear-gradient(120deg, var(--accent-soft), var(--card) 70%); }
+.room-people { display: flex; gap: 6px; }
+.room-person { display: grid; justify-items: center; gap: 2px; width: 58px; }
+.room-person .friend-ava { width: 44px; height: 44px; }
+.room-person.waiting { opacity: .65; }
+.room-name { font-size: 12px; font-weight: 700; text-align: center; display: grid; line-height: 1.2; max-width: 58px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.room-name small { font-weight: 500; color: var(--fg-2); }
+.room-text { flex: 1; min-width: 200px; display: grid; gap: 2px; }
+.room-text > span:first-of-type { font-size: 13.5px; color: var(--fg-2); }

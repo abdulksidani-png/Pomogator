@@ -158,3 +158,114 @@ test('deleting an account removes its rows and starts this device over as a gues
   expect((await rows('tasks')).filter((r) => r.user_id === id)).toEqual([]);
   expect((await rows('profiles')).filter((r) => r.id === id)).toEqual([]);
 });
+
+/** Two signed-in accounts who are friends. */
+async function friends(browser: Browser, a: string, b: string) {
+  const pa = await device(browser);
+  const pb = await device(browser);
+  for (const [p, email, name] of [[pa, `${a.toLowerCase()}.pal@test.dev`, a], [pb, `${b.toLowerCase()}.pal@test.dev`, b]] as const) {
+    await p.goto('/');
+    await expect(footer(p)).toContainText('studying as a guest', { timeout: 15_000 });
+    await emailSignIn(p, email, /click the link to finish/);
+    await p.locator('#friendsCard').getByRole('button', { name: /Add friends/ }).click();
+    await p.fill('#myName', name);
+    await p.locator('#myName').blur();
+  }
+  const code = (await pa.locator('#myFriendCode').textContent())!.trim();
+  await pa.locator('#friendsDlg').getByRole('button', { name: 'Done' }).click();
+  await pb.fill('#friendCodeIn', code.toLowerCase());
+  await pb.getByRole('button', { name: 'Add friend', exact: true }).click();
+  await expect(pb.locator('#friendsDlg')).toContainText('Request sent');
+  await pb.locator('#friendsDlg').getByRole('button', { name: 'Done' }).click();
+  await pa.reload();
+  const req = pa.locator('#friendsCard .friend-request');
+  await expect(req).toContainText(`${b}wants to be friends`, { timeout: 15_000 });
+  await req.getByRole('button', { name: 'Accept' }).click();
+  await expect(pa.locator('#friendsCard .friend-list')).toContainText(b);
+  return { pa, pb };
+}
+
+test('friends: add by code, see each other studying and their stats, and send support once a day', async ({ browser }) => {
+  const { pa, pb } = await friends(browser, 'Ana', 'Bo');
+
+  // Ana starts studying; Bo sees it (Ana shares being online by default).
+  await pa.getByRole('button', { name: /Start studying/ }).click();
+  await pa.waitForTimeout(6000); // the next heartbeat carries the change
+  await pb.reload();
+  const ana = pb.locator('#friendsCard .friend', { hasText: 'Ana' });
+  await expect(ana).toContainText('Studying', { timeout: 15_000 });
+  await expect(ana).toHaveAttribute('data-online', '1');
+
+  // Her stats, and one support message a day.
+  await ana.locator('.friend-row').click();
+  await expect(ana.locator('.friend-stats')).toContainText('Check-in streak');
+  await ana.getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(ana).toContainText('Support sent today');
+  await pb.reload();
+  await pb.locator('#friendsCard .friend', { hasText: 'Ana' }).locator('.friend-row').click();
+  await expect(pb.locator('#friendsCard .friend', { hasText: 'Ana' })).toContainText('Support sent today');
+
+  // Ana's screen: Bo's buddy walks in with the message.
+  await pa.reload();
+  const pop = pa.locator('.support-pop');
+  await expect(pop).toContainText('You\'ve got this!', { timeout: 15_000 });
+  await expect(pop).toContainText('brought this from Bo');
+  await pop.getByRole('button', { name: /Thanks/ }).click();
+  await expect(pop).toHaveCount(0);
+  await pa.reload();
+  await pa.waitForTimeout(2000);
+  await expect(pa.locator('.support-pop')).toHaveCount(0);
+
+  // Ana hides being online: Bo sees her as offline.
+  await pa.locator('#friendsCard').getByRole('button', { name: /Add friends/ }).click();
+  await pa.locator('#shareOnline').uncheck();
+  await pb.reload();
+  await expect(pb.locator('#friendsCard .friend', { hasText: 'Ana' })).toContainText('Offline', { timeout: 15_000 });
+});
+
+test('study together: invite, join, one shared timer, and the same break for everyone', async ({ browser }) => {
+  const { pa, pb } = await friends(browser, 'Cat', 'Dev');
+  const dev = pa.locator('#friendsCard .friend', { hasText: 'Dev' });
+  await dev.locator('.friend-row').click();
+  await dev.getByRole('button', { name: 'Study together' }).click();
+  const dlg = pa.locator('#togetherDlg');
+  await dlg.getByRole('button', { name: '30 min' }).click();
+  await dlg.getByRole('button', { name: '10 min' }).click();
+  await dlg.locator('#tgNote').fill('Chem cram');
+  await dlg.getByRole('button', { name: 'Send invite' }).click();
+  await expect(pa.locator('#roomPanel')).toContainText('30 min study · 10 min breaks');
+  await expect(pa.locator('#roomPanel')).toContainText('invited');
+
+  // Dev gets the invite and joins.
+  const inv = pb.locator('#inviteBanner');
+  await expect(inv).toContainText('Cat invited you to study together', { timeout: 20_000 });
+  await expect(inv).toContainText('Chem cram');
+  await inv.getByRole('button', { name: 'Join' }).click();
+  await expect(pb.locator('#roomPanel')).toContainText('Studying together');
+  await expect(pa.locator('#roomPanel .room-person.waiting')).toHaveCount(0, { timeout: 10_000 });
+
+  // Cat starts: Dev's timer runs too, with the same time left. Dev pauses: Cat's pauses.
+  await pa.getByRole('button', { name: /Start studying/ }).click();
+  await expect(pb.getByRole('button', { name: /^Pause/ })).toBeVisible({ timeout: 10_000 });
+  await expect(pb.getByRole('timer')).toHaveAttribute('aria-label', /^(29|30) minutes/);
+  await expect(pb.getByRole('group', { name: 'Timer mode' }).getByRole('button', { name: 'Study', exact: true })).toBeDisabled(); // the group's timer decides
+  await pb.getByRole('button', { name: /^Pause/ }).click();
+  await expect(pa.getByRole('button', { name: /^Resume/ })).toBeVisible({ timeout: 10_000 });
+  await pa.getByRole('button', { name: /^Resume/ }).click();
+  await expect(pb.getByRole('button', { name: /^Pause/ })).toBeVisible({ timeout: 10_000 });
+
+  // Finishing ends the session for both; each has a quiz screen, and the break is the agreed 10 minutes.
+  await pa.getByRole('button', { name: /Finish session now/ }).click();
+  for (const p of [pa, pb]) {
+    const skip = p.getByRole('button', { name: /Skip quiz · 10-min group break/ });
+    await expect(skip).toBeVisible({ timeout: 10_000 });
+    await skip.click();
+    await expect(p.locator('#resultBanner')).toContainText('10-minute group break');
+    await expect(p.getByRole('timer')).toHaveAttribute('aria-label', /^(9|10) minutes/);
+  }
+
+  // Leaving: Dev's timer carries on by itself; Cat stays in the room.
+  await pb.locator('#roomPanel').getByRole('button', { name: 'Leave' }).click();
+  await expect(pb.locator('#roomPanel')).toHaveCount(0);
+  await expect(pa.locator('#roomPanel .room-person')).toHaveCount(1, { timeout: 10_000 });
+});

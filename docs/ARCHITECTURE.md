@@ -80,6 +80,22 @@ browser (lib/ai-client.ts) → POST /api/ai/{action} → sign-in + daily allowan
   combined from both sides rather than "newest wins", and before showing the card the browser fetches other devices'
   changes, so the celebration shows once per day per account, not once per device.
 
+## Friends and studying together
+
+- Migration 4 adds `social_profiles` (friend code, name, buddy, three sharing switches, shared stats), `friendships`,
+  `presence`, `support_messages` and study rooms. Another person's data is only ever read through `security definer`
+  functions (`friends_overview()`, `support_inbox()`, `collab_room()`…) that check the friendship and the sharing
+  switches on the server; the tables themselves are private to their owner. Guests can't use friends.
+- `lib/social.ts` polls while the tab is visible: a heartbeat every minute (and within 5 s of starting, pausing or
+  finishing), friends and the support inbox every 30 s, invites every 10 s. Online means a heartbeat in the last
+  150 seconds. One support message per friend per day is a unique key in the database.
+- Studying together (`lib/collab-core.ts`, unit-tested): a room stores one shared timer on the server's clock. Nobody
+  writes "study ended" or "break ended"; every device derives the current phase from the stored state and the server
+  time, so they agree. Presses write a new state with an expected version, so two people pressing at once can't clash.
+  `lib/collab.ts` polls the room every 2 s and lines the local timer up with it (the store routes shared presses through
+  it); the quiz still runs locally, but the break is the room's agreed length. The server's clock comes back with every
+  call, so devices whose clocks are off still show the same time.
+
 ## Documents, goals and screen tracking
 
 - `lib/docs/parse.ts` turns PDF (pdf.js), PowerPoint (slide XML via JSZip), Word (mammoth), text and photos (Tesseract

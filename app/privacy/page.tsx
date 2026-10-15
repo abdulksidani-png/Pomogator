@@ -22,6 +22,13 @@ export default function Privacy() {
       <p>Settings → Clear history deletes your study history on every device, and each document can be deleted from your
         documents list. A one-click &ldquo;delete my account&rdquo; is on the roadmap.</p>
 
+      <h2>Friends</h2>
+      <p>Friends are only for signed-in accounts. A friend sees your name and study buddy, and only what you switch on in the
+        friends settings: whether you&apos;re online and what you&apos;re doing (studying, on a break, taking a quiz, and for how
+        long), the song playing in your Spotify widget, and your stats and streaks. Support messages and study-together
+        sessions are stored so they can be delivered, and are deleted with your account. Your email is never shown to
+        friends.</p>
+
       <h2>AI features</h2>
       <p>Quizzes, plans, document summaries and the study assistant are written by Google&apos;s Gemini API. When you use them, this
         site&apos;s server sends Gemini what the request needs: your topic, the pages you covered, your chat messages and any photos you attach to them, any lecture

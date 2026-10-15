@@ -43,8 +43,8 @@ optional screen tracking, sign-in with cloud sync, and appearance customization.
 | 7 | Weekly report: summary, ▲/▼ numbers, charts, archive, image/PDF | Built, waiting on his test |
 | 8 | Check-in streaks + celebrations (MyFitnessPal style) | Built, waiting on his test |
 | 9 | Polish, export / delete account, full guide, first-time tour | Built, waiting on his test |
-| 10 | Friends: codes, widget (online, studying time, music, stats), support messages | In progress (his request) |
-| 11 | Study together: synced timers, groups of 4, agreed break | Next (his request) |
+| 10 | Friends: codes, widget (online, studying time, music, stats), support messages | Built, waiting on his test (needs migration 4) |
+| 11 | Study together: synced timers, groups of 4, agreed break | Built, waiting on his test (needs migration 4) |
 
 Phase 3 also added the **study assistant** he asked for (`components/Assistant.tsx`, `lib/assistant.ts`): a corner
 "Ask PomoGator" button / `A` key opens a chat panel that sees the study panel, timer, to-do list, the selected
@@ -149,6 +149,24 @@ and mirrored in localStorage `studybuddy.tour`; Help dialog → "Take the tour".
 (WCAG 2.1 AA, three themes, every view) — fixed `--fg-3` contrast in 8 themes; phones hide the Stats and Loop chips (the
 streak button opens Stats; Loop is in Settings). `docs/SETUP.md` has "What it costs" (AI requests per session) and more
 troubleshooting. `tests/db/friends-check.sql` checks migration 4 (run on a fresh database after all migrations).
+
+**Phases 10–11 (built, his request):** migration 4 (`20261016000000_friends.sql`, checked by `tests/db/friends-check.sql`).
+Friends (`lib/social.ts`, `components/Friends.tsx`): `SocialHost` starts it for `account.status === 'user'` only (guests
+see "Sign in to add friends"; no Supabase → card hidden); `social_me` makes the profile + 8-char code (name only set at
+creation, from a Google first name, never an email; renamed via `#myName`); `#friendsDlg` (code, invite link
+`/?friend=CODE`, add by code, sharing switches `#shareOnline/#shareMusic/#shareStats`); `#friendsCard` rows show the
+friend's buddy (mood from what they're doing), online dot, "Studying · N min in", music, and expand to stats
+(`myStats()` published to `social_profiles.stats`), a support picker (presets + custom, `send_support`, one per day by a
+unique key) and "Study together". `SupportPopup`: the sender's buddy slides in bottom-left with a bubble; "Thanks"
+marks it seen. Polling (no Realtime): heartbeat 60 s + on activity change (5 s check), friends/inbox 30 s, invites 10 s.
+Study together (`lib/collab-core.ts` pure + `tests/unit/collab.test.ts`, `lib/collab.ts`, `components/Together.tsx`):
+`effective()` derives study→break→next round from the stored state + server time; `pressed()` makes the new state;
+`set_collab_state` with expected version. The store's `start/pause/reset/addFive/skip/markDone` call `collabCtl.press`
+when `collab` is set (`shared()`), and `fromTheRoom` applies the room locally; `align()` (on every 2 s poll) lines the
+local timer up (endAt converted with the server clock skew); `startBreak` uses `collab.breakMin` and `lastResult.together`;
+mode switching is disabled; "+5" isn't offered in the group quiz. `TogetherDialog` (up to 3 friends, study 25/30/45/50,
+break 5/10/15, note), `InviteBanner` (Join is disabled while your own timer is busy), `RoomPanel` (members, terms, Leave).
+React #185 bit again here: never `.filter()` inside a Zustand selector.
 
 **Quizzes from the shared screen (2026-10-15, his report: a Python session got a quiz on yesterday's philosophy deck):**
 screen tracking used OCR only to match slides, so off-document work was ignored. Now `capture()` in `lib/docs/screen.ts`
@@ -262,7 +280,7 @@ Earlier requests, all done and confirmed:
 ```bash
 npm run dev          # http://localhost:3000 (copies vendor files first)
 npm run typecheck
-npm test             # Vitest unit tests (106)
+npm test             # Vitest unit tests (110)
 npm run test:e2e     # Playwright: loop, documents, goals, screen tracking, tab sound, sounds, appearance, buddies, stats,
                      # saved timers, full screen, plan fold, weekly report, loading screen
 npm run test:ai      # Playwright: AI, Unsplash and Spotify against stand-ins (tests/fake-gemini; Spotify faked in-test)

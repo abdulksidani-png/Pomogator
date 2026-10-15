@@ -32,7 +32,10 @@ export function ResultBanner() {
   if (T.phase !== 'break' || !r || T.breakReason === 'manual') return null;
   const kindWord = r.kind === 'long' ? 'long break' : 'break';
   let title: string, msg: string;
-  if (r.total) {
+  if (r.together) {
+    title = `${r.mins}-minute group break`;
+    msg = r.total ? `You scored ${r.score}/${r.total}. Everyone in your group gets the same break, whatever the score.` : 'Everyone in your group gets the same break.';
+  } else if (r.total) {
     const pct = (r.score ?? 0) / r.total;
     title = `${r.mins}-minute ${kindWord} earned`;
     msg = pct >= 1 ? 'Perfect round. Enjoy the full break.' : pct >= 0.5 ? 'Solid work. What you missed is in the plan below.' : 'Good that the gaps showed up now. Short reset, then a focused review.';

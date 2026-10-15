@@ -228,6 +228,8 @@ export interface LastResult {
   kind: BreakKind;
   reason: BreakReason;
   at: number;
+  /** A study-together break: the same agreed length for everyone. */
+  together?: boolean;
 }
 
 export interface TimerState {
@@ -446,3 +448,21 @@ export interface WeeklyAi { headline: string; summary: string; focus: string[] }
 
 /** A saved summary for one week (keyed by the week's first day), with the numbers it was written from. */
 export interface WeeklySaved extends WeeklyAi { sig: string; at: number }
+
+/** Studying together: a room of up to 4 friends with one shared timer (times are on the server's clock). */
+export interface CollabMember { id: string; name: string; buddy: MascotKind; status: 'joined' | 'invited' }
+export interface CollabTimer {
+  phase: 'study' | 'break';
+  status: 'idle' | 'running' | 'paused';
+  /** Server-clock ms when the running phase ends. */
+  endAt?: number;
+  /** Time left while paused. */
+  remainingMs?: number;
+  round: number;
+  /** Who pressed last, for "Sam started the timer". */
+  by?: string;
+}
+export interface CollabRoom {
+  id: string; host: string; studyMin: number; breakMin: number; note: string;
+  state: CollabTimer; v: number; members: CollabMember[];
+}
