@@ -1,5 +1,6 @@
 'use client';
 import { useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useStudy } from '@/lib/store';
 import { isVagueTopic, topicKey, topicLabel, weakConcepts } from '@/lib/context';
 import { aiErrorText } from '@/lib/quiz';
@@ -9,6 +10,7 @@ import { todayFor } from '@/lib/dates';
 import type { StudyContext } from '@/lib/types';
 import { Icon } from './Icon';
 import { ReachPicker, StudyMaterial } from './Documents';
+import { EASE, SOFT, SPRING } from './motion';
 
 /** A button that needs a second click within a few seconds, instead of a confirm() dialog. */
 function useArmed(ms = 3500) {
@@ -42,8 +44,9 @@ export function ResultBanner() {
       : r.reason === 'skipped' ? 'Session skipped, so no quiz this round.' : 'No quiz this round.';
   }
   return (
-    <section className="card result" id="resultBanner" aria-live="polite">
-      {r.total > 0 && <div className="score">{r.score}/{r.total}</div>}
+    <motion.section className="card result" id="resultBanner" aria-live="polite" key={r.at}
+      initial={{ opacity: 0, y: 16, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.45, ease: EASE }}>
+      {r.total > 0 && <motion.div className="score" initial={{ scale: 0.5, rotate: -8 }} animate={{ scale: 1, rotate: 0 }} transition={{ ...SPRING, delay: 0.12 }}>{r.score}/{r.total}</motion.div>}
       <div className="result-text"><h2>{title}</h2><p>{msg}</p></div>
       {r.items.length > 0 && (
         <div className="pills">
@@ -51,7 +54,7 @@ export function ResultBanner() {
         </div>
       )}
       <ReachPicker />
-    </section>
+    </motion.section>
   );
 }
 
@@ -199,13 +202,17 @@ export function TasksCard() {
         <button className="btn" type="submit">Add</button>
       </form>
       <ul className="task-list">
-        {tasks.length ? tasks.map((t) => (
-          <li key={t.id} className={`task${t.done ? ' done' : ''}`}>
-            <input type="checkbox" id={`task-${t.id}`} checked={t.done} onChange={(e) => toggleTask(t.id, e.target.checked)} />
-            <label className="t" htmlFor={`task-${t.id}`}>{t.text}</label>
-            <button className="x" type="button" aria-label="Delete task" onClick={() => deleteTask(t.id)}><Icon name="x" /></button>
-          </li>
-        )) : <li className="empty">Add what you want to get through today.</li>}
+        <AnimatePresence initial={false}>
+          {tasks.map((t) => (
+            <motion.li key={t.id} className={`task${t.done ? ' done' : ''}`} layout="position"
+              initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: 28, transition: { duration: 0.2 } }} transition={SOFT}>
+              <input type="checkbox" id={`task-${t.id}`} checked={t.done} onChange={(e) => toggleTask(t.id, e.target.checked)} />
+              <label className="t" htmlFor={`task-${t.id}`}>{t.text}</label>
+              <button className="x" type="button" aria-label="Delete task" onClick={() => deleteTask(t.id)}><Icon name="x" /></button>
+            </motion.li>
+          ))}
+        </AnimatePresence>
+        {!tasks.length && <li className="empty">Add what you want to get through today.</li>}
       </ul>
       <div className="task-foot">
         <button className="btn-quiet" type="button" onClick={clearDone}>Clear completed</button>

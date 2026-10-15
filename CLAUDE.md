@@ -36,19 +36,24 @@ optional screen tracking, sign-in with cloud sync, and appearance customization.
 | 8 | Check-in streaks + celebrations (MyFitnessPal style) | |
 | 9 | Polish, export / delete account, full README guide | |
 
-The owner's latest requests, all done:
-- sign out (Settings → Account, avatar menu)
-- more file types
-- screen-share button under "Study material"
-- appearance options
-
-He hadn't confirmed they work yet.
+The owner's latest requests, all done (he hadn't confirmed they work yet):
+- sign out (Settings → Account, avatar menu), more file types, screen-share button under "Study material", appearance options
+- faster screen tracking (checks every 2 s by default, `screenSec` 1–15)
+- "Also capture the tab's sound": tab audio → on-device Whisper → `session.heard` (sent to the quiz as `heard`)
+- start/pause/resume sounds (`controlSounds`, `Sound.cue`)
+- "Finish session now" always goes to the quiz, even early (a skip or an expired short session still doesn't)
+- Start never asks to share the screen; sharing only starts from its own button
+- Motion animations (`motion` package; he asked for `motion-v`, which is the Vue version)
 
 ### Where the build differs from the spec (on purpose)
 - **Outlines** come from the file itself (PPTX slide titles, PDF largest text, DOCX headings) rather than `/api/ai/outline`.
   Phase 3 may add AI summaries and key concepts on top.
 - **Screen tracking** reads frames with on-device Tesseract OCR and IDF word matching (`lib/docs/match.ts`) rather than
   sending frames to Claude. `/api/ai/frame` could be a fallback when the match isn't confident.
+- **Tab sound** is transcribed on the device: `lib/docs/listen.ts` taps the shared stream with an AudioWorklet,
+  cuts 12 s clips (silent ones skipped), and `public/asr-worker.js` runs Whisper tiny.en with Transformers.js loaded from
+  jsDelivr (the npm package pulls in onnxruntime-node, whose install script downloads binaries). The model (~40 MB) comes
+  from Hugging Face once and the browser caches it. The transcript lives only on the live session and is dropped from history.
 - **AI routes** are stubs: `app/api/ai/[action]/route.ts` returns 503 and `app/api/ai/status` returns `{configured:false}`.
   The client side is ready in `lib/ai-client.ts` and `lib/quiz.ts`, which include validation.
 
@@ -71,7 +76,7 @@ He hadn't confirmed they work yet.
   - `parse.ts`: file → pages
   - `library.ts`: import, pages cache (memory → IndexedDB → server), delete
   - `match.ts`: goals, screen matching, change detection
-  - `ocr.ts`, `screen.ts`
+  - `ocr.ts`, `screen.ts`, `listen.ts` (tab sound → text)
 - `lib/appearance.ts` + `components/Appearance.tsx`: look settings, applied as data attributes on `<html>`.
 - `components/`:
   - `StudyBuddyApp.tsx`: layout, dialogs, Start/consent wiring
@@ -88,7 +93,7 @@ He hadn't confirmed they work yet.
 npm run dev          # http://localhost:3000 (copies vendor files first)
 npm run typecheck
 npm test             # Vitest unit tests (42)
-npm run test:e2e     # Playwright: loop, documents, goals, screen tracking, appearance
+npm run test:e2e     # Playwright: loop, documents, goals, screen tracking, tab sound, sounds, appearance
 npm run test:sync    # two-device sync: needs local Postgres + PostgREST (PGHOST/PGPORT/PGUSER, POSTGREST_BIN)
 ```
 `tests/fake-supabase/server.mjs` runs the real migrations on Postgres behind PostgREST, with a fake auth server.
@@ -99,6 +104,9 @@ npm run test:sync    # two-device sync: needs local Postgres + PostgREST (PGHOST
 - Custom class names can collide with Tailwind utilities, which already caused trouble with `.ring` and `.outline`.
   Use specific names like `.timer-ring` or `.doc-outline`.
 - Screen tracking may start before a session. It stops when a live session ends, and it only reads frames while studying.
+- Animations use `motion/react` with shared timings in `components/motion.ts`. Don't put an exit step (`AnimatePresence`)
+  in front of something the user must reach, like the quiz face: exits stall when rAF stops (a background tab, or
+  Playwright's fake clock), so the next screen never mounts. Enter-only (a keyed `motion.div` with `initial`) is safe.
 - Playwright reuses a server already running on its port. Kill stale `next` processes first, and don't `pkill -f`
   a pattern that appears in your own command.
 - Commits: write clear messages and push to `main`. Vercel deploys automatically.

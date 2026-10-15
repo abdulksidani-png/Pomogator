@@ -101,7 +101,7 @@ test('screen tracking reads the shared slides window and follows along', async (
   // Sharing turned screen tracking on in Settings, where its options now show.
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await expect(page.locator('#scrToggle')).toBeChecked();
-  await page.locator('#scrEvery').fill('10');
+  await page.locator('#scrEvery').fill('1');
   await page.locator('#settingsDlg').getByRole('button', { name: 'Done' }).click();
 
   await page.getByRole('button', { name: /Start studying/ }).click();
@@ -117,8 +117,10 @@ test('screen tracking reads the shared slides window and follows along', async (
   // Ending the session stops the sharing.
   await page.getByRole('button', { name: /Finish session now/ }).click();
   await expect(page.locator('.watch-pill')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Share screen to track slides' })).toBeVisible();
+  await expect(page.locator('.qcard')).toBeVisible(); // straight to the quiz, even early
+  await page.getByRole('button', { name: /Take a 5-min break/ }).click();
   await expect(page.locator('#reached')).toHaveValue('6');
+  await expect(page.getByRole('button', { name: 'Share screen to track slides' })).toBeVisible();
 });
 
 test('appearance: theme, accent, timer style and background stick after a reload', async ({ page }) => {
@@ -137,4 +139,45 @@ test('appearance: theme, accent, timer style and background stick after a reload
   await expect(html).toHaveAttribute('data-clockfont', 'condensed');
   await expect(page.locator('.timer-ring')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.style.getPropertyValue('--accent'))).toBe('#7C4DDB');
+});
+
+test('tab sound: a shared lecture tab\'s speech becomes notes for the session', async ({ page }) => {
+  test.setTimeout(90_000);
+  // A fake speech reader, so the test doesn't download the real model.
+  await page.route('**/asr-worker.js', (route) => route.fulfill({
+    contentType: 'text/javascript',
+    body: `self.onmessage = (e) => {
+      if (e.data.type === 'load') { self.postMessage({ type: 'progress', pct: 50 }); self.postMessage({ type: 'ready' }); return; }
+      const secs = Math.round(e.data.audio.length / 16000);
+      self.postMessage({ type: 'text', text: '[Music] The mitochondria makes energy, clip of ' + secs + ' seconds.' });
+    };`,
+  }));
+  // Stand in for sharing a tab with its sound: a canvas plus a steady tone.
+  await page.addInitScript(() => {
+    navigator.mediaDevices.getDisplayMedia = async (opts?: DisplayMediaStreamOptions) => {
+      const c = document.createElement('canvas');
+      c.width = 640; c.height = 360;
+      c.getContext('2d')!.fillRect(0, 0, 640, 360);
+      const s = c.captureStream(5);
+      if (opts?.audio) {
+        const ac = new AudioContext();
+        const osc = ac.createOscillator();
+        const dest = ac.createMediaStreamDestination();
+        osc.connect(dest); osc.start();
+        s.addTrack(dest.stream.getAudioTracks()[0]);
+      }
+      return s;
+    };
+  });
+  await page.goto('/');
+  await page.fill('#ctxTopic', 'Cell biology');
+  await page.locator('#shareSound').check();
+  await page.getByRole('button', { name: 'Share screen to track slides' }).click();
+  await page.getByRole('button', { name: 'Choose window to share' }).click();
+  await expect(page.locator('.share-row')).toContainText('Listening');
+  await page.getByRole('button', { name: /Start studying/ }).click();
+  await expect(page.locator('.heard')).toContainText('Heard: “The mitochondria makes energy, clip of 12 seconds.”', { timeout: 40_000 });
+  await page.locator('.heard summary').click();
+  await expect(page.locator('.heard-text')).toContainText('mitochondria');
+  await expect(page.locator('.heard-text')).not.toContainText('[Music]');
 });

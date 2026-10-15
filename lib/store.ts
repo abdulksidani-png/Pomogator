@@ -98,6 +98,8 @@ interface Actions {
   setStartPage: (page: number) => void;
   /** During a session: the page now on screen (or picked by hand). */
   recordProgress: (page: number, title: string, source: 'screen' | 'manual', conf?: number) => void;
+  /** Add speech heard from a shared tab to the live session's notes. */
+  addHeard: (text: string) => void;
   /** After a session: how far it really got. */
   setReached: (sessionId: string, page: number) => void;
   /** Delete the screen-tracking log for the current session, or for every session. */
@@ -375,7 +377,8 @@ export const useStudy = create<Store>()(
             if (enough) T.cycleDone += 1;
             kind = enough && T.cycleDone >= d.settings.longEvery ? 'long' : 'short';
             T.breakKind = kind;
-            next = reason === 'skip' ? 'skip' : !enough ? 'short' : 'quiz';
+            // "Finish session now" always offers the quiz; a timer that ran out on a short session doesn't.
+            next = reason === 'skip' ? 'skip' : !enough && reason !== 'done' ? 'short' : 'quiz';
             if (next === 'quiz') {
               T.phase = 'quiz';
               d.quiz.step = d.settings.loop ? 'question' : 'intro';
@@ -396,6 +399,7 @@ export const useStudy = create<Store>()(
             const s = d.timer.session;
             if (!s) return;
             const rec: SessionRecord = { ...current(s), quiz, endedAt: s.endedAt || Date.now() };
+            delete rec.heard; // the lecture transcript only feeds this session's quiz
             const doc = rec.docId ? d.docs.find((x) => x.id === rec.docId) : undefined;
             if (doc) {
               if (rec.endPage === undefined) { rec.endPage = rec.goalPage ?? rec.startPage; rec.progressSource = 'assumed'; }
@@ -459,6 +463,7 @@ export const useStudy = create<Store>()(
             const qs = await AI.quiz({
               ctx: { ...s.context }, n: s.settings.questions, difficulty: s.settings.difficulty,
               weak: weakConcepts(s.stats, tk).map((c) => c.concept), asked: askedToday(s.asked, todayFor(s.settings)).slice(-30),
+              ...(s.timer.session?.heard ? { heard: s.timer.session.heard.slice(-6000) } : {}),
             }, ctl.signal);
             if (ctl !== quizCtl) return;
             if (!qs.length) throw { code: 'invalid_json' };
@@ -628,6 +633,15 @@ export const useStudy = create<Store>()(
             d.context.startPage = clamp(Math.round(page) || 1, 1, doc?.pageCount || 1);
             const s = d.timer.session;
             if (s && s.docId === d.context.docId && !(s.seen?.length)) s.startPage = d.context.startPage;
+          });
+        },
+        addHeard(text) {
+          const t = text.replace(/\s+/g, ' ').trim();
+          if (!t) return;
+          set((d) => {
+            const s = d.timer.session;
+            if (!s) return;
+            s.heard = ((s.heard ? s.heard + ' ' : '') + t).slice(-20_000);
           });
         },
         recordProgress(page, title, source, conf) {

@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { MotionConfig, motion } from 'motion/react';
 import { useStudy, quizReadyForTaking, type Store } from '@/lib/store';
 import { useNow } from '@/lib/now';
 import { Sound } from '@/lib/sound';
@@ -9,10 +10,11 @@ import { ContextCard, PlanCard, ResultBanner, TasksCard, TodayCard } from './Pan
 import { HelpDialog, SettingsDialog } from './Dialogs';
 import { AccountButton, ProfileDialog, SignInDialog, SyncStatus } from './Account';
 import { recheckAccount, startSync } from '@/lib/sync';
-import { maybeAskOnStart, stopWatching } from '@/lib/docs/screen';
+import { stopWatching } from '@/lib/docs/screen';
 import { AppearanceDialog, useAppearance } from './Appearance';
 import { DocumentsDialog, ScreenConsentDialog } from './Documents';
 import { signInWithGoogle } from '@/lib/auth';
+import { SPRING } from './motion';
 
 /** The ambience that should be playing for the current timer state. */
 const desiredAmbience = (s: Store) =>
@@ -32,11 +34,12 @@ export default function StudyBuddyApp() {
   const studyLive = useStudy((s) => s.timer.phase === 'study' && !!s.timer.session);
   useAppearance();
 
-  /** Start/pause; starting a new session can also ask to share the slides window (needs the click). */
+  /** Start/pause/resume, with a short sound. Screen sharing only starts from its own button. */
   const togglePlay = useRef(() => {
-    const before = useStudy.getState().timer;
-    useStudy.getState().toggle();
-    if (before.phase === 'study' && before.status === 'idle') maybeAskOnStart(() => screenRef.current?.showModal());
+    const s = useStudy.getState();
+    const before = s.timer.status;
+    s.toggle();
+    if (s.settings.controlSounds) Sound.cue(before === 'running' ? 'pause' : before === 'paused' ? 'resume' : 'start', s.settings.chimeVol);
   }).current;
 
   // Screen tracking ends with the session: never during breaks or quizzes.
@@ -137,7 +140,7 @@ export default function StudyBuddyApp() {
   }, []);
 
   return (
-    <>
+    <MotionConfig reducedMotion="user">
       <IconSprite />
       <TitleSync />
       <div className="app">
@@ -187,7 +190,7 @@ export default function StudyBuddyApp() {
       <ProfileDialog dialogRef={profileRef} />
       <Toast />
       <Announcer />
-    </>
+    </MotionConfig>
   );
 }
 
@@ -200,7 +203,14 @@ function Toast() {
     const t = setTimeout(() => setShown(false), 2800);
     return () => clearTimeout(t);
   }, [toast]);
-  return <div className={`toast${shown ? ' show' : ''}`} role="status" aria-live="polite">{toast?.msg}</div>;
+  return (
+    <div className="toast-wrap">
+      <motion.div className={`toast${shown ? ' show' : ''}`} role="status" aria-live="polite" initial={false}
+        animate={shown ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 18, scale: 0.96 }} transition={SPRING}>
+        <motion.span key={toast?.id} style={{ display: 'inline-block' }} initial={{ opacity: 0.4, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={SPRING}>{toast?.msg}</motion.span>
+      </motion.div>
+    </div>
+  );
 }
 
 function Announcer() {

@@ -1,5 +1,6 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { motion } from 'motion/react';
 import { useStudy, remainingAt, quizReadyForTaking } from '@/lib/store';
 import { useNow, focusContext } from '@/lib/now';
 import { nextBreakKind, tierRows, tierSentence } from '@/lib/breaks';
@@ -8,13 +9,20 @@ import { MIN, clamp, fmt } from '@/lib/util';
 import { Icon } from './Icon';
 import { Mascot, type Mood } from './Mascot';
 import { DocProgress, ScreenTracker } from './Documents';
+import { EASE, SOFT, SPRING } from './motion';
 
 export function Stage({ onToggle, onScreenConsent }: { onToggle: () => void; onScreenConsent: () => void }) {
   const phase = useStudy((s) => s.timer.phase);
   const status = useStudy((s) => s.timer.status);
+  const entered = useRef(false);
+  useEffect(() => { entered.current = true; }, []);
   return (
     <section className="card stage" id="stage" data-phase={phase} data-status={status} aria-label="Timer">
-      {phase === 'quiz' ? <QuizFace /> : <TimerFace onToggle={onToggle} onScreenConsent={onScreenConsent} />}
+      {/* The new face glides in. No exit step: the quiz must never wait on an animation. */}
+      <motion.div key={phase === 'quiz' ? 'quiz' : 'timer'} initial={entered.current ? { opacity: 0, y: 14, filter: 'blur(6px)' } : false}
+        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} transition={{ duration: 0.38, ease: EASE }}>
+        {phase === 'quiz' ? <QuizFace /> : <TimerFace onToggle={onToggle} onScreenConsent={onScreenConsent} />}
+      </motion.div>
     </section>
   );
 }
@@ -53,7 +61,8 @@ function TimerFace({ onToggle, onScreenConsent }: { onToggle: () => void; onScre
       <div className="modes" role="group" aria-label="Timer mode">
         {(['study', 'short', 'long'] as const).map((m) => (
           <button key={m} className="mode" type="button" aria-pressed={activeMode === m} disabled={T.status !== 'idle'} onClick={() => switchMode(m)}>
-            {m === 'study' ? 'Study' : m === 'short' ? 'Short break' : 'Long break'}
+            {activeMode === m && <motion.span className="mode-pill" layoutId="modePill" transition={SPRING} aria-hidden="true" />}
+            <span className="mode-label">{m === 'study' ? 'Study' : m === 'short' ? 'Short break' : 'Long break'}</span>
           </button>
         ))}
       </div>
@@ -79,9 +88,14 @@ function TimerFace({ onToggle, onScreenConsent }: { onToggle: () => void; onScre
       {style === 'classic' && <Ruler />}
       <div className="controls">
         <button className="icon-btn" type="button" aria-label="Reset timer" title="Reset (R)" disabled={T.status === 'idle' && T.remainingMs === T.totalMs} onClick={reset}><Icon name="reset" /></button>
-        <button className="btn btn-primary start-btn" id="startBtn" type="button" aria-label={`${startLabel} (Space)`} onClick={onToggle}>
-          <Icon name={running ? 'pause' : 'play'} /><span>{startLabel}</span>
-        </button>
+        <motion.button className="btn btn-primary start-btn" id="startBtn" type="button" aria-label={`${startLabel} (Space)`} onClick={onToggle}
+          whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }} transition={SPRING}>
+          <motion.span key={running ? 'pause' : 'play'} className="start-icon" initial={{ scale: 0.4, rotate: -90, opacity: 0 }}
+            animate={{ scale: 1, rotate: 0, opacity: 1 }} transition={SPRING}>
+            <Icon name={running ? 'pause' : 'play'} />
+          </motion.span>
+          <span>{startLabel}</span>
+        </motion.button>
         <button className="icon-btn" type="button" aria-label="Skip to the next phase" title="Skip (S)" disabled={T.phase === 'study' && T.status === 'idle' && !T.session} onClick={skip}><Icon name="skip" /></button>
       </div>
       <div className="controls-2">
@@ -119,7 +133,9 @@ function Clock() {
   const m = Math.floor(secs / 60), s = secs % 60;
   return (
     <div className="clock" role="timer" aria-live="off" aria-label={`${m} minute${m === 1 ? '' : 's'} ${s} second${s === 1 ? '' : 's'} left`}>
-      {[...text].map((ch, i) => (ch === ':' ? <span key={i} className="c">:</span> : <span key={i} className="d">{ch}</span>))}
+      {[...text].map((ch, i) => (ch === ':'
+        ? <span key={i} className="c">:</span>
+        : <motion.span key={`${i}-${ch}`} className="d" initial={{ y: '-0.12em', opacity: 0.35 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.28, ease: EASE }}>{ch}</motion.span>))}
     </div>
   );
 }
@@ -321,14 +337,14 @@ function QuizFace() {
   const last = Q.index === n - 1;
   const anyAnswered = Q.answers.some(Boolean);
   return (
-    <div className="qcard">
+    <motion.div className="qcard" key={`q${Q.index}`} initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} transition={SOFT}>
       <div className="q-head">
         <span className="q-num">Q{Q.index + 1} / {n}</span>
         <span className="q-concept">{q.concept}</span>
         <span className="q-progress" aria-hidden="true">
           {Q.questions.map((_, i) => {
             const ans = Q.answers[i];
-            return <span key={i} className={ans ? (ans.correct ? 'good' : 'bad') : i === Q.index ? 'now' : ''} />;
+            return <motion.span key={i} layout className={ans ? (ans.correct ? 'good' : 'bad') : i === Q.index ? 'now' : ''} transition={SPRING} />;
           })}
         </span>
       </div>
@@ -342,20 +358,26 @@ function QuizFace() {
             else if (i === a.chosen) { cls += ' is-wrong'; mark = <span className="mark"><Icon name="x" /></span>; }
             else cls += ' is-dim';
           }
+          const wrong = !!a && i === a.chosen && !a.correct;
+          const right = !!a && i === q.correctIndex;
           return (
-            <button key={i} className={cls} type="button" disabled={!!a} aria-label={`${LETTERS[i]}: ${o}`} onClick={() => act.answer(i)}>
+            <motion.button key={i} className={cls} type="button" disabled={!!a} aria-label={`${LETTERS[i]}: ${o}`} onClick={() => act.answer(i)}
+              initial={{ opacity: 0, y: 10 }}
+              animate={wrong ? { opacity: 1, y: 0, x: [0, -7, 7, -4, 4, 0] } : right && a ? { opacity: 1, y: 0, scale: [1, 1.025, 1] } : { opacity: 1, y: 0 }}
+              transition={a ? { duration: 0.42, ease: EASE } : { ...SOFT, delay: 0.05 + i * 0.05 }}
+              whileHover={a ? undefined : { x: 3 }} whileTap={a ? undefined : { scale: 0.985 }}>
               <span className="key">{LETTERS[i]}</span><span>{o}</span>{mark}
-            </button>
+            </motion.button>
           );
         })}
       </div>
       {a && (
-        <div className="fb" aria-live="polite">
+        <motion.div className="fb" aria-live="polite" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={SOFT}>
           <p className={`verdict ${a.correct ? 'good' : 'bad'}`}>{a.correct ? 'Correct.' : `Not quite. The answer is ${LETTERS[q.correctIndex]}.`}</p>
           {q.explanation && <p>{q.explanation}</p>}
           {!a.correct && q.optionFeedback[a.chosen] && <p className="why"><strong>Why not {LETTERS[a.chosen]}:</strong> {q.optionFeedback[a.chosen]}</p>}
           {q.memoryAid && <div className="aid"><div className="aid-label">{a.correct ? 'Lock it in' : 'Memory aid'}</div>{q.memoryAid}</div>}
-        </div>
+        </motion.div>
       )}
       <div className="q-actions">
         <button className="btn-quiet" type="button" onClick={() => (anyAnswered ? act.finishQuiz(true) : act.skipQuiz())}>
@@ -365,6 +387,6 @@ function QuizFace() {
           ? <button className="btn btn-primary" type="button" id="qNext" onClick={act.nextQ}>{last ? 'Finish and start break' : 'Next question'}</button>
           : <span className="small muted">Press 1–4 to answer</span>}
       </div>
-    </div>
+    </motion.div>
   );
 }

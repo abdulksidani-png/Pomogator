@@ -30,8 +30,9 @@ export const DEFAULT_SETTINGS: Settings = {
   corners: 'theme',
   density: 'comfortable',
   screenTrack: false,
-  screenEvery: 20,
-  screenAskOnStart: true,
+  screenSec: 2,
+  screenAudio: false,
+  controlSounds: true,
 };
 
 export function freshSync(): SyncState {

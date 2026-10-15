@@ -4,7 +4,7 @@ import { useStudy, unitWord } from '@/lib/store';
 import { ACCEPT } from '@/lib/docs/parse';
 import { deleteDocument, getPages, importDocument } from '@/lib/docs/library';
 import { resolveGoal } from '@/lib/docs/match';
-import { rememberConsent, screenSupported, startWatching, stopWatching, useScreen } from '@/lib/docs/screen';
+import { rememberConsent, screenSupported, startWatching, stopWatching, useScreen, type ScreenState } from '@/lib/docs/screen';
 import { docDownloadUrl } from '@/lib/sync';
 import type { DocMeta, DocPage, SeenEvent } from '@/lib/types';
 import { Icon } from './Icon';
@@ -85,6 +85,7 @@ export function beginScreenShare() {
 /** Screen sharing, right under the study material so it's easy to find. */
 function ScreenShareRow() {
   const scr = useScreen();
+  const withSound = useStudy((s) => s.settings.screenAudio);
   const [ok, setOk] = useState<boolean | null>(null);
   useEffect(() => { setOk(screenSupported()); }, []);
   if (ok === null) return null;
@@ -94,7 +95,7 @@ function ScreenShareRow() {
       <div className="share-row on">
         <span className="watch-pill"><span className="rec" aria-hidden="true" />Sharing {scr.label}</span>
         <button className="btn-quiet" type="button" onClick={stopWatching}>Stop sharing</button>
-        <p className="hint">It reads your slides only while a study session is running.</p>
+        <p className="hint">{audioLine(scr.audio, scr.audioLoad) || 'It reads your slides only while a study session is running.'}</p>
       </div>
     );
   }
@@ -103,9 +104,21 @@ function ScreenShareRow() {
       <button className="btn" type="button" id="shareScreenBtn" disabled={scr.status === 'starting'} onClick={beginScreenShare}>
         <Icon name="monitor" />{scr.status === 'starting' ? 'Choose a window…' : 'Share screen to track slides'}
       </button>
-      <span className="hint">Optional. Follows which slide you&apos;re on.</span>
+      <label className="check-inline" htmlFor="shareSound">
+        <input type="checkbox" id="shareSound" checked={withSound} onChange={(e) => { const v = e.target.checked; useStudy.getState().updateSettings((x) => { x.screenAudio = v; }); }} />
+        Also capture the tab&apos;s sound <span className="muted">(video lectures)</span>
+      </label>
     </div>
   );
+}
+
+/** One line on what's happening with the tab's sound, or '' when sound isn't in use. */
+function audioLine(audio: ScreenState['audio'], load: number): string {
+  if (audio === 'loading') return load > 0 && load < 100 ? `Getting the speech reader ready… ${load}% (first time only)` : 'Getting the speech reader ready…';
+  if (audio === 'listening') return 'Listening. What the lecture says becomes notes while you study.';
+  if (audio === 'none') return 'No sound came through. Share a Chrome or Edge tab with "Also share tab audio" ticked.';
+  if (audio === 'failed') return 'The speech reader didn\'t start. Slide tracking still works.';
+  return '';
 }
 
 function DocPlan({ doc }: { doc: DocMeta }) {
@@ -241,11 +254,29 @@ export function ScreenTracker({ onConsent }: { onConsent: () => void }) {
     <div className="watch-row">
       <span className="watch-pill"><span className="rec" aria-hidden="true" />Watching {scr.label}{scr.reading ? ' · reading…' : ''}</span>
       <button className="btn-quiet" type="button" onClick={stopWatching}>Stop</button>
+      {scr.audio !== 'off' && <HeardLine />}
       {log.length > 0 && (
         <details className="seen-log">
           <summary>{seen.length} read so far</summary>
           <ul>{log.map((e) => <li key={e.at}><span className="when">{new Date(e.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>{e.page ? `#${e.page} ` : ''}{e.title || '(no title)'}</li>)}</ul>
           <button className="btn-quiet" type="button" onClick={() => useStudy.getState().clearSeen('session')}>Delete this log</button>
+        </details>
+      )}
+    </div>
+  );
+}
+
+function HeardLine() {
+  const scr = useScreen();
+  const heard = useStudy((s) => s.timer.session?.heard ?? '');
+  const line = audioLine(scr.audio, scr.audioLoad);
+  return (
+    <div className="heard">
+      <p className="hint"><Icon name="sound" /> {scr.audio === 'listening' && scr.heardLast ? <>Heard: &ldquo;{scr.heardLast.length > 140 ? '…' + scr.heardLast.slice(-140) : scr.heardLast}&rdquo;</> : line}</p>
+      {heard && (
+        <details className="seen-log">
+          <summary>Lecture notes so far · {heard.split(' ').length} words</summary>
+          <p className="heard-text">{heard}</p>
         </details>
       )}
     </div>
@@ -261,7 +292,8 @@ export function ScreenConsentDialog({ dialogRef }: { dialogRef: RefObject<HTMLDi
       <div className="dlg-body consent">
         <ul>
           <li><strong>What:</strong> only the window or tab you pick. Choose the one with your slides, not your whole screen.</li>
-          <li><strong>How often:</strong> one look every {useStudy.getState().settings.screenEvery} seconds, only while a study session is running. Paused sessions and breaks are never watched.</li>
+          <li><strong>How often:</strong> a quick check every {useStudy.getState().settings.screenSec} second{useStudy.getState().settings.screenSec === 1 ? '' : 's'}, only while a study session is running. Paused sessions and breaks are never watched.</li>
+          <li><strong>Sound (optional):</strong> with &ldquo;Capture the tab&apos;s sound&rdquo; on, what a lecture says is turned into text on this device. The sound itself is never saved or uploaded.</li>
           <li><strong>What&apos;s kept:</strong> the slide number and title it read. The images themselves stay in memory on this device and are thrown away right after.</li>
           <li><strong>How to stop:</strong> click Stop, end the session, or use your browser&apos;s &ldquo;Stop sharing&rdquo; button.</li>
         </ul>

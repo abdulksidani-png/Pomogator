@@ -155,6 +155,11 @@ export function SettingsDialog({ dialogRef, onSignIn, onAppearance }: {
               onChange={(e) => { const v = Number(e.target.value); updateSettings((x) => { x.chimeVol = v; }); }}
               onPointerUp={() => Sound.chime(s.chime, useStudy.getState().settings.chimeVol)} />
           </div>
+          <div className="set-row">
+            <label htmlFor="ctlSounds">Start and pause sounds<span className="sub">A soft click when the timer starts, pauses or resumes</span></label>
+            <input type="checkbox" className="switch" id="ctlSounds" checked={s.controlSounds}
+              onChange={(e) => { const v = e.target.checked; updateSettings((x) => { x.controlSounds = v; }); if (v) Sound.cue('start', s.chimeVol); }} />
+          </div>
           {(['ambStudy', 'ambBreak'] as const).map((k) => (
             <div className="set-row" key={k}>
               <label htmlFor={k}>{k === 'ambStudy' ? 'Study ambience' : 'Break ambience'}<span className="sub">{k === 'ambStudy' ? 'Plays while a study session runs' : 'Plays while a break runs'}</span></label>
@@ -193,15 +198,15 @@ export function SettingsDialog({ dialogRef, onSignIn, onAppearance }: {
           {s.screenTrack && (
             <>
               <div className="set-row">
-                <label htmlFor="scrAsk">Ask to share when a session starts<span className="sub">Otherwise, use &ldquo;Track my slides&rdquo; on the timer</span></label>
-                <input type="checkbox" className="switch" id="scrAsk" checked={s.screenAskOnStart} onChange={(e) => { const v = e.target.checked; updateSettings((x) => { x.screenAskOnStart = v; }); }} />
+                <label htmlFor="scrEvery">Check every<span className="sub">Only changed screens are read</span></label>
+                <span className="inline">
+                  <input type="range" id="scrEvery" min={1} max={15} step={1} value={s.screenSec} onChange={(e) => { const v = Number(e.target.value); updateSettings((x) => { x.screenSec = v; }); }} />
+                  <span className="small muted" style={{ minWidth: 36 }}>{s.screenSec} s</span>
+                </span>
               </div>
               <div className="set-row">
-                <label htmlFor="scrEvery">Look every<span className="sub">Only changed screens are read</span></label>
-                <span className="inline">
-                  <input type="range" id="scrEvery" min={10} max={60} step={5} value={s.screenEvery} onChange={(e) => { const v = Number(e.target.value); updateSettings((x) => { x.screenEvery = v; }); }} />
-                  <span className="small muted" style={{ minWidth: 36 }}>{s.screenEvery} s</span>
-                </span>
+                <label htmlFor="scrAudio">Also capture the tab&apos;s sound<span className="sub">For video lectures: what&apos;s said becomes notes for your quiz, on this device. Takes effect the next time you share.</span></label>
+                <input type="checkbox" className="switch" id="scrAudio" checked={s.screenAudio} onChange={(e) => { const v = e.target.checked; updateSettings((x) => { x.screenAudio = v; }); }} />
               </div>
             </>
           )}

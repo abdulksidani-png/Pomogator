@@ -1,8 +1,9 @@
 'use client';
 /**
- * Screen tracking (opt-in, desktop browsers). While a study session runs, it looks at the
- * shared window every few seconds, reads it with on-device OCR, and works out which slide
- * is showing. Frames are only ever held in memory and are never saved or uploaded.
+ * Screen tracking (opt-in, desktop browsers). While a study session runs, it checks the
+ * shared window every couple of seconds, reads it with on-device OCR when it changed, and works
+ * out which slide is showing. Frames are only ever held in memory and are never saved or uploaded.
+ * With "capture tab sound" on, the tab's speech is turned into notes too (see listen.ts).
  */
 import { create } from 'zustand';
 import { useStudy } from '../store';
@@ -10,10 +11,17 @@ import { clamp } from '../util';
 import { buildIndex, changedFraction, confident, matchPage, type PageIndex } from './match';
 import { ocr, warmUpOcr } from './ocr';
 import { getPages } from './library';
+import { listenTo, prepareListening, stopListening } from './listen';
 
 export interface ScreenState {
   status: 'off' | 'starting' | 'watching';
   label: string;
+  /** Tab sound: not asked for, no sound came through, loading the speech model, or turning speech into text. */
+  audio: 'off' | 'none' | 'loading' | 'listening' | 'failed';
+  /** Speech model download, 0–100. */
+  audioLoad: number;
+  /** The latest line heard. */
+  heardLast: string;
   reading: boolean;
   lastPage: number;
   lastTitle: string;
@@ -21,7 +29,7 @@ export interface ScreenState {
   error: string;
 }
 
-export const useScreen = create<ScreenState>(() => ({ status: 'off', label: '', reading: false, lastPage: 0, lastTitle: '', lastAt: 0, error: '' }));
+export const useScreen = create<ScreenState>(() => ({ status: 'off', label: '', audio: 'off', audioLoad: 0, heardLast: '', reading: false, lastPage: 0, lastTitle: '', lastAt: 0, error: '' }));
 
 export function screenSupported(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -52,15 +60,19 @@ export async function startWatching(): Promise<boolean> {
   if (!screenSupported()) { useScreen.setState({ error: 'Screen tracking needs a desktop browser like Chrome, Edge, Firefox or Safari.' }); return false; }
   useScreen.setState({ status: 'starting', error: '' });
   warmUpOcr();
+  const wantAudio = useStudy.getState().settings.screenAudio;
+  if (wantAudio) prepareListening(); // the audio engine must be created during the click
   try {
     stream = await navigator.mediaDevices.getDisplayMedia({
-      video: { frameRate: 1 },
-      audio: false,
-      // Hints for Chrome: don't offer this tab, let people switch what they share.
-      ...({ selfBrowserSurface: 'exclude', surfaceSwitching: 'include' } as object),
+      video: { frameRate: 5 },
+      // Raw tab sound: the browser's call-cleanup filters would garble a lecture.
+      audio: wantAudio ? { echoCancellation: false, noiseSuppression: false, autoGainControl: false } : false,
+      // Hints for Chrome: don't offer this tab, let people switch what they share, keep the tab audible.
+      ...({ selfBrowserSurface: 'exclude', surfaceSwitching: 'include', ...(wantAudio ? { systemAudio: 'include', suppressLocalAudioPlayback: false } : {}) } as object),
     } as DisplayMediaStreamOptions);
   } catch (e) {
     stream = null;
+    stopListening();
     const name = (e as { name?: string })?.name;
     useScreen.setState({
       status: 'off',
@@ -75,8 +87,13 @@ export async function startWatching(): Promise<boolean> {
   video.playsInline = true;
   video.srcObject = stream;
   try { await video.play(); } catch { /* starts on first frame anyway */ }
-  useScreen.setState({ status: 'watching', label: niceLabel(track?.label ?? ''), lastAt: 0 });
-  schedule(1500);
+  useScreen.setState({ status: 'watching', label: niceLabel(track?.label ?? ''), lastAt: 0, heardLast: '' });
+  if (wantAudio) {
+    const heard = listenTo(stream);
+    useScreen.setState({ audio: heard ? 'loading' : 'none' });
+    if (!heard) useScreen.setState({ error: 'No sound came through. To capture a lecture\'s sound, share a Chrome or Edge tab and leave "Also share tab audio" ticked.' });
+  }
+  schedule(500);
   return true;
 }
 
@@ -87,7 +104,8 @@ export function stopWatching() {
   if (video) { video.srcObject = null; video = null; }
   lastThumb = null;
   busy = false;
-  useScreen.setState({ status: 'off', reading: false, label: '' });
+  stopListening();
+  useScreen.setState({ status: 'off', reading: false, label: '', audio: 'off', audioLoad: 0 });
 }
 
 export const isWatching = () => !!stream;
@@ -133,11 +151,11 @@ function thumbOf(c: HTMLCanvasElement): Uint8ClampedArray {
 async function capture() {
   if (!stream) return;
   const s = useStudy.getState();
-  const every = clamp(s.settings.screenEvery || 20, 10, 60) * 1000;
+  const every = clamp(s.settings.screenSec || 2, 1, 15) * 1000;
   const studying = s.timer.phase === 'study' && s.timer.status === 'running' && !!s.timer.session;
-  if (!studying || busy) { schedule(studying ? 2000 : every); return; }
+  if (!studying || busy) { schedule(500); return; }
   const c = grab();
-  if (!c) { schedule(1000); return; }
+  if (!c) { schedule(500); return; }
   const t = thumbOf(c);
   if (changedFraction(t, lastThumb) < 0.004) { schedule(every); return; } // nothing changed on screen
   lastThumb = t;
@@ -166,17 +184,6 @@ async function capture() {
     useScreen.setState({ reading: false });
     schedule(every);
   }
-}
-
-/** Start sharing when a session starts, if the person asked for that. Call from the Start click. */
-export function maybeAskOnStart(openConsent: () => void) {
-  const s = useStudy.getState();
-  if (!s.settings.screenTrack || !s.settings.screenAskOnStart || stream || !screenSupported()) return;
-  if (s.timer.phase !== 'study') return;
-  let agreed = false;
-  try { agreed = localStorage.getItem('studybuddy.screenConsent') === '1'; } catch { /* storage blocked */ }
-  if (agreed) void startWatching();
-  else openConsent();
 }
 
 export function rememberConsent() { try { localStorage.setItem('studybuddy.screenConsent', '1'); } catch { /* storage blocked */ } }

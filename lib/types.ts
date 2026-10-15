@@ -69,8 +69,12 @@ export interface Settings {
   density: 'comfortable' | 'compact';
   // screen tracking
   screenTrack: boolean;
-  screenEvery: number;
-  screenAskOnStart: boolean;
+  /** Seconds between screen checks (only changed screens are read). */
+  screenSec: number;
+  /** Also capture the shared tab's sound and turn speech into notes, on this device. */
+  screenAudio: boolean;
+  /** Short sounds when the timer starts, pauses or resumes. */
+  controlSounds: boolean;
 }
 
 export interface SliceVersions { settings: number; context: number; app: number; tasks: number }
@@ -169,6 +173,8 @@ export interface SessionRecord {
   goalMet?: boolean;
   progressSource?: 'screen' | 'manual' | 'assumed';
   seen?: SeenEvent[];
+  /** What was heard from a shared tab's sound during the live session (kept on this device only). */
+  heard?: string;
 }
 
 export interface LastResult {
@@ -282,6 +288,8 @@ export interface QuizInput {
   difficulty: Difficulty;
   weak: string[];
   asked: string[];
+  /** Speech heard from a shared lecture tab this session, if any. */
+  heard?: string;
 }
 
 export interface DayInput {

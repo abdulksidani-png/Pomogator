@@ -78,11 +78,62 @@ test('without AI the timer still works and ends in a no-quiz break', async ({ pa
   await expect(page.locator('#resultBanner')).toContainText('5-minute break');
 });
 
-test('studying under half the session skips the quiz', async ({ page }) => {
+test('skipping a session goes straight to a break, no quiz', async ({ page }) => {
   await page.clock.install();
   await page.goto('/');
   await page.getByRole('button', { name: /Start studying/ }).click();
   await page.clock.fastForward('05:00');
+  // Skipping isn't finishing: no quiz.
+  await page.getByRole('button', { name: 'Skip to the next phase' }).click();
+  await expect(page.locator('#resultBanner')).toContainText('Session skipped');
+});
+
+test('"Finish session now" always goes to the quiz, even early', async ({ page }) => {
+  await page.clock.install();
+  await page.goto('/');
+  await page.fill('#ctxTopic', 'Krebs cycle');
+  await page.getByRole('button', { name: /Start studying/ }).click();
+  await page.clock.fastForward('03:00');
   await page.getByRole('button', { name: /Finish session now/ }).click();
-  await expect(page.locator('#resultBanner')).toContainText('under half the planned time');
+  await expect(page.locator('.qcard')).toBeVisible();
+  await expect(page.locator('.q-head')).toContainText('SESSION COMPLETE');
+  await expect(page.locator('#resultBanner')).toHaveCount(0);
+});
+
+test('starting the timer never asks to share the screen; it only opens from its button', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.locator('#scrToggle').check();
+  await expect(page.locator('#scrAsk')).toHaveCount(0);
+  await page.locator('#settingsDlg').getByRole('button', { name: 'Done' }).click();
+  await page.getByRole('button', { name: /Start studying/ }).click();
+  await expect(page.getByRole('button', { name: /Pause/ })).toBeVisible();
+  await expect(page.locator('#screenDlg')).not.toBeVisible();
+  await page.getByRole('button', { name: /Pause/ }).click();
+  await page.getByRole('button', { name: 'Share screen to track slides' }).click();
+  await expect(page.locator('#screenDlg')).toBeVisible();
+});
+
+test('start and pause play a short sound, unless switched off', async ({ page }) => {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __tones: number };
+    w.__tones = 0;
+    const orig = AudioContext.prototype.createOscillator;
+    AudioContext.prototype.createOscillator = function (this: AudioContext) { w.__tones++; return orig.call(this); };
+  });
+  await page.goto('/');
+  const tones = () => page.evaluate(() => (window as unknown as { __tones: number }).__tones);
+  await page.getByRole('button', { name: /Start studying/ }).click();
+  await expect.poll(tones).toBeGreaterThan(0);
+  const afterStart = await tones();
+  await page.getByRole('button', { name: /Pause/ }).click();
+  await expect.poll(tones).toBeGreaterThan(afterStart);
+
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.locator('#ctlSounds').uncheck();
+  await page.locator('#settingsDlg').getByRole('button', { name: 'Done' }).click();
+  const before = await tones();
+  await page.getByRole('button', { name: /Resume/ }).click();
+  await page.waitForTimeout(300);
+  expect(await tones()).toBe(before);
 });

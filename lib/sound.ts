@@ -153,6 +153,19 @@ export const Sound = {
     const g = c.createGain(); g.gain.value = vol; g.connect(c.destination);
     (CHIMES[name] || CHIMES.bell).play(g, c.currentTime + 0.03);
   },
+  /** A short sound for a timer button: start, pause or resume. */
+  cue(kind: 'start' | 'pause' | 'resume', vol: number) {
+    const c = ensure(); if (!c || vol <= 0) return;
+    const g = c.createGain(); g.gain.value = Math.min(1, vol); g.connect(c.destination);
+    const t = c.currentTime + 0.01;
+    const pluck = (f: number, at: number, dur: number, gain: number) => {
+      tone(g, f, t + at, dur, { type: 'triangle', gain, attack: 0.004 });
+      tone(g, f * 2, t + at, dur * 0.4, { gain: gain * 0.25, attack: 0.002 });
+    };
+    if (kind === 'start') { pluck(523.25, 0, 0.32, 0.22); pluck(783.99, 0.09, 0.45, 0.24); }
+    else if (kind === 'resume') { pluck(659.25, 0, 0.22, 0.2); pluck(783.99, 0.07, 0.35, 0.22); }
+    else { pluck(659.25, 0, 0.22, 0.18); pluck(440, 0.08, 0.4, 0.16); }
+  },
   /** Play the ambience that should be on right now (or silence). */
   sync(desired: string, vol: number) {
     if (previewing) return;
