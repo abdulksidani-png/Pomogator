@@ -11,7 +11,7 @@ const footer = (page: Page) => page.locator('.sync-status');
 /** A second browser profile, i.e. another device. The streak card stays off unless a test wants it. */
 async function device(browser: Browser, celebrate = false) {
   const ctx = await browser.newContext();
-  if (!celebrate) await quietCelebrations(ctx);
+  await quietCelebrations(ctx, { celebrate });
   return ctx.newPage();
 }
 
@@ -138,4 +138,23 @@ test('the streak celebration shows once a day per account, and both devices shar
   await expect(b.locator('.task-list')).toContainText('Make flashcards');
   await b.waitForTimeout(1500);
   await expect(b.locator('.celebrate-dlg')).toBeHidden();
+});
+
+test('deleting an account removes its rows and starts this device over as a guest', async ({ browser }) => {
+  const a = await device(browser);
+  await a.goto('/');
+  await expect(footer(a)).toContainText('studying as a guest', { timeout: 15_000 });
+  await emailSignIn(a, 'cleo@test.dev', /click the link to finish/);
+  await addTask(a, 'Delete me');
+  await expect.poll(async () => (await rows('tasks')).some((r) => r.text === 'Delete me'), { timeout: 15_000 }).toBe(true);
+  const id = (await rows('tasks')).find((r) => r.text === 'Delete me')!.user_id;
+
+  await a.getByRole('button', { name: 'Settings', exact: true }).click();
+  await a.getByRole('button', { name: 'Delete…' }).click();
+  await a.fill('#deleteConfirm', 'DELETE');
+  await a.getByRole('button', { name: 'Delete my account' }).click();
+  await expect(footer(a)).toContainText('studying as a guest', { timeout: 15_000 });
+  await expect(a.locator('.task-list')).toContainText('Add what you want to get through today.');
+  expect((await rows('tasks')).filter((r) => r.user_id === id)).toEqual([]);
+  expect((await rows('profiles')).filter((r) => r.id === id)).toEqual([]);
 });

@@ -43,6 +43,8 @@ export interface Data {
   checkins: string[];
   celebrated: string;
   badges: Record<string, string>;
+  /** The first-time tour: '' not yet, 'done' or 'skipped'. Synced, so it shows once per account. */
+  tour: string;
 }
 interface Flash { msg: string; id: number }
 interface Ui {
@@ -220,6 +222,7 @@ function initialData(): Data {
     checkins: [],
     celebrated: '',
     badges: {},
+    tour: '',
   };
 }
 
@@ -261,6 +264,7 @@ export function normalizeData(p: Partial<Data> | undefined): Data {
     checkins: cleanDates(p.checkins),
     celebrated: typeof p.celebrated === 'string' ? p.celebrated : '',
     badges: cleanBadges(p.badges),
+    tour: typeof p.tour === 'string' ? p.tour : '',
     sync: p.sync
       ? { ...fs, ...p.sync, v: { ...fs.v, ...p.sync.v }, acked: { ...fs.acked, ...p.sync.acked }, pushed: { ...(p.sync.pushed || {}) } }
       : fs,
@@ -923,7 +927,7 @@ export const useStudy = create<Store>()(
       partialize: (s): Data => ({
         settings: s.settings, context: s.context, timer: s.timer, quiz: s.quiz, plan: s.plan, day: s.day,
         tasks: s.tasks, history: s.history, stats: s.stats, asked: s.asked, sync: s.sync, docs: s.docs,
-        weekly: s.weekly, weeklySeen: s.weeklySeen, checkins: s.checkins, celebrated: s.celebrated, badges: s.badges,
+        weekly: s.weekly, weeklySeen: s.weeklySeen, checkins: s.checkins, celebrated: s.celebrated, badges: s.badges, tour: s.tour,
       }),
       merge: (persisted, cur) => ({ ...cur, ...normalizeData(persisted as Partial<Data> | undefined) }),
     },

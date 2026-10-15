@@ -29,7 +29,7 @@ export function AccountButton({ onSignIn, onProfile }: { onSignIn: () => void; o
   if (!supabaseConfigured()) return null;
   if (a.status !== 'user') {
     return (
-      <button className="chip-btn signin-chip" type="button" onClick={onSignIn} aria-label="Sign in to save your progress" disabled={a.status === 'connecting'}>
+      <button className="chip-btn signin-chip" id="accountBtn" type="button" onClick={onSignIn} aria-label="Sign in to save your progress" disabled={a.status === 'connecting'}>
         <Icon name="user" /><span>Sign in</span>
       </button>
     );

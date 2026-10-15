@@ -23,6 +23,7 @@ import { fmt } from '@/lib/util';
 import { PhotoCredit } from './PhotoPicker';
 import { BrandMark, BrandName } from './Brand';
 import { CelebrationHost, StreakPills } from './Streaks';
+import { Tour } from './Tour';
 import { SITE } from '@/lib/site';
 import { openAssistant } from '@/lib/assistant';
 import { exitFocus, toggleFocus, useFocusMode, watchFullscreen } from '@/lib/focus';
@@ -216,7 +217,7 @@ export default function PomoGatorApp({ initialView = 'timer' }: { initialView?: 
               <button className="chip-btn stats-btn" type="button" onClick={() => go('stats')} title="Your stats"><Icon name="chart" /><span>Stats</span></button>
             )}
             <AccountButton onSignIn={() => signInRef.current?.showModal()} onProfile={() => profileRef.current?.showModal()} />
-            <button className="chip-btn" type="button" aria-pressed={loop} title="Loop: start each phase automatically (L)" onClick={() => useStudy.getState().setLoop(!loop)}>
+            <button className="chip-btn loop-btn" type="button" aria-pressed={loop} title="Loop: start each phase automatically (L)" onClick={() => useStudy.getState().setLoop(!loop)}>
               <Icon name="loop" /><span>Loop</span>
             </button>
             <button className="icon-btn" type="button" aria-label="Appearance" title="Appearance" onClick={() => lookRef.current?.showModal()}><Icon name="palette" /></button>
@@ -257,6 +258,7 @@ export default function PomoGatorApp({ initialView = 'timer' }: { initialView?: 
       <AssistantButton />
       <AssistantPanel />
       <Toast />
+      {view === 'timer' && <Tour />}
       <CelebrationHost onBadges={() => { go('stats'); setTimeout(() => document.getElementById('badgesCard')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 250); }} />
       <Announcer />
     </MotionConfig>

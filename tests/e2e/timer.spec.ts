@@ -111,3 +111,25 @@ test('PomoGator: the footer links to a plain-words privacy page and the source',
   await expect(page.locator('main')).toContainText('row-level security');
   await expect(page.locator('main')).toContainText('free tier');
 });
+
+test('your data: download it all as one file, or delete it', async ({ page }) => {
+  await page.goto('/');
+  await page.fill('#taskInput', 'Read chapter 4');
+  await page.locator('#taskInput').press('Enter');
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  const [download] = await Promise.all([page.waitForEvent('download'), page.locator('#exportBtn').click()]);
+  expect(download.suggestedFilename()).toMatch(/^pomogator-data-\d{4}-\d{2}-\d{2}\.json$/);
+  const data = JSON.parse(await (await download.createReadStream()).toArray().then((c) => Buffer.concat(c).toString()));
+  expect(data.app).toBe('PomoGator');
+  expect(data.tasks.map((t: { text: string }) => t.text)).toEqual(['Read chapter 4']);
+  expect(data.checkIns).toHaveLength(1);
+
+  // Deleting needs DELETE typed in.
+  await page.getByRole('button', { name: 'Delete…' }).click();
+  const confirm = page.getByRole('button', { name: 'Delete my data' });
+  await expect(confirm).toBeDisabled();
+  await page.fill('#deleteConfirm', 'DELETE');
+  await confirm.click();
+  await expect(page.locator('#tasksCard .task-list')).toContainText('Add what you want to get through today.');
+  await expect(page.locator('#streakPills')).toHaveAttribute('aria-label', /Check-in streak: 0 days/);
+});

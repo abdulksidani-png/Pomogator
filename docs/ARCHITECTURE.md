@@ -112,7 +112,7 @@ browser (lib/ai-client.ts) → POST /api/ai/{action} → sign-in + daily allowan
     everything.
   - Documents sync their pages to `documents` / `document_pages`; original files go to a private Storage bucket.
 - Every table uses row-level security (`user_id = (select auth.uid())`), and Storage policies restrict each user to
-  their own folder. `tests/db/rls-check.sql` checks it.
+  their own folder. `tests/db/rls-check.sql` and `tests/db/friends-check.sql` check it.
 
 ## Appearance and brand
 
@@ -135,6 +135,6 @@ script in `app/layout.tsx` applies the saved theme before the first paint, so th
 | Suite | What it covers |
 | --- | --- |
 | `npm test` (Vitest) | Break rules, quiz/plan/digest validation, prompts, Gemini error mapping and fallback, stats (time zones, 4 AM day rollover, streak freezes), sync merging, goal and slide matching, saved timers |
-| `npm run test:e2e` (Playwright) | The full study → quiz → break loop with a fake clock, documents and goals, screen tracking with a synthetic shared screen, tab audio with a stand-in speech model, appearance, study buddies, stats, saved timers, focus mode |
+| `npm run test:e2e` (Playwright) | The full study → quiz → break loop with a fake clock, documents and goals, screen tracking with a synthetic shared screen, tab audio with a stand-in speech model, appearance, study buddies, stats, streaks, saved timers, focus mode, the first-time tour, data export and delete, and axe-core accessibility checks of every view |
 | `npm run test:ai` | The real `/api/ai/*` routes against `tests/fake-gemini/server.mjs` (which also stands in for Unsplash); Spotify faked in the browser |
 | `npm run test:sync` | Two browsers syncing through PostgREST on a real Postgres running the actual migrations, with a fake auth server (`tests/fake-supabase/server.mjs`); includes the celebration showing once per day across two devices |

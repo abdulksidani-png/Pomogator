@@ -185,7 +185,7 @@ function watchLocalChanges() {
     if (s.settings !== prev.settings) bump.settings = next('settings');
     if (s.context !== prev.context) bump.context = next('context');
     if (s.timer !== prev.timer || s.quiz !== prev.quiz || s.plan !== prev.plan || s.day !== prev.day || s.asked !== prev.asked || s.weekly !== prev.weekly || s.weeklySeen !== prev.weeklySeen
-      || s.checkins !== prev.checkins || s.celebrated !== prev.celebrated || s.badges !== prev.badges) bump.app = next('app');
+      || s.checkins !== prev.checkins || s.celebrated !== prev.celebrated || s.badges !== prev.badges || s.tour !== prev.tour) bump.app = next('app');
     if (s.tasks !== prev.tasks) bump.tasks = next('tasks');
     const historyChanged = s.history !== prev.history || s.sync.clearPending !== prev.sync.clearPending;
     if (Object.keys(bump).length) {
@@ -209,11 +209,11 @@ export async function flush() {
 
 const appStateOf = (s: Data) => ({
   timer: s.timer, quiz: s.quiz, plan: s.plan, day: s.day, asked: s.asked, weekly: s.weekly, weeklySeen: s.weeklySeen,
-  checkins: s.checkins, celebrated: s.celebrated, badges: s.badges,
+  checkins: s.checkins, celebrated: s.celebrated, badges: s.badges, tour: s.tour,
 });
 
 async function push(): Promise<void> {
-  if (!sb || !userId) return;
+  if (!sb || !userId || deleting) return;
   if (pushing) { pushAgain = true; return pushing; }
   pushing = (async () => {
     const s = state();
@@ -389,6 +389,7 @@ async function pull({ adopt = false }: { adopt?: boolean } = {}) {
           if (checkins.length !== d.checkins.length) d.checkins = checkins;
           if (Object.keys(badges).some((k) => badges[k] !== d.badges[k])) d.badges = badges;
           if (celebrated !== d.celebrated) d.celebrated = celebrated;
+          if (!d.tour && typeof prof.app_state.tour === 'string' && prof.app_state.tour) d.tour = prof.app_state.tour; // seen on another device
           if (localExtra) { d.sync.v.app = Math.max(Date.now(), sv.app + 1, d.sync.v.app); pushAfter = true; }
         }
         const serverTasks = rowsToTasks((t.data ?? []) as TaskRow[]);
@@ -437,6 +438,43 @@ export async function pullNow(): Promise<void> {
 }
 
 /* ------------------------------------------------------------------ */
+
+/** The signed-in Supabase client, for features with their own tables (friends, studying together). */
+export function syncClient(): { sb: SupabaseClient; userId: string } | null {
+  return sb && userId ? { sb, userId } : null;
+}
+
+/**
+ * Delete the account (or guest) and everything in it: uploaded files first (through Storage), then every row
+ * (`delete_my_account()` in migration 4 removes the user, and the tables cascade). This device is then wiped
+ * and starts again as a new guest. Without Supabase, it only wipes this device.
+ */
+export async function deleteAccount(): Promise<'deleted' | 'not_ready' | 'failed'> {
+  if (sb && userId) {
+    clearTimeout(pushTimer);
+    deleting = true;
+    try {
+      const paths = state().docs.map((d) => d.storagePath).filter((x): x is string => !!x);
+      if (paths.length) await sb.storage.from('documents').remove(paths).catch(() => undefined);
+      const { error } = await sb.rpc('delete_my_account');
+      if (error) {
+        deleting = false;
+        return /delete_my_account|PGRST202|42883/.test(`${error.code} ${error.message}`) ? 'not_ready' : 'failed';
+      }
+      await sb.auth.signOut({ scope: 'local' }); // → onSignedOut: wipes this device and starts a new guest
+    } catch {
+      deleting = false;
+      return 'failed';
+    }
+    deleting = false;
+  } else {
+    state().resetLocalData();
+    await idb.clearPrefix('doc:');
+    await idb.clearPrefix('digest:');
+  }
+  return 'deleted';
+}
+let deleting = false;
 
 export async function signOut() {
   if (!sb) return;

@@ -6,7 +6,7 @@
 /* Layout: a study desk. The timer "stage" (which turns into an index-card quiz) and the next-session plan sit in the wide left column; the study kit (what you're studying, tasks, today's log) sits in the right column. One column on phones. */
 :root {
   --bg: #F3F5FA; --card: #FFFFFF; --sunk: #E8ECF5;
-  --fg: #1A2240; --fg-2: #485170; --fg-3: #7A83A0;
+  --fg: #1A2240; --fg-2: #485170; --fg-3: #5F6885;
   --rule: #D6DCEB; --margin: #DB5368;
   --accent: #2F4BC8; --accent-soft: #E1E7FB; --on-accent: #FFFFFF;
   --good: #1B7A52; --good-bg: #E0F2E9; --bad: #B4344A; --bad-bg: #FAE5E9;
@@ -22,7 +22,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #131C19; --card: #1B2622; --sunk: #24312C;
-    --fg: #ECF0E8; --fg-2: #B2BDB5; --fg-3: #7D8B84;
+    --fg: #ECF0E8; --fg-2: #B2BDB5; --fg-3: #8F9B94;
     --rule: #2F3E38; --margin: #F2938F;
     --accent: #F0D26A; --accent-soft: #3A3920; --on-accent: #131C19;
     --good: #86D7A7; --good-bg: #1E3A2C; --bad: #F4968F; --bad-bg: #3E2523;
@@ -34,7 +34,7 @@
 /* The theme picker (Settings → Appearance) overrides the system theme. */
 html:root[data-skin="notebook"] {
   --bg: #F3F5FA; --card: #FFFFFF; --sunk: #E8ECF5;
-  --fg: #1A2240; --fg-2: #485170; --fg-3: #7A83A0;
+  --fg: #1A2240; --fg-2: #485170; --fg-3: #5F6885;
   --rule: #D6DCEB; --margin: #DB5368;
   --accent: #2F4BC8; --accent-soft: #E1E7FB; --on-accent: #FFFFFF;
   --good: #1B7A52; --good-bg: #E0F2E9; --bad: #B4344A; --bad-bg: #FAE5E9;
@@ -44,7 +44,7 @@ html:root[data-skin="notebook"] {
 }
 html:root[data-skin="chalkboard"] {
   --bg: #131C19; --card: #1B2622; --sunk: #24312C;
-  --fg: #ECF0E8; --fg-2: #B2BDB5; --fg-3: #7D8B84;
+  --fg: #ECF0E8; --fg-2: #B2BDB5; --fg-3: #8F9B94;
   --rule: #2F3E38; --margin: #F2938F;
   --accent: #F0D26A; --accent-soft: #3A3920; --on-accent: #131C19;
   --good: #86D7A7; --good-bg: #1E3A2C; --bad: #F4968F; --bad-bg: #3E2523;
@@ -54,7 +54,7 @@ html:root[data-skin="chalkboard"] {
 }
 html:root[data-skin="tomato"] {
   --bg: #FFF0EC; --card: #FFFFFF; --sunk: #FFE2DA;
-  --fg: #3A1D22; --fg-2: #7A4B52; --fg-3: #A6828A;
+  --fg: #3A1D22; --fg-2: #7A4B52; --fg-3: #7F5E65;
   --rule: #F7CFC6; --margin: #3E9A5E;
   --accent: #D63A43; --accent-soft: #FFDCD8; --on-accent: #FFFFFF;
   --good: #2A8A50; --good-bg: #E1F4E7; --bad: #C1323C; --bad-bg: #FFE1E1;
@@ -790,7 +790,7 @@ input[type="email"]:focus { border-color: var(--accent); outline: none; box-shad
 /* ---------- more themes ---------- */
 html:root[data-skin="midnight"] {
   --bg: #0F1324; --card: #171C33; --sunk: #20263F;
-  --fg: #E7EAF6; --fg-2: #A9B0CC; --fg-3: #737B99;
+  --fg: #E7EAF6; --fg-2: #A9B0CC; --fg-3: #888FAA;
   --rule: #2A3150; --margin: #FF8FB1;
   --accent: #8EA2FF; --accent-soft: #262E57; --on-accent: #0F1324;
   --good: #6EE7B7; --good-bg: #163A33; --bad: #FF8A8A; --bad-bg: #3D1F2A;
@@ -800,7 +800,7 @@ html:root[data-skin="midnight"] {
 }
 html:root[data-skin="sakura"] {
   --bg: #FFF5F8; --card: #FFFFFF; --sunk: #FCE7EF;
-  --fg: #3B2233; --fg-2: #74506A; --fg-3: #A98AA0;
+  --fg: #3B2233; --fg-2: #74506A; --fg-3: #7D6074;
   --rule: #F4D3E0; --margin: #6E9E7A;
   --accent: #B83C7A; --accent-soft: #FADDEA; --on-accent: #FFFFFF;
   --good: #2F7D5B; --good-bg: #E3F3EA; --bad: #B4344A; --bad-bg: #FBE4E9;
@@ -810,7 +810,7 @@ html:root[data-skin="sakura"] {
 }
 html:root[data-skin="matcha"] {
   --bg: #F2F5EC; --card: #FFFFFF; --sunk: #E5EBDA;
-  --fg: #1F2A1A; --fg-2: #4B5A41; --fg-3: #7D8A72;
+  --fg: #1F2A1A; --fg-2: #4B5A41; --fg-3: #5F6B56;
   --rule: #D3DCC5; --margin: #C2703D;
   --accent: #3F7D3A; --accent-soft: #DCEBD5; --on-accent: #FFFFFF;
   --good: #2D7A4F; --good-bg: #E1F1E6; --bad: #B23A3A; --bad-bg: #F8E3E1;
@@ -820,7 +820,7 @@ html:root[data-skin="matcha"] {
 }
 html:root[data-skin="sunset"] {
   --bg: #1E1424; --card: #2A1C30; --sunk: #34243B;
-  --fg: #F7EAF0; --fg-2: #CDB3C4; --fg-3: #957C8F;
+  --fg: #F7EAF0; --fg-2: #CDB3C4; --fg-3: #A38B9D;
   --rule: #45304D; --margin: #7FD6C2;
   --accent: #FF9E6B; --accent-soft: #4A2E31; --on-accent: #1E1424;
   --good: #8FE0B0; --good-bg: #1F3A2E; --bad: #FF8F9C; --bad-bg: #4A2230;
@@ -832,7 +832,7 @@ html:root[data-skin="sunset"] {
 /* ---------- buddy themes ---------- */
 html:root[data-skin="jungle"] {
   --bg: #0F2418; --card: #173322; --sunk: #1F4030;
-  --fg: #EAF5E4; --fg-2: #B9CDB3; --fg-3: #86A27F;
+  --fg: #EAF5E4; --fg-2: #B9CDB3; --fg-3: #92AC8B;
   --rule: #2C4A37; --margin: #7BC86C;
   --accent: #F2C14E; --accent-soft: #3A3A1F; --on-accent: #1B1A0C;
   --good: #8FE0A0; --good-bg: #1D3D29; --bad: #FF9C8A; --bad-bg: #452622;
@@ -851,7 +851,7 @@ html:root[data-skin="jungle"] body {
 }
 html:root[data-skin="gator"] {
   --bg: #F2F5FC; --card: #FFFFFF; --sunk: #E6ECF8;
-  --fg: #0B1F4D; --fg-2: #3D4F7A; --fg-3: #7383A8;
+  --fg: #0B1F4D; --fg-2: #3D4F7A; --fg-3: #586990;
   --rule: #D3DCEE; --margin: #FA4616;
   --accent: #0021A5; --accent-soft: #DFE5FA; --on-accent: #FFFFFF;
   --good: #1B7A52; --good-bg: #E0F2E9; --bad: #C2331A; --bad-bg: #FDE6DF;
@@ -867,7 +867,7 @@ html:root[data-skin="gator"] body {
 html:root[data-skin="gator"] .stage { border-top: 5px solid var(--margin); }
 html:root[data-skin="panther"] {
   --bg: #081E3F; --card: #0F2A55; --sunk: #163464;
-  --fg: #F4ECDA; --fg-2: #C6CEDF; --fg-3: #8C9AB8;
+  --fg: #F4ECDA; --fg-2: #C6CEDF; --fg-3: #929FBA;
   --rule: #23406F; --margin: #7FA6E8;
   --accent: #D9A53A; --accent-soft: #3A3423; --on-accent: #081E3F;
   --good: #8FE0B0; --good-bg: #173D36; --bad: #FF9A9A; --bad-bg: #4A2230;
@@ -884,7 +884,7 @@ html:root[data-skin="panther"] body {
 html:root[data-skin="panther"] .stage { border-top: 5px solid var(--accent); }
 html:root[data-skin="robotlab"] {
   --bg: #0D1418; --card: #151F25; --sunk: #1C2930;
-  --fg: #E3F2F1; --fg-2: #A9C2C0; --fg-3: #6F8A88;
+  --fg: #E3F2F1; --fg-2: #A9C2C0; --fg-3: #7B9492;
   --rule: #24343C; --margin: #FF7AB6;
   --accent: #5CF2C9; --accent-soft: #18393A; --on-accent: #0D1418;
   --good: #7BE8A8; --good-bg: #173A2C; --bad: #FF8FA3; --bad-bg: #44222C;
@@ -1052,7 +1052,7 @@ p.share-row { display: flex; gap: 6px; }
 .heard .hint { display: flex; align-items: flex-start; gap: 6px; }
 .heard .hint svg { width: 14px; height: 14px; flex: none; margin-top: 2px; }
 .heard-text { margin: 6px 0; max-height: 160px; overflow: auto; font-size: 13px; line-height: 1.5; color: var(--fg-2); }
-.foot .build { font-variant-numeric: tabular-nums; opacity: .8; }
+.foot .build { font-variant-numeric: tabular-nums; }
 
 /* ---------- saved timers and the full-screen button (top of the timer card) ---------- */
 .stage { container: stage / inline-size; z-index: 2; } /* above the cards below it, so the menu isn't covered */
@@ -1300,6 +1300,7 @@ html[data-ready] .splash { animation: splash-out .6s cubic-bezier(.22,1,.36,1) v
   .chip-btn.streak-pills span { display: inline-flex; }
   .streak-pills .sp-study { display: none !important; }
   .stats-btn { display: none; } /* the streak button opens Stats too */
+  .loop-btn { display: none; } /* Settings → Timer has Loop too; the logo needs the room */
 }
 
 .celebrate-dlg { width: min(420px, calc(100vw - 24px)); overflow: hidden; text-align: center; }
@@ -1332,12 +1333,12 @@ html[data-ready] .splash { animation: splash-out .6s cubic-bezier(.22,1,.36,1) v
 .medal-face b { font: 800 15px/1 var(--f-display); color: #5A3A06; }
 .medal[data-earned="0"] .medal-ribbon { background: var(--rule); }
 .medal[data-earned="0"] .medal-face { background: var(--sunk); box-shadow: inset 0 0 0 3px var(--rule); }
-.medal[data-earned="0"] .medal-face b { color: var(--fg-3); }
+.medal[data-earned="0"] .medal-face b { color: var(--fg-2); }
 .badge-shelf { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 14px; }
 .badge-shelf li { display: grid; justify-items: center; gap: 4px; text-align: center; padding: 12px 6px; border-radius: var(--r-md); background: var(--sunk); }
-.badge-shelf li[data-earned="0"] { opacity: .75; }
+.badge-shelf li[data-earned="0"] .badge-name { color: var(--fg-2); }
 .badge-name { font-weight: 700; font-size: 14px; }
-.badge-when { font-size: 12px; color: var(--fg-3); }
+.badge-when { font-size: 12px; color: var(--fg-2); }
 
 /* Confetti for milestones. */
 .confetti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; }
@@ -1348,3 +1349,32 @@ html[data-ready] .splash { animation: splash-out .6s cubic-bezier(.22,1,.36,1) v
   100% { opacity: 0; transform: translate3d(30px, 640px, 0) rotate(calc(var(--r) + 540deg)) scale(var(--s)); }
 }
 @media (prefers-reduced-motion: reduce) { .confetti { display: none; } }
+
+/* ---------- Your data: delete ---------- */
+.btn-danger { background: var(--card); color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, var(--rule)); }
+.btn-danger:hover:not(:disabled) { background: var(--bad); color: #fff; border-color: var(--bad); }
+.danger-confirm { margin-top: 10px; padding: 12px 14px; border-radius: var(--r-md); background: var(--bad-bg); display: grid; gap: 10px; }
+.danger-confirm p { margin: 0; font-size: 14px; }
+.row-inline { display: flex; gap: 8px; flex-wrap: wrap; }
+.row-inline input { flex: 1; min-width: 140px; }
+
+/* ---------- First-time tour ---------- */
+.tour { position: fixed; inset: 0; z-index: 90; }
+.tour-dim { position: absolute; inset: 0; background: rgba(12, 16, 32, .55); }
+.tour-spot { position: absolute; border-radius: var(--r-lg); box-shadow: 0 0 0 9999px rgba(12, 16, 32, .55), 0 0 0 3px var(--accent);
+  transition: top .3s cubic-bezier(.22,1,.36,1), left .3s cubic-bezier(.22,1,.36,1), width .3s cubic-bezier(.22,1,.36,1), height .3s cubic-bezier(.22,1,.36,1); pointer-events: none; }
+.tour-card { position: absolute; background: var(--card); color: var(--fg); border: 1px solid var(--rule); border-radius: var(--r-lg);
+  padding: 18px 18px 14px; box-shadow: 0 24px 60px -18px rgba(0,0,0,.5); display: grid; gap: 10px; }
+.tour-card.centered { left: 50%; top: 50%; width: min(380px, calc(100vw - 24px)); translate: -50% -50%; }
+.tour-card.docked { left: 12px; right: 12px; top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); width: auto; translate: none; }
+.tour-head { display: flex; align-items: center; gap: 12px; }
+.tour-buddy { width: 58px; flex: none; display: block; }
+.tour-count { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.tour-card h2 { margin: 2px 0 0; font-family: var(--f-display); font-size: 20px; font-weight: 800; letter-spacing: -.01em; }
+.tour-text { margin: 0; color: var(--fg-2); font-size: 15px; line-height: 1.5; }
+.tour-dots { display: flex; gap: 5px; }
+.tour-dots i { width: 6px; height: 6px; border-radius: 99px; background: var(--rule); transition: width .2s, background-color .2s; }
+.tour-dots i[data-on] { width: 18px; background: var(--accent); }
+.tour-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.tour-nav { display: flex; gap: 8px; }
+@media (prefers-reduced-motion: reduce) { .tour-spot { transition: none; } }

@@ -6,7 +6,7 @@ import { AMBIENCE, CHIMES, Sound } from '@/lib/sound';
 import { clamp } from '@/lib/util';
 import type { Difficulty, Level, Tier } from '@/lib/types';
 import { supabaseConfigured } from '@/lib/supabase/env';
-import { signOut } from '@/lib/sync';
+import { deleteAccount, signOut } from '@/lib/sync';
 import { screenSupported, stopWatching } from '@/lib/docs/screen';
 import { Icon } from './Icon';
 import { celebrationsOn, setCelebrationsOn } from './Streaks';
@@ -254,10 +254,21 @@ export function SettingsDialog({ dialogRef, onSignIn, onAppearance }: {
             }} />
           </div>
           <CelebrateSetting />
+        </fieldset>
+
+        <fieldset>
+          <legend>Your data</legend>
+          <div className="set-row">
+            <span className="field-label">Download my data<span className="sub">Everything PomoGator keeps about you, as one file: settings, tasks, sessions, quiz answers, documents, streaks and chat</span></span>
+            <button className="btn" type="button" id="exportBtn" onClick={() => void import('@/lib/export').then((m) => m.exportData()).then(() => showToast('Your data is downloading'))}>
+              <Icon name="download" />Download
+            </button>
+          </div>
           <div className="set-row">
             <span className="field-label">History<span className="sub">Sessions, quiz stats and plans, here and in your account</span></span>
             <button className="btn" type="button" onClick={() => press(clearHistory)}>{armed ? 'Click again to clear' : 'Clear history'}</button>
           </div>
+          <DeleteAccount onDone={close} />
         </fieldset>
       </div>
       <div className="dlg-foot"><button className="btn btn-primary" type="button" onClick={close}>Done</button></div>
@@ -285,6 +296,10 @@ export function HelpDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialogEleme
     <dialog ref={dialogRef} id="helpDlg" aria-labelledby="helpTitle" onClick={closeOnBackdrop}>
       <DialogHead id="helpTitle" title="Keyboard shortcuts" close={() => dialogRef.current?.close()} />
       <div className="dlg-body">
+        <div className="set-row">
+          <span className="field-label">New here?<span className="sub">A one-minute tour of the page with your study buddy</span></span>
+          <button className="btn" type="button" id="tourAgain" onClick={() => { dialogRef.current?.close(); void import('./Tour').then((m) => m.startTour()); }}>Take the tour</button>
+        </div>
         <dl className="kbd-list">
           {SHORTCUTS.map(([keys, what]) => (
             <div key={what} style={{ display: 'contents' }}>
@@ -346,6 +361,48 @@ function CelebrateSetting() {
     <div className="set-row">
       <label htmlFor="celebrateToggle">Daily streak celebration<span className="sub">The card with your streak after your first check-in of the day, on this device. Streaks and badges count either way</span></label>
       <input type="checkbox" className="switch" id="celebrateToggle" checked={on} onChange={(e) => { const v = e.target.checked; setOn(v); setCelebrationsOn(v); }} />
+    </div>
+  );
+}
+
+/** Delete the account and everything in it, after typing DELETE. */
+function DeleteAccount({ onDone }: { onDone: () => void }) {
+  const status = useStudy((s) => s.account.status);
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const what = status === 'user' ? 'my account' : 'my data';
+  const go = async () => {
+    setBusy(true); setError('');
+    const r = await deleteAccount();
+    setBusy(false);
+    if (r === 'deleted') {
+      const { useChat } = await import('@/lib/assistant');
+      useChat.setState({ messages: [], pending: [] });
+      setOpen(false); setTyped(''); onDone();
+      useStudy.getState().showToast(status === 'user' ? 'Your account and everything in it is deleted' : 'Your data is deleted');
+    } else setError(r === 'not_ready' ? 'Deleting accounts isn\'t switched on for this site yet. Nothing was deleted.' : 'Something went wrong, so nothing was deleted. Check your connection and try again.');
+  };
+  return (
+    <div className="danger-zone">
+      <div className="set-row">
+        <span className="field-label">Delete {what}<span className="sub">{status === 'user' ? 'Removes your account, sessions, documents, streaks, badges and friends for good, on every device' : 'Removes everything saved here and in the cloud for good'}</span></span>
+        <button className="btn btn-danger" type="button" aria-expanded={open} onClick={() => setOpen(!open)}>Delete…</button>
+      </div>
+      {open && (
+        <div className="danger-confirm">
+          <p>This can&apos;t be undone. Download your data first if you want a copy. Type <strong>DELETE</strong> to confirm.</p>
+          <div className="row-inline">
+            <label className="sr-only" htmlFor="deleteConfirm">Type DELETE to confirm</label>
+            <input id="deleteConfirm" type="text" autoComplete="off" value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="DELETE" />
+            <button className="btn btn-danger" type="button" disabled={typed.trim() !== 'DELETE' || busy} onClick={() => void go()}>
+              {busy ? 'Deleting…' : `Delete ${what}`}
+            </button>
+          </div>
+          {error && <p className="hint warn" role="alert">{error}</p>}
+        </div>
+      )}
     </div>
   );
 }

@@ -81,7 +81,8 @@ async function newPage({ w = 1440, h = 900, dpr = 1.5, settings = {}, tasks = []
     const real = Date.now.bind(Date); let off = 0;
     Date.now = () => real() + off;
     window.__skip = (ms) => { off += ms; };
-    localStorage.setItem('studybuddy.celebrate', 'off'); // the daily streak card would cover the shots
+    localStorage.setItem('studybuddy.celebrate', 'off'); // the daily streak card and the tour would cover the shots
+    localStorage.setItem('studybuddy.tour', 'done');
   });
   await page.addInitScript(({ settings, tasks, withHistory, withDoc }) => {
     if (localStorage.getItem('studybuddy.v1')) return;

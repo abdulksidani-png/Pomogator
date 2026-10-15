@@ -42,7 +42,9 @@ optional screen tracking, sign-in with cloud sync, and appearance customization.
 | 6 | Stats engine (pure, tested) + Stats page | Built, waiting on his test |
 | 7 | Weekly report: summary, ▲/▼ numbers, charts, archive, image/PDF | Built, waiting on his test |
 | 8 | Check-in streaks + celebrations (MyFitnessPal style) | Built, waiting on his test |
-| 9 | Polish, export / delete account, full README guide | |
+| 9 | Polish, export / delete account, full guide, first-time tour | Built, waiting on his test |
+| 10 | Friends: codes, widget (online, studying time, music, stats), support messages | In progress (his request) |
+| 11 | Study together: synced timers, groups of 4, agreed break | Next (his request) |
 
 Phase 3 also added the **study assistant** he asked for (`components/Assistant.tsx`, `lib/assistant.ts`): a corner
 "Ask PomoGator" button / `A` key opens a chat panel that sees the study panel, timer, to-do list, the selected
@@ -135,6 +137,18 @@ streak; opens Stats; on phones only the flame, and the Stats chip hides). Stats:
 device (localStorage `studybuddy.celebrate`); check-ins and badges count either way. **Tests import `test` from
 `tests/pw.ts`**, which turns the card off unless a spec sets `test.use({ celebrate: true })` (`tests/e2e/streaks.spec.ts`;
 sync contexts use `quietCelebrations`).
+
+**Phase 9 (built):** Settings → "Your data": Download (`lib/export.ts`, one JSON with docs' pages + AI notes + chat) and
+Delete (`DeleteAccount` in Dialogs.tsx, type DELETE; `deleteAccount()` in sync.ts removes Storage files, calls
+`delete_my_account()` from migration 4 — every table cascades from auth.users — then signs out locally, which wipes the
+device and starts a new guest; without Supabase it only wipes local). First-time tour `components/Tour.tsx`: buddy-guided
+spotlight steps (`#ctxCard`, `#startBtn`, `#stage`, `#tasksCard`, `#friendsCard` if present, `.assistant-fab`,
+`#streakPills`, Appearance, `#accountBtn` for guests), Skip/Esc/arrow keys, docked card on phones; opens by itself once
+for someone brand new (no history, no check-ins) after sign-in settles; `tour` ('done'|'skipped') is synced in app_state
+and mirrored in localStorage `studybuddy.tour`; Help dialog → "Take the tour". Polish: axe-core test `tests/e2e/a11y.spec.ts`
+(WCAG 2.1 AA, three themes, every view) — fixed `--fg-3` contrast in 8 themes; phones hide the Stats and Loop chips (the
+streak button opens Stats; Loop is in Settings). `docs/SETUP.md` has "What it costs" (AI requests per session) and more
+troubleshooting. `tests/db/friends-check.sql` checks migration 4 (run on a fresh database after all migrations).
 
 **Quizzes from the shared screen (2026-10-15, his report: a Python session got a quiz on yesterday's philosophy deck):**
 screen tracking used OCR only to match slides, so off-document work was ignored. Now `capture()` in `lib/docs/screen.ts`
@@ -239,7 +253,9 @@ Earlier requests, all done and confirmed:
   - `Assistant.tsx`: chat panel, corner button, reply formatting
   - `Music.tsx` (Spotify widget), `PhotoPicker.tsx` (Unsplash), `Mascot.tsx` (all buddies), `Stats.tsx` (Stats page)
   - `TimerMenu.tsx` (saved timers menu), `Weekly.tsx` (weekly report, review banner), `Splash.tsx` (loading screen)
-- `supabase/migrations/`: `…000000_core.sql`, `…010000_documents.sql`, `20261015000000_ai_usage.sql`. RLS restricts every table to
+- `supabase/migrations/`: `…000000_core.sql`, `…010000_documents.sql`, `20261015000000_ai_usage.sql`,
+  `20261016000000_friends.sql` (delete account, friends, presence, support messages, study rooms; other people's data only
+  through security-definer functions that check the friendship and sharing switches). RLS restricts every table to
   `user_id = (select auth.uid())`. The owner pastes migrations into the SQL Editor by hand.
 
 ## Commands

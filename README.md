@@ -57,8 +57,9 @@ comes with an explanation and a memory aid, and **your score earns your break** 
 - **Make it yours.** 12 themes, 5 study buddies that put on glasses and study at a desk while you do (including Albert,
   a pixel-art gator), cheer you through the quiz (happy when you're right, sad when you're not) and react in the chat, 7 clock fonts, 3 timer styles, Unsplash photo backgrounds, glass cards, saved timer presets,
   a full-screen focus mode and a Spotify "now playing" widget.
-- **Accounts without friction.** Start instantly as a guest; sign in with Google or an email link later and keep
-  everything. Progress syncs across devices.
+- **Accounts without friction.** Start instantly as a guest, with a one-minute tour from your study buddy (skippable);
+  sign in with Google or an email link later and keep everything. Progress syncs across devices. Download all your
+  data as one file, or delete your account and everything in it, from Settings.
 
 ## Screenshots
 
@@ -95,7 +96,8 @@ comes with an explanation and a memory aid, and **your score earns your break** 
   the server; Google's raw error text never reaches the browser; standard hardening headers. See
   [Privacy](https://pomo-gator.vercel.app/privacy).
 - **Accessible.** Full keyboard control (press `?` in the app), screen-reader labels and live regions, focus
-  management through the quiz, and reduced-motion support.
+  management through the quiz, reduced-motion support, and automated axe-core checks (WCAG 2.1 AA) of every view
+  in light and dark themes.
 
 More detail, including the data model and sync rules, is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -146,7 +148,7 @@ It runs with no keys at all, saving everything in the browser. To switch on acco
 ```bash
 npm run typecheck
 npm test            # 106 unit tests: break rules, AI reply validation, stats (time zones, 4 AM rollover, streak freezes), check-in streaks, weekly reports, sync merging, saved timers
-npm run test:e2e    # 27 browser tests: study → quiz → break, document goals, screen tracking, tab audio, appearance, stats, streak celebrations, weekly report, focus mode
+npm run test:e2e    # 34 browser tests: study → quiz → break, document goals, screen tracking, tab audio, appearance, stats, streaks, weekly report, focus mode, the tour, data export/delete, accessibility (axe)
 npm run test:ai     # 10 browser tests of the AI, Unsplash and Spotify features against local stand-ins
 npm run test:sync   # two devices syncing through real Postgres + PostgREST running the actual migrations
 ```
@@ -168,7 +170,6 @@ docs/                 setup guide, architecture notes, the original spec and pro
 
 ## Roadmap
 
-- Export your data and delete your account in one click.
 
 ## Credits
 
