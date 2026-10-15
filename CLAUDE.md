@@ -30,7 +30,7 @@ optional screen tracking, sign-in with cloud sync, and appearance customization.
 | 4 | Documents: PDF/PPTX/DOCX/text/photos, outlines, goals, resume point, library | Done |
 | 5 | Screen tracking: opt-in, on-device OCR, slide matching, "slides seen" log | Done |
 | + | Appearance: themes, accent, clock fonts, timer styles, backgrounds | Done |
-| 3 | AI (Gemini free tier): quiz from covered pages, plan, day summary, study assistant, daily limits | Built, waiting on his test (key is in Vercel; migration 3 optional) |
+| 3 | AI (Gemini free tier): quiz from covered pages, plan, day summary, study assistant, daily limits | Done (confirmed; migration 3 optional) |
 | **6** | **Stats engine (pure, tested) + Stats page** | **Next** |
 | 7 | Weekly report | |
 | 8 | Check-in streaks + celebrations (MyFitnessPal style) | |
@@ -43,7 +43,7 @@ document (whole deck if it fits 60k chars) and any lecture transcript. It answer
 ("Plan with AI" on the To-do card); proposals are added only on a click, as "Task · N sessions" text so tasks sync unchanged.
 The chat is local only (`studybuddy.chat`).
 
-Then (built, waiting on his test and his keys):
+Then (he confirmed these work on the live site, 2026-10-15):
 - **Unsplash backgrounds** (`UNSPLASH_ACCESS_KEY`): Appearance → Photo backgrounds, by mood chip or search, "New photo every
   day" (`bgDaily`), credit in the footer (`PhotoCredit`, UTM links), download tracking on choose. Server routes
   `/api/unsplash/{search,random,track}` (`lib/unsplash-server.ts`), cached with `s-maxage` (demo keys get 50 calls/hour).
@@ -59,7 +59,7 @@ Then (built, waiting on his test and his keys):
   shows the tomato only in its theme but any other picked buddy always.
 - `/api/config` tells the browser which services are on (`lib/config.ts`).
 
-Earlier requests, all done (he hadn't confirmed they work yet):
+Earlier requests, all done and confirmed:
 - sign out (Settings → Account, avatar menu), more file types, screen-share button under "Study material", appearance options
 - faster screen tracking (checks every 2 s by default, `screenSec` 1–15)
 - "Also capture the tab's sound": tab audio → on-device Whisper → `session.heard` (sent to the quiz as `heard`)
