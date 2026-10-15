@@ -30,7 +30,7 @@ optional screen tracking, sign-in with cloud sync, and appearance customization.
 | 4 | Documents: PDF/PPTX/DOCX/text/photos, outlines, goals, resume point, library | Done |
 | 5 | Screen tracking: opt-in, on-device OCR, slide matching, "slides seen" log | Done |
 | + | Appearance: themes, accent, clock fonts, timer styles, backgrounds | Done |
-| **3** | **Claude API routes: quiz, plan, day summary, OCR fallback, daily limits** | **Next** (needs `ANTHROPIC_API_KEY` from him) |
+| **3** | **AI routes (Gemini free tier): quiz, plan, day summary, OCR fallback, daily limits** | **Next** (needs `GEMINI_API_KEY` in Vercel) |
 | 6 | Stats engine (pure, tested) + Stats page | |
 | 7 | Weekly report | |
 | 8 | Check-in streaks + celebrations (MyFitnessPal style) | |
@@ -54,6 +54,10 @@ The owner's latest requests, all done (he hadn't confirmed they work yet):
   cuts 12 s clips (silent ones skipped), and `public/asr-worker.js` runs Whisper tiny.en with Transformers.js loaded from
   jsDelivr (the npm package pulls in onnxruntime-node, whose install script downloads binaries). The model (~40 MB) comes
   from Hugging Face once and the browser caches it. The transcript lives only on the live session and is dropped from history.
+- **AI provider is Google Gemini, not Claude**: the owner chose Gemini's free tier to pay nothing (key from Google AI Studio,
+  stored in Vercel as `GEMINI_API_KEY`, no billing enabled). Keep the reference prototype's prompts and JSON shapes; use
+  Gemini's JSON output mode. Free-tier limits are per project and shown only in AI Studio, so handle 429s gracefully
+  ("quiz limit reached for today, enjoy a no-quiz break") and keep the app's own daily limits.
 - **AI routes** are stubs: `app/api/ai/[action]/route.ts` returns 503 and `app/api/ai/status` returns `{configured:false}`.
   The client side is ready in `lib/ai-client.ts` and `lib/quiz.ts`, which include validation.
 
