@@ -208,7 +208,7 @@ const SPRITES: Record<'gorilla' | 'gator' | 'panther', Sprite> = {
     moods: {
       idle: { 3: [7, "ww"], 4: [7, "wk"] },
       focus: { 2: [6, "kkkk"], 3: [6, "kwwkkkk"], 4: [6, "kwkk"], 5: [6, "kkkk"] },
-      quiz: { 3: [7, "ww"], 4: [7, "kk"], 10: [12, "kkkk"], 11: [12, "kkkk"] },
+      quiz: { 3: [7, "wk"], 4: [7, "ww"] },
       happy: { 3: [7, "k."], 4: [6, "k.k"] },
       rest: { 4: [7, "kk"], 0: [15, "kkkk"], 1: [17, "k"], 2: [16, "k"], 3: [15, "kkkk"] },
       cheer: { 3: [7, "ww"], 4: [7, "wk"], 10: [9, "lwwwwwwwwwwwl"] },
