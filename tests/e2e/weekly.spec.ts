@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from '../pw';
 
 // Last week: two 25-minute sessions (Tuesday and Wednesday), 4 of 6 quiz answers right. This week: one 30-minute session today.
 async function seed(page: Page) {

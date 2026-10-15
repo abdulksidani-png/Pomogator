@@ -41,7 +41,7 @@ optional screen tracking, sign-in with cloud sync, and appearance customization.
 | 3 | AI (Gemini free tier): quiz from covered pages, plan, day summary, study assistant, daily limits | Done (confirmed; migration 3 optional) |
 | 6 | Stats engine (pure, tested) + Stats page | Built, waiting on his test |
 | 7 | Weekly report: summary, ▲/▼ numbers, charts, archive, image/PDF | Built, waiting on his test |
-| **8** | **Check-in streaks + celebrations (MyFitnessPal style)** | **Next** |
+| 8 | Check-in streaks + celebrations (MyFitnessPal style) | Built, waiting on his test |
 | 9 | Polish, export / delete account, full README guide | |
 
 Phase 3 also added the **study assistant** he asked for (`components/Assistant.tsx`, `lib/assistant.ts`): a corner
@@ -117,7 +117,24 @@ week streak = streak as of the week's last study day), `focusSteps`, `plainSumma
 Summaries live in the store as `weekly` (by week start, newest 26) + `weeklySeen`, synced inside profiles.app_state
 (deliberately no `weekly_reports` table, so no migration). View `/weekly` (`components/Weekly.tsx`, `?week=`), tabs
 Overview | Weekly report shared with Stats (`StatsTabs`), `WeekReviewBanner` on the timer page, "Save as image"
-(`lib/share-card.ts`, canvas 1080×1350) and "Save as PDF" (print CSS). Check-in streak tile waits for Phase 8.
+(`lib/share-card.ts`, canvas 1080×1350) and "Save as PDF" (print CSS). Check-in streak tile added in Phase 8.
+
+**Phase 8 (built):** `lib/checkins.ts` (pure, `tests/unit/checkins.test.ts`): `celebrationFor` (streak via `streakOf`, so
+freezes work the same as the study streak; `first`, `broken` + `bestBefore`, `saved` by a freeze, `record` for "new personal
+best", `newBadges`/`milestone` from `MILESTONES` 3/7/14/30/50/100/365, the 7-day strip), `encouragement` (never guilt),
+`weekCheckinStreak`, clean/merge helpers. Store: `checkins` (local dates), `celebrated` (last day shown), `badges`
+({days: date}) live in the app slice (profiles.app_state) — deliberately no `check_ins`/`streaks` tables, so no migration.
+`checkIn()` runs on `start()`, `answer()`, `addTask(s)` and `addDoc()` (page load alone doesn't count) and sets the transient
+`checkinDue`; `CelebrationHost` (`components/Streaks.tsx`) waits for sign-in to settle, calls `pullNow()` from `lib/sync.ts`
+(4 s max) and then `celebrate()`, which returns null if any device already celebrated today. Sync pull always unions
+check-ins/badges and takes the later `celebrated`, whichever app_state version is newer, and bumps `v.app` + pushes if this
+device knew more. The card: buddy, "🔥 N", headline, strip (✓ / ❄ frozen), one line, medal + CSS confetti on milestones
+(hidden with reduced motion), "Keep going" / "See my badges". Header `#streakPills` (flame lit once checked in today + study
+streak; opens Stats; on phones only the flame, and the Stats chip hides). Stats: "Check-in streak" tile + `BadgeShelf`
+(`#badgesCard`). Weekly: "Check-in streak" ▲/▼ tile (`r.now.checkin`). Settings → Extras → "Daily streak celebration" is per
+device (localStorage `studybuddy.celebrate`); check-ins and badges count either way. **Tests import `test` from
+`tests/pw.ts`**, which turns the card off unless a spec sets `test.use({ celebrate: true })` (`tests/e2e/streaks.spec.ts`;
+sync contexts use `quietCelebrations`).
 
 **Quizzes from the shared screen (2026-10-15, his report: a Python session got a quiz on yesterday's philosophy deck):**
 screen tracking used OCR only to match slides, so off-document work was ignored. Now `capture()` in `lib/docs/screen.ts`
@@ -229,7 +246,7 @@ Earlier requests, all done and confirmed:
 ```bash
 npm run dev          # http://localhost:3000 (copies vendor files first)
 npm run typecheck
-npm test             # Vitest unit tests (98)
+npm test             # Vitest unit tests (106)
 npm run test:e2e     # Playwright: loop, documents, goals, screen tracking, tab sound, sounds, appearance, buddies, stats,
                      # saved timers, full screen, plan fold, weekly report, loading screen
 npm run test:ai      # Playwright: AI, Unsplash and Spotify against stand-ins (tests/fake-gemini; Spotify faked in-test)

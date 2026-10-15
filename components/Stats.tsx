@@ -6,6 +6,7 @@ import { todayFor } from '@/lib/dates';
 import { DEFINITIONS, WEEKDAYS, addDays, computeStats, weekStartOf, type DayStat, type Stats } from '@/lib/stats';
 import { Icon } from './Icon';
 import { SOFT } from './motion';
+import { BadgeShelf, useStreaks } from './Streaks';
 
 type Range = 'week' | 'month' | 'all';
 const RANGES: { id: Range; name: string }[] = [{ id: 'week', name: 'This week' }, { id: 'month', name: 'Last 30 days' }, { id: 'all', name: 'All time' }];
@@ -21,6 +22,7 @@ export function StatsView({ onBack, onWeekly }: { onBack: () => void; onWeekly: 
   const docs = useStudy((s) => s.docs);
   const settings = useStudy((s) => s.settings);
   const [range, setRange] = useState<Range>('week');
+  const { checkin } = useStreaks();
   const today = todayFor(settings);
   const weekStart = weekStartOf(today, settings.weekStart);
   const from = range === 'week' ? weekStart : range === 'month' ? addDays(today, -29) : undefined;
@@ -60,7 +62,9 @@ export function StatsView({ onBack, onWeekly }: { onBack: () => void; onWeekly: 
             <Tile label="Goals met" def={DEFINITIONS.goals} value={s.goalsPct === null ? '–' : `${s.goalsPct}%`} note={s.goalsSet ? `${s.goalsMet} of ${s.goalsSet} goals` : 'set a goal on a document'} i={3} />
             <Tile label="Study streak" def={DEFINITIONS.streak} value={`${s.streak.current} day${s.streak.current === 1 ? '' : 's'}`}
               note={`best ${s.streak.longest}${settings.streakFreeze ? ` · ${s.streak.freezesLeft} freeze${s.streak.freezesLeft === 1 ? '' : 's'}` : ''}`} i={4} />
-            <Tile label="Breaks earned" def={DEFINITIONS.breaks} value={hm(s.breakMin)} note="from quizzes and sessions" i={5} />
+            <Tile label="Check-in streak" def={DEFINITIONS.checkin} value={`${checkin.current} day${checkin.current === 1 ? '' : 's'}`}
+              note={`best ${checkin.longest}${settings.streakFreeze ? ` · ${checkin.freezesLeft} freeze${checkin.freezesLeft === 1 ? '' : 's'}` : ''}`} i={5} />
+            <Tile label="Breaks earned" def={DEFINITIONS.breaks} value={hm(s.breakMin)} note="from quizzes and sessions" i={6} />
           </div>
 
           <section className="card stats-card" aria-labelledby="minTitle">
@@ -117,6 +121,7 @@ export function StatsView({ onBack, onWeekly }: { onBack: () => void; onWeekly: 
           </div>
         </>
       )}
+      <BadgeShelf />
     </div>
   );
 }

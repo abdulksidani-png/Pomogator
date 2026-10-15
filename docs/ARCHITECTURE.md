@@ -69,6 +69,17 @@ browser (lib/ai-client.ts) → POST /api/ai/{action} → sign-in + daily allowan
 - The first visit of a new week shows "Your week in review" on the timer page. Weeks can be browsed at `/weekly?week=…`,
   saved as a 1080×1350 image drawn on a canvas (`lib/share-card.ts`), or printed to PDF with print styles.
 
+## Check-in streaks
+
+- A check-in is the first real action of a day (starting the timer, uploading, adding a task, answering a quiz question);
+  just opening the site doesn't count. `lib/checkins.ts` is pure and unit-tested: the streak uses the same rules as the
+  study streak (`streakOf`), including streak freezes (one earned per 7 days in a row, at most 2, used automatically).
+- The first check-in of the day shows a celebration card: the streak, the last 7 days, one line of encouragement, and on
+  3, 7, 14, 30, 50, 100 and 365 days a badge with confetti. A broken streak gets "Welcome back", never guilt.
+- Check-in days, badges and the last celebrated day are kept with the account's synced app state. When syncing, they're
+  combined from both sides rather than "newest wins", and before showing the card the browser fetches other devices'
+  changes, so the celebration shows once per day per account, not once per device.
+
 ## Documents, goals and screen tracking
 
 - `lib/docs/parse.ts` turns PDF (pdf.js), PowerPoint (slide XML via JSZip), Word (mammoth), text and photos (Tesseract
@@ -126,4 +137,4 @@ script in `app/layout.tsx` applies the saved theme before the first paint, so th
 | `npm test` (Vitest) | Break rules, quiz/plan/digest validation, prompts, Gemini error mapping and fallback, stats (time zones, 4 AM day rollover, streak freezes), sync merging, goal and slide matching, saved timers |
 | `npm run test:e2e` (Playwright) | The full study → quiz → break loop with a fake clock, documents and goals, screen tracking with a synthetic shared screen, tab audio with a stand-in speech model, appearance, study buddies, stats, saved timers, focus mode |
 | `npm run test:ai` | The real `/api/ai/*` routes against `tests/fake-gemini/server.mjs` (which also stands in for Unsplash); Spotify faked in the browser |
-| `npm run test:sync` | Two browsers syncing through PostgREST on a real Postgres running the actual migrations, with a fake auth server (`tests/fake-supabase/server.mjs`) |
+| `npm run test:sync` | Two browsers syncing through PostgREST on a real Postgres running the actual migrations, with a fake auth server (`tests/fake-supabase/server.mjs`); includes the celebration showing once per day across two devices |

@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from '../pw';
 
 // Claude replies are faked here so the loop can be tested before the real AI routes exist.
 const QUIZ = {

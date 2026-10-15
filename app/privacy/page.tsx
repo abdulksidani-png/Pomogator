@@ -17,7 +17,7 @@ export default function Privacy() {
 
       <h2>If you sign in, or study as a guest</h2>
       <p>Your study data syncs to a database hosted by <a href="https://supabase.com">Supabase</a>: settings, tasks, study sessions,
-        quiz answers, plans, and the text and files of documents you upload. Every table and the file storage use row-level
+        quiz answers, plans, the days you checked in and the streak badges you earned, and the text and files of documents you upload. Every table and the file storage use row-level
         security, so each account can only read and change its own rows. Your email address is used only to sign you in.</p>
       <p>Settings → Clear history deletes your study history on every device, and each document can be deleted from your
         documents list. A one-click &ldquo;delete my account&rdquo; is on the roadmap.</p>

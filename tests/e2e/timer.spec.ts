@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from '../pw';
 
 const look = (page: Page) => page.locator('#lookDlg');
 

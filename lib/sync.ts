@@ -17,6 +17,7 @@ import { normalizeData, useStudy, type Data } from './store';
 import { DEFAULT_CONTEXT, DEFAULT_SETTINGS } from './defaults';
 import { todayFor } from './dates';
 import { mergeDeep } from './util';
+import { cleanBadges, cleanDates, mergeBadges, mergeDates } from './checkins';
 import {
   attemptsFor, docHash, docToRow, eventsFor, mergeHistory, rebuildAsked, rebuildStats, rowToDoc, rowToSession, rowsToTasks,
   sessionHash, sessionToRow, type AttemptRow, type DocRow, type EventRow, type SessionRow, type TaskRow,
@@ -183,7 +184,8 @@ function watchLocalChanges() {
     const bump: Partial<SliceVersions> = {};
     if (s.settings !== prev.settings) bump.settings = next('settings');
     if (s.context !== prev.context) bump.context = next('context');
-    if (s.timer !== prev.timer || s.quiz !== prev.quiz || s.plan !== prev.plan || s.day !== prev.day || s.asked !== prev.asked || s.weekly !== prev.weekly || s.weeklySeen !== prev.weeklySeen) bump.app = next('app');
+    if (s.timer !== prev.timer || s.quiz !== prev.quiz || s.plan !== prev.plan || s.day !== prev.day || s.asked !== prev.asked || s.weekly !== prev.weekly || s.weeklySeen !== prev.weeklySeen
+      || s.checkins !== prev.checkins || s.celebrated !== prev.celebrated || s.badges !== prev.badges) bump.app = next('app');
     if (s.tasks !== prev.tasks) bump.tasks = next('tasks');
     const historyChanged = s.history !== prev.history || s.sync.clearPending !== prev.sync.clearPending;
     if (Object.keys(bump).length) {
@@ -205,7 +207,10 @@ export async function flush() {
   await push();
 }
 
-const appStateOf = (s: Data) => ({ timer: s.timer, quiz: s.quiz, plan: s.plan, day: s.day, asked: s.asked, weekly: s.weekly, weeklySeen: s.weeklySeen });
+const appStateOf = (s: Data) => ({
+  timer: s.timer, quiz: s.quiz, plan: s.plan, day: s.day, asked: s.asked, weekly: s.weekly, weeklySeen: s.weeklySeen,
+  checkins: s.checkins, celebrated: s.celebrated, badges: s.badges,
+});
 
 async function push(): Promise<void> {
   if (!sb || !userId) return;
@@ -330,6 +335,7 @@ async function maybePull() {
  */
 async function pull({ adopt = false }: { adopt?: boolean } = {}) {
   if (!sb || !userId) return;
+  let pushAfter = false;
   const [p, t, ss, aa, ev, dd] = await Promise.all([
     sb.from('profiles').select('settings,context,app_state,settings_v,context_v,app_state_v,tasks_v').eq('id', userId).maybeSingle(),
     sb.from('tasks').select('id,text,done,position').order('position'),
@@ -372,6 +378,19 @@ async function pull({ adopt = false }: { adopt?: boolean } = {}) {
           for (const [k, w] of Object.entries(a.weekly)) if (!d.weekly[k] || w.at > d.weekly[k].at) d.weekly[k] = w;
           if (a.weeklySeen > d.weeklySeen) d.weeklySeen = a.weeklySeen;
         }
+        // Check-ins, badges and the celebration day are combined whichever copy is newer, so no device's check-in is lost
+        // and the celebration shows once per day across devices. If this device knew something the server didn't, send it.
+        if (prof.app_state) {
+          const r = { checkins: cleanDates(prof.app_state.checkins), badges: cleanBadges(prof.app_state.badges), celebrated: typeof prof.app_state.celebrated === 'string' ? prof.app_state.celebrated : '' };
+          const checkins = mergeDates(d.checkins, r.checkins);
+          const badges = mergeBadges(d.badges, r.badges);
+          const celebrated = r.celebrated > d.celebrated ? r.celebrated : d.celebrated;
+          const localExtra = checkins.length > r.checkins.length || Object.keys(badges).some((k) => badges[k] !== r.badges[k]) || celebrated !== r.celebrated;
+          if (checkins.length !== d.checkins.length) d.checkins = checkins;
+          if (Object.keys(badges).some((k) => badges[k] !== d.badges[k])) d.badges = badges;
+          if (celebrated !== d.celebrated) d.celebrated = celebrated;
+          if (localExtra) { d.sync.v.app = Math.max(Date.now(), sv.app + 1, d.sync.v.app); pushAfter = true; }
+        }
         const serverTasks = rowsToTasks((t.data ?? []) as TaskRow[]);
         if (adopt && serverTasks.length && d.tasks.length) {
           const ids = new Set(serverTasks.map((x) => x.id));
@@ -408,6 +427,13 @@ async function pull({ adopt = false }: { adopt?: boolean } = {}) {
       d.sync.lastPull = Date.now();
     });
   } finally { applyingRemote = false; }
+  if (pushAfter) schedulePush(300);
+}
+
+/** Bring in other devices' changes now (used before showing the daily celebration). Never throws. */
+export async function pullNow(): Promise<void> {
+  if (!sb || !userId) return;
+  try { await pull(); } catch { /* offline: decide with what this device knows */ }
 }
 
 /* ------------------------------------------------------------------ */

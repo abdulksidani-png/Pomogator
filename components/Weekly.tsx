@@ -32,8 +32,9 @@ export function WeeklyView({ onBack, onStats }: { onBack: () => void; onStats: (
   const thisWeek = weekStartOf(today, settings.weekStart);
   const [week, setWeek] = useState(() => { const w = weekFromUrl(); return w ? weekStartOf(w > today ? today : w, settings.weekStart) : thisWeek; });
   const weeks = useMemo(() => weeksWithStudy(history, today, settings.weekStart), [history, today, settings.weekStart]);
-  const r = useMemo(() => weekReport({ history, docs, week, today, weekStartDay: settings.weekStart, timezone: settings.timezone, freezes: settings.streakFreeze }),
-    [history, docs, week, today, settings.weekStart, settings.timezone, settings.streakFreeze]);
+  const checkins = useStudy((s) => s.checkins);
+  const r = useMemo(() => weekReport({ history, docs, week, today, weekStartDay: settings.weekStart, timezone: settings.timezone, freezes: settings.streakFreeze, checkins }),
+    [history, docs, week, today, settings.weekStart, settings.timezone, settings.streakFreeze, checkins]);
 
   // Keep the address in step, so a week can be bookmarked or reopened.
   useEffect(() => {
@@ -119,6 +120,7 @@ export function WeeklyView({ onBack, onStats }: { onBack: () => void; onStats: (
         <DeltaTile label="Quiz accuracy" def={DEFINITIONS.accuracy} value={r.now.accuracy === null ? '–' : `${r.now.accuracy}%`} d={r.delta.accuracy} unit="pts" i={2} />
         <DeltaTile label="Goals met" def={DEFINITIONS.goals} value={r.now.goalsPct === null ? '–' : `${r.now.goalsPct}%`} d={r.delta.goalsPct} unit="pts" i={3} />
         <DeltaTile label="Study streak" def={DEFINITIONS.weekStreak} value={`${r.now.streak} day${r.now.streak === 1 ? '' : 's'}`} d={r.delta.streak} unit="days" i={4} />
+        <DeltaTile label="Check-in streak" def={DEFINITIONS.weekCheckin} value={`${r.now.checkin} day${r.now.checkin === 1 ? '' : 's'}`} d={r.delta.checkin} unit="days" i={5} />
       </div>
 
       {r.empty ? (

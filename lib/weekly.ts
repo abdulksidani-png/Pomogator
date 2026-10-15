@@ -3,12 +3,13 @@
  * A week runs from the profile's week start (Monday by default) for seven days. Every number comes from
  * computeStats (lib/stats.ts), so the report and the Stats page always agree.
  */
+import { weekCheckinStreak } from './checkins';
 import { WEEKDAYS, addDays, computeStats, streakOf, weekStartOf, type DayStat, type Stats } from './stats';
 import { isCounted, rebuildStats } from './sync-map';
 import { topicKey } from './context';
 import type { DocMeta, SessionRecord, WeeklyInput } from './types';
 
-export interface WeekNumbers { studyMin: number; sessions: number; accuracy: number | null; goalsPct: number | null; streak: number; studyDays: number }
+export interface WeekNumbers { studyMin: number; sessions: number; accuracy: number | null; goalsPct: number | null; streak: number; studyDays: number; checkin: number }
 
 export interface WeekReport {
   start: string;
@@ -22,7 +23,7 @@ export interface WeekReport {
   now: WeekNumbers;
   prev: WeekNumbers;
   /** Change vs. last week: minutes, sessions, accuracy points, goal points, streak days (null when either side has no value). */
-  delta: { studyMin: number; sessions: number; accuracy: number | null; goalsPct: number | null; streak: number };
+  delta: { studyMin: number; sessions: number; accuracy: number | null; goalsPct: number | null; streak: number; checkin: number };
   /** The seven days of the week; days after today are marked `future`. */
   days: (DayStat & { future: boolean; accuracy: number | null })[];
   /** Twelve weeks of days ending with this week, for the calendar heatmap. */
@@ -43,6 +44,8 @@ export interface WeekInput {
   weekStartDay: number;
   timezone?: string;
   freezes?: boolean;
+  /** Check-in days, for the week's check-in streak. */
+  checkins?: string[];
 }
 
 const unitOf = (d: Pick<DocMeta, 'kind'>, n: number) => (d.kind === 'pptx' ? 'slide' : d.kind === 'docx' || d.kind === 'text' ? 'section' : 'page') + (n === 1 ? '' : 's');
@@ -50,8 +53,8 @@ const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : null)
 const label = (h: SessionRecord) => [h.subject, h.topic].map((x) => (x || '').trim()).filter(Boolean).join(' · ') || 'Unlabeled';
 const conceptKey = (topic: string, concept: string) => `${topic}\u0000${concept.trim().toLowerCase()}`;
 
-function numbers(s: Stats, streak: number): WeekNumbers {
-  return { studyMin: s.studyMin, sessions: s.sessions, accuracy: s.accuracy, goalsPct: s.goalsPct, streak, studyDays: s.days.filter((d) => d.minutes > 0).length };
+function numbers(s: Stats, streak: number, checkin: number): WeekNumbers {
+  return { studyMin: s.studyMin, sessions: s.sessions, accuracy: s.accuracy, goalsPct: s.goalsPct, streak, studyDays: s.days.filter((d) => d.minutes > 0).length, checkin };
 }
 const diff = (a: number | null, b: number | null) => (a === null || b === null ? null : a - b);
 
@@ -62,7 +65,7 @@ function masteredSet(history: SessionRecord[]) {
   return out;
 }
 
-export function weekReport({ history, docs, week, today, weekStartDay, timezone = '', freezes = false }: WeekInput): WeekReport {
+export function weekReport({ history, docs, week, today, weekStartDay, timezone = '', freezes = false, checkins = [] }: WeekInput): WeekReport {
   const start = weekStartOf(week, weekStartDay);
   const end = addDays(start, 6);
   const prevStart = addDays(start, -7), prevEnd = addDays(start, -1);
@@ -82,8 +85,8 @@ export function weekReport({ history, docs, week, today, weekStartDay, timezone 
   const prevStreak = reached(prevStart, prevEnd).current;
 
   const week7 = stats.days.slice(-7);
-  const now = { ...numbers(stats, streak), studyDays: week7.filter((d) => d.minutes > 0).length };
-  const prev = numbers(prevStats, prevStreak);
+  const now = { ...numbers(stats, streak, weekCheckinStreak(checkins, start, upTo, freezes)), studyDays: week7.filter((d) => d.minutes > 0).length };
+  const prev = numbers(prevStats, prevStreak, weekCheckinStreak(checkins, prevStart, prevEnd, freezes));
 
   const days = week7.map((d) => ({ ...d, future: d.date > today, accuracy: pct(d.correct, d.answered) }));
 
@@ -127,7 +130,7 @@ export function weekReport({ history, docs, week, today, weekStartDay, timezone 
     start, end, inProgress: today >= start && today <= end, daysLeft: today >= start && today <= end ? 6 - Math.round((Date.parse(today) - Date.parse(start)) / 86_400_000) : 0,
     empty: inWeek.length === 0,
     stats, now, prev,
-    delta: { studyMin: now.studyMin - prev.studyMin, sessions: now.sessions - prev.sessions, accuracy: diff(now.accuracy, prev.accuracy), goalsPct: diff(now.goalsPct, prev.goalsPct), streak: now.streak - prev.streak },
+    delta: { studyMin: now.studyMin - prev.studyMin, sessions: now.sessions - prev.sessions, accuracy: diff(now.accuracy, prev.accuracy), goalsPct: diff(now.goalsPct, prev.goalsPct), streak: now.streak - prev.streak, checkin: now.checkin - prev.checkin },
     days, heat: stats.days, docs: docRows, missed, mastered, focus: [],
   };
   report.focus = focusSteps(report);

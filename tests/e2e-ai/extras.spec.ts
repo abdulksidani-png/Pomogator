@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from '../pw';
 
 const FAKE = 'http://localhost:4010';
 test.beforeEach(async ({ page }) => { await page.request.post(`${FAKE}/__reset`); });

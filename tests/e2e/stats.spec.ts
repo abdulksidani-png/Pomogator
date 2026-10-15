@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../pw';
 
 // A few days of study, saved the way the app saves it, so the Stats page has something to show.
 async function seed(page: import('@playwright/test').Page) {
@@ -26,7 +26,7 @@ async function seed(page: import('@playwright/test').Page) {
 test('the Stats page shows totals, charts, documents and concepts, and leads back to the timer', async ({ page }) => {
   await seed(page);
   await page.goto('/');
-  await page.getByRole('button', { name: 'Stats' }).click();
+  await page.getByRole('button', { name: 'Stats', exact: true }).click();
   await expect(page).toHaveURL(/\/stats$/);
   await expect(page.getByRole('heading', { name: 'Your stats' })).toBeVisible();
 
@@ -61,7 +61,7 @@ test('the Stats page shows totals, charts, documents and concepts, and leads bac
 test('a running timer keeps going on the Stats page, shown in the header', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /Start studying/ }).click();
-  await page.getByRole('button', { name: 'Stats' }).click();
+  await page.getByRole('button', { name: 'Stats', exact: true }).click();
   await expect(page.locator('.timer-pill')).toContainText(/2[45]:\d\d study/);
   await expect(page.getByText('Nothing to show yet')).toBeVisible();
   await page.locator('.timer-pill').click();

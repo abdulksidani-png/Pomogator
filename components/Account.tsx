@@ -155,7 +155,7 @@ export function ProfileDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialogEl
               ))}
             </div>
           </div>
-          <div className="set-row"><label htmlFor="pFreeze">Streak freeze<span className="sub">Once streaks arrive, earn a freeze every 7 days so one missed day doesn&apos;t reset you</span></label>
+          <div className="set-row"><label htmlFor="pFreeze">Streak freeze<span className="sub">Earn a freeze for every 7 days in a row (hold up to 2). A missed day uses one, so it doesn&apos;t reset your streaks</span></label>
             <input type="checkbox" className="switch" id="pFreeze" checked={s.streakFreeze} onChange={(e) => { const v = e.target.checked; update((x) => { x.streakFreeze = v; }); }} />
           </div>
         </fieldset>

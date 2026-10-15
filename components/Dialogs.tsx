@@ -9,6 +9,7 @@ import { supabaseConfigured } from '@/lib/supabase/env';
 import { signOut } from '@/lib/sync';
 import { screenSupported, stopWatching } from '@/lib/docs/screen';
 import { Icon } from './Icon';
+import { celebrationsOn, setCelebrationsOn } from './Streaks';
 import { useArmed } from './Panels';
 import { siteConfig } from '@/lib/config';
 import { connectSpotify, disconnectSpotify, useSpotify } from '@/lib/spotify';
@@ -252,6 +253,7 @@ export function SettingsDialog({ dialogRef, onSignIn, onAppearance }: {
               if (on && !('wakeLock' in navigator)) showToast('This device doesn\'t support keeping the screen awake.');
             }} />
           </div>
+          <CelebrateSetting />
           <div className="set-row">
             <span className="field-label">History<span className="sub">Sessions, quiz stats and plans, here and in your account</span></span>
             <button className="btn" type="button" onClick={() => press(clearHistory)}>{armed ? 'Click again to clear' : 'Clear history'}</button>
@@ -332,6 +334,18 @@ function RedirectUri() {
         <code id="spotifyRedirect">{uri}</code>
         <button className="btn" type="button" onClick={() => { void navigator.clipboard?.writeText(uri).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1800); }); }}>{copied ? 'Copied' : 'Copy'}</button>
       </span>
+    </div>
+  );
+}
+
+/** Per device: show the daily streak card or not. Check-ins and badges count either way. */
+function CelebrateSetting() {
+  const [on, setOn] = useState(true);
+  useEffect(() => setOn(celebrationsOn()), []);
+  return (
+    <div className="set-row">
+      <label htmlFor="celebrateToggle">Daily streak celebration<span className="sub">The card with your streak after your first check-in of the day, on this device. Streaks and badges count either way</span></label>
+      <input type="checkbox" className="switch" id="celebrateToggle" checked={on} onChange={(e) => { const v = e.target.checked; setOn(v); setCelebrationsOn(v); }} />
     </div>
   );
 }

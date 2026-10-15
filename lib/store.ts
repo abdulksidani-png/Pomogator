@@ -21,6 +21,7 @@ import { Sound } from './sound';
 import { MIN, clamp, mergeDeep, round1, timeOf, uid } from './util';
 import { applyPreset, cleanName, savePreset } from './presets';
 import { dayOf, detectTimeZone, todayFor } from './dates';
+import { celebrationFor, cleanBadges, cleanDates, type Celebration } from './checkins';
 
 export interface Data {
   settings: Settings;
@@ -38,9 +39,17 @@ export interface Data {
   /** Weekly report summaries by week (its first day), and the last week whose review was opened or dismissed. */
   weekly: Record<string, WeeklySaved>;
   weeklySeen: string;
+  /** Check-in days (local dates), the last day the streak celebration was shown, and milestone badges. */
+  checkins: string[];
+  celebrated: string;
+  badges: Record<string, string>;
 }
 interface Flash { msg: string; id: number }
-interface Ui { toast: Flash | null; announce: Flash | null; aiStatus: AiStatus; booted: boolean; account: Account }
+interface Ui {
+  toast: Flash | null; announce: Flash | null; aiStatus: AiStatus; booted: boolean; account: Account;
+  /** Today's first check-in just happened: the celebration is waiting for sync to say whether another device showed it. */
+  checkinDue: string;
+}
 interface EndOpts { quiet?: boolean; auto?: boolean }
 
 interface Actions {
@@ -97,6 +106,10 @@ interface Actions {
   summarizeDay: () => Promise<void>;
   // tasks and data
   addTask: (text: string) => void;
+  /** Record today's check-in (the first real action of the day). */
+  checkIn: () => void;
+  /** Today's celebration, once: awards new badges and marks the day celebrated. Null if it was already shown (on any device). */
+  celebrate: () => Celebration | null;
   /** Add several tasks at once, optionally replacing the list (used by the assistant). */
   addTasks: (texts: string[], replace?: boolean) => void;
   /** Keep a weekly summary (only the newest 26 weeks), and remember that a week's review was seen. */
@@ -204,6 +217,9 @@ function initialData(): Data {
     docs: [],
     weekly: {},
     weeklySeen: '',
+    checkins: [],
+    celebrated: '',
+    badges: {},
   };
 }
 
@@ -242,6 +258,9 @@ export function normalizeData(p: Partial<Data> | undefined): Data {
     docs: p.docs ?? [],
     weekly: cleanWeeklyMap(p.weekly),
     weeklySeen: typeof p.weeklySeen === 'string' ? p.weeklySeen : '',
+    checkins: cleanDates(p.checkins),
+    celebrated: typeof p.celebrated === 'string' ? p.celebrated : '',
+    badges: cleanBadges(p.badges),
     sync: p.sync
       ? { ...fs, ...p.sync, v: { ...fs.v, ...p.sync.v }, acked: { ...fs.acked, ...p.sync.acked }, pushed: { ...(p.sync.pushed || {}) } }
       : fs,
@@ -294,6 +313,7 @@ export const useStudy = create<Store>()(
         aiStatus: 'checking',
         booted: false,
         account: { status: 'local', syncing: false },
+        checkinDue: '',
         showToast: toast,
         say,
 
@@ -370,6 +390,7 @@ export const useStudy = create<Store>()(
           Sound.ensure();
           const s = get();
           if (s.timer.phase === 'quiz' || s.timer.status === 'running') return;
+          s.checkIn();
           let needQuiz = false;
           set((d) => {
             const T = d.timer;
@@ -607,6 +628,7 @@ export const useStudy = create<Store>()(
         answer(i) {
           const { timer, quiz } = get();
           if (timer.phase !== 'quiz' || quiz.step !== 'question' || !quizReadyForTaking(quiz)) return;
+          get().checkIn();
           set((d) => {
             const q = d.quiz.questions[d.quiz.index];
             d.quiz.answers[d.quiz.index] = { chosen: i, correct: i === q.correctIndex };
@@ -744,7 +766,20 @@ export const useStudy = create<Store>()(
         },
 
         /* ---------- tasks & data ---------- */
-        addTask(text) { const t = text.trim(); if (t) set((d) => { d.tasks.push({ id: uid(), text: t, done: false }); }); },
+        addTask(text) { const t = text.trim(); if (t) { get().checkIn(); set((d) => { d.tasks.push({ id: uid(), text: t, done: false }); }); } },
+        checkIn() {
+          const today = todayFor(get().settings);
+          if (get().checkins.includes(today)) return;
+          set((d) => { d.checkins = cleanDates([...d.checkins, today]); if (d.celebrated !== today) d.checkinDue = today; });
+        },
+        celebrate() {
+          const s = get();
+          const today = todayFor(s.settings);
+          if (s.celebrated === today || !s.checkins.includes(today)) { set((d) => { d.checkinDue = ''; }); return null; }
+          const c = celebrationFor(s.checkins, today, s.badges, s.settings.streakFreeze);
+          set((d) => { d.celebrated = today; d.checkinDue = ''; for (const m of c.newBadges) d.badges[m] = today; });
+          return c;
+        },
         saveWeekly(week, data) {
           set((d) => {
             d.weekly[week] = data;
@@ -755,6 +790,7 @@ export const useStudy = create<Store>()(
         markWeekSeen(week) { set((d) => { if (week > d.weeklySeen) d.weeklySeen = week; }); },
         addTasks(texts, replace = false) {
           const items = texts.map((x) => x.trim().slice(0, 300)).filter(Boolean).map((text) => ({ id: uid(), text, done: false }));
+          if (items.length) get().checkIn();
           set((d) => { d.tasks = [...(replace ? [] : d.tasks), ...items]; });
         },
         toggleTask(id, done) { set((d) => { const t = d.tasks.find((x) => x.id === id); if (t) t.done = done; }); },
@@ -778,6 +814,7 @@ export const useStudy = create<Store>()(
 
         /* ---------- documents ---------- */
         addDoc(doc) {
+          get().checkIn();
           set((d) => {
             d.docs = [doc, ...d.docs.filter((x) => x.id !== doc.id)];
             pointAt(d, doc);
@@ -886,7 +923,7 @@ export const useStudy = create<Store>()(
       partialize: (s): Data => ({
         settings: s.settings, context: s.context, timer: s.timer, quiz: s.quiz, plan: s.plan, day: s.day,
         tasks: s.tasks, history: s.history, stats: s.stats, asked: s.asked, sync: s.sync, docs: s.docs,
-        weekly: s.weekly, weeklySeen: s.weeklySeen,
+        weekly: s.weekly, weeklySeen: s.weeklySeen, checkins: s.checkins, celebrated: s.celebrated, badges: s.badges,
       }),
       merge: (persisted, cur) => ({ ...cur, ...normalizeData(persisted as Partial<Data> | undefined) }),
     },

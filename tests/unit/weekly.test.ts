@@ -39,9 +39,9 @@ describe('weekReport', () => {
   });
 
   it('counts this week and compares with last week', () => {
-    expect(r.now).toEqual({ studyMin: 95, sessions: 3, accuracy: 83, goalsPct: 50, streak: 1, studyDays: 2 });
+    expect(r.now).toEqual({ studyMin: 95, sessions: 3, accuracy: 83, goalsPct: 50, streak: 1, studyDays: 2, checkin: 0 });
     expect(r.prev).toMatchObject({ studyMin: 55, sessions: 2, accuracy: 33, goalsPct: null, studyDays: 2 });
-    expect(r.delta).toEqual({ studyMin: 40, sessions: 1, accuracy: 50, goalsPct: null, streak: r.now.streak - r.prev.streak });
+    expect(r.delta).toEqual({ studyMin: 40, sessions: 1, accuracy: 50, goalsPct: null, streak: r.now.streak - r.prev.streak, checkin: 0 });
     expect(r.days[2]).toMatchObject({ minutes: 70, sessions: 2, correct: 3, answered: 3, accuracy: 100 });
   });
 

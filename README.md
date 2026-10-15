@@ -49,8 +49,11 @@ comes with an explanation and a memory aid, and **your score earns your break** 
 - **A weekly report.** Every week gets a review: an AI-written summary, key numbers with ▲/▼ vs. last week, minutes
   and accuracy per day, documents covered, concepts missed and mastered, and three focus steps for next week. Browse
   past weeks, and save any week as a shareable image or a PDF.
-- **Stats.** Study time, streaks (with streak freezes), minutes per day, a 12-week heatmap, quiz accuracy by concept,
-  and slide-by-slide coverage of each document.
+- **Streaks and celebrations.** Your first study action each day checks you in: a celebration card shows your streak
+  and the last 7 days, milestones (3, 7, 14, 30, 50, 100, 365 days) earn badges with confetti, and streak freezes cover
+  a missed day. It shows once a day per account, across all your devices.
+- **Stats.** Study time, check-in and study streaks, minutes per day, a 12-week heatmap, quiz accuracy by concept,
+  your badges, and slide-by-slide coverage of each document.
 - **Make it yours.** 12 themes, 5 study buddies that put on glasses and study at a desk while you do (including Albert,
   a pixel-art gator), cheer you through the quiz (happy when you're right, sad when you're not) and react in the chat, 7 clock fonts, 3 timer styles, Unsplash photo backgrounds, glass cards, saved timer presets,
   a full-screen focus mode and a Spotify "now playing" widget.
@@ -142,8 +145,8 @@ It runs with no keys at all, saving everything in the browser. To switch on acco
 
 ```bash
 npm run typecheck
-npm test            # 98 unit tests: break rules, AI reply validation, stats (time zones, 4 AM rollover, streak freezes), weekly reports, sync merging, saved timers
-npm run test:e2e    # 24 browser tests: study → quiz → break, document goals, screen tracking, tab audio, appearance, stats, weekly report, focus mode
+npm test            # 106 unit tests: break rules, AI reply validation, stats (time zones, 4 AM rollover, streak freezes), check-in streaks, weekly reports, sync merging, saved timers
+npm run test:e2e    # 27 browser tests: study → quiz → break, document goals, screen tracking, tab audio, appearance, stats, streak celebrations, weekly report, focus mode
 npm run test:ai     # 10 browser tests of the AI, Unsplash and Spotify features against local stand-ins
 npm run test:sync   # two devices syncing through real Postgres + PostgREST running the actual migrations
 ```
@@ -165,7 +168,6 @@ docs/                 setup guide, architecture notes, the original spec and pro
 
 ## Roadmap
 
-- Check-in streaks and celebrations.
 - Export your data and delete your account in one click.
 
 ## Credits
