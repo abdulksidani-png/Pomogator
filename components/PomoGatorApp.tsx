@@ -20,6 +20,8 @@ import { MusicCard } from './Music';
 import { StatsView } from './Stats';
 import { fmt } from '@/lib/util';
 import { PhotoCredit } from './PhotoPicker';
+import { BrandMark, BrandName } from './Brand';
+import { SITE } from '@/lib/site';
 import { openAssistant } from '@/lib/assistant';
 import { exitFocus, toggleFocus, useFocusMode, watchFullscreen } from '@/lib/focus';
 
@@ -30,7 +32,7 @@ const desiredAmbience = (s: Store) =>
 type View = 'timer' | 'stats';
 const viewFromUrl = (): View => (window.location.pathname.startsWith('/stats') ? 'stats' : 'timer');
 
-export default function StudyBuddyApp({ initialView = 'timer' }: { initialView?: View }) {
+export default function PomoGatorApp({ initialView = 'timer' }: { initialView?: View }) {
   // Timer and Stats are two pages of one app, so a running session carries on while you look at stats.
   const [view, setView] = useState<View>(initialView);
   const viewRef = useRef(view);
@@ -107,7 +109,7 @@ export default function StudyBuddyApp({ initialView = 'timer' }: { initialView?:
     if (err) showToast(err);
     if (ok) showToast('Signed in. Your progress is synced.');
     if (next === 'google') {
-      showToast('That Google account already has StudyBuddy. Signing you in to it…');
+      showToast('That Google account already has PomoGator. Signing you in to it…');
       signInWithGoogle({ link: false }).catch((e: Error) => showToast(e.message));
     }
   }, []);
@@ -192,13 +194,9 @@ export default function StudyBuddyApp({ initialView = 'timer' }: { initialView?:
       <div className="app">
         <header className="top">
           <div className="brand">
-            <svg className="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
-              <circle cx="20" cy="21" r="15" fill="none" stroke="var(--rule)" strokeWidth="4" />
-              <path d="M20 6a15 15 0 0 1 14.6 18.3" fill="none" stroke="var(--accent)" strokeWidth="4" strokeLinecap="round" />
-              <path d="M13.5 21.5l4.5 4.5 8.5-9" fill="none" stroke="var(--fg)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <span className="brand-name">StudyBuddy</span>
-            <span className="brand-tag">Study, quiz yourself, earn your break</span>
+            <BrandMark />
+            <BrandName />
+            <span className="brand-tag">{SITE.tagline}</span>
           </div>
           <div className="top-actions">
             {view === 'stats' ? <TimerPill onClick={() => go('timer')} /> : (
@@ -231,7 +229,7 @@ export default function StudyBuddyApp({ initialView = 'timer' }: { initialView?:
         <footer className="foot">
           <SyncStatus />
           <BgCredit />
-          <span>Press <kbd>?</kbd> for shortcuts · <span className="build" title="Version">v{process.env.NEXT_PUBLIC_BUILD}</span></span>
+          <span className="foot-links">Press <kbd>?</kbd> for shortcuts · <a href="/privacy">Privacy</a> · <a href={SITE.repo} target="_blank" rel="noreferrer">Source</a> · <span className="build" title="Version">v{process.env.NEXT_PUBLIC_BUILD}</span></span>
         </footer>
       </div>
       <SettingsDialog dialogRef={settingsRef} onSignIn={() => signInRef.current?.showModal()} onAppearance={() => lookRef.current?.showModal()} />

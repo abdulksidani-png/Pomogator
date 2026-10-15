@@ -53,7 +53,8 @@ describe('saved timers', () => {
   it('describes a saved timer in a few words', () => {
     const v = snapshot({ ...base(), studyMin: 45, skin: 'panther', clockFont: 'mono', timerStyle: 'ring', mascotKind: 'panther', mascot: 'on' } as Settings);
     expect(describePreset(v)).toBe('45 min · Panther · Mono · Ring · Panfer');
-    expect(describePreset(snapshot(base()))).toBe('25 min · Match system · No buddy');
-    expect(describePreset(snapshot({ ...base(), skin: 'tomato' } as Settings))).toBe('25 min · Tomato buddy · Tomato');
+    expect(describePreset(snapshot(base()))).toBe('25 min · Match system · Albert');
+    expect(describePreset(snapshot({ ...base(), mascot: 'auto', mascotKind: 'tomato' } as Settings))).toBe('25 min · Match system · No buddy');
+    expect(describePreset(snapshot({ ...base(), skin: 'tomato', mascotKind: 'tomato' } as Settings))).toBe('25 min · Tomato buddy · Tomato');
   });
 });

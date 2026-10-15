@@ -1,4 +1,4 @@
--- StudyBuddy schema, part 1: profiles, tasks, study sessions, quiz attempts, plans.
+-- PomoGator schema, part 1: profiles, tasks, study sessions, quiz attempts, plans.
 -- Run this once in the Supabase SQL Editor (or with `supabase db push`).
 -- Every table is private to its owner through Row Level Security.
 

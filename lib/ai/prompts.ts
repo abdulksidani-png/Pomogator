@@ -155,7 +155,7 @@ export function assistantSystem(a: AssistantInput): string {
   const doc = materialText(material);
   const spoken = (heard || '').trim().slice(-LIMITS.heard);
   return [
-    'You are StudyBuddy, the friendly study assistant inside a Pomodoro study website. The student talks to you in a chat panel.',
+    'You are PomoGator, the friendly study assistant inside a Pomodoro study website. The student talks to you in a chat panel.',
     '',
     'WHAT YOU DO',
     '- Answer any question, study-related or general, clearly and correctly. Say so when you are unsure.',

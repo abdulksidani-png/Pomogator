@@ -1,115 +1,172 @@
-# StudyBuddy
+<div align="center">
 
-A Pomodoro study timer that quizzes you on what you studied, sets your break from your score, and plans your next session.
+<img src="app/icon.svg" width="84" alt="PomoGator logo: a gator peeking out of the water inside a Pomodoro timer ring">
 
-- Study for 25–45 minutes on a topic you choose (and your notes, if you paste them).
-- When the timer ends, answer 1–3 multiple-choice questions. Every answer shows an explanation and a memory aid.
-- Your score sets your break: 3/3 → 15 min, 2/3 → 10 min, 1/3 or 0/3 → 5 min. Every 4th session ends in a long break.
-- During the break you get a plan for the next session.
-- Upload what you're studying (PDF, PowerPoint, Word, text or photos of notes), set a goal in plain words ("up to the Aristotle slide"), and it tracks which slide you reached, by hand or by watching your slides window.
-- Make it yours: 8 themes, any accent color, 6 clock fonts, ring or minimal timers, patterned or photo backgrounds.
+# PomoGator
 
-## Build status
+**Study, quiz yourself, earn your break.**
 
-| Phase | What it adds | Status |
-| --- | --- | --- |
-| 1 | Next.js app: timer, quiz flow, settings, sounds, themes, tasks, saved on this device | **Done** |
-| 2 | Supabase: guest and Google/email sign-in, database, sync across devices | **Done** |
-| 3 | Claude API routes for quizzes, plans, day summaries, with daily limits | Next |
-| 4 | Document upload (PDF, PowerPoint, Word, text, photos), outlines, plain-language goals, resume point | **Done** |
-| 5 | Optional screen tracking that follows which slide you're on (on-device text recognition) | **Done** |
-| + | Appearance: themes, accent color, clock fonts, timer styles, backgrounds, corners, spacing | **Done** |
-| 6 | Stats engine and Stats page | |
-| 7 | Weekly report | |
-| 8 | Check-in streaks and celebrations | |
-| 9 | Polish, export/delete account, full setup guide | |
+A Pomodoro timer that writes a quick quiz on what you just studied. Your score sets your break,
+and an AI-written plan sets up your next session.
 
-Until Phase 3, the timer, breaks, tasks and settings all work. Quizzes show "not switched on yet" and you get the no-quiz break.
+[**Try it live →**](https://studybuddy-bay.vercel.app) &nbsp;·&nbsp; [How it's built](#how-its-built) &nbsp;·&nbsp; [Architecture](docs/ARCHITECTURE.md) &nbsp;·&nbsp; [Run your own](docs/SETUP.md)
 
-## Put it online with Vercel (free)
+[![CI](https://github.com/abdulksidani-png/studybuddy/actions/workflows/ci.yml/badge.svg)](https://github.com/abdulksidani-png/studybuddy/actions/workflows/ci.yml)
+![Next.js 15](https://img.shields.io/badge/Next.js-15-000000?logo=nextdotjs)
+![React 19](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
+![TypeScript strict](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20RLS-3ECF8E?logo=supabase&logoColor=white)
+![Gemini](https://img.shields.io/badge/AI-Gemini-8E75B2?logo=googlegemini&logoColor=white)
+![MIT license](https://img.shields.io/badge/license-MIT-blue)
 
-1. Go to **vercel.com/signup** and choose **Continue with GitHub**.
-2. Click **Add New… → Project**.
-3. Under **Import Git Repository**, find **studybuddy** and click **Import**.
-   If it isn't listed, click **Adjust GitHub App Permissions**, give Vercel access to the `studybuddy` repo, and come back.
-4. Leave every setting as it is (Vercel detects Next.js) and click **Deploy**.
-5. After a minute or two, click the preview image or **Continue to Dashboard → Visit**. Your site is at an address like `studybuddy-xxxx.vercel.app`.
+<img src="docs/screenshots/hero.jpg" width="900" alt="PomoGator mid-session: a 17:32 countdown with Albert the pixel-art gator typing at a desk, slide 3 of 7 of a philosophy lecture, a quiz ready, and a Spotify now-playing card">
 
-Every time new code is pushed to GitHub, Vercel rebuilds the site automatically.
+</div>
 
-## Turn on sign-in and sync (Supabase, free)
+## Why
 
-Without these steps the site still works, saving everything on each device.
+Most Pomodoro apps only count minutes. PomoGator closes the loop with **retrieval practice**, one of the
+best-supported study techniques: every session ends with 1–3 questions on what you actually covered, every answer
+comes with an explanation and a memory aid, and **your score earns your break** (3/3 → 15 min, 2/3 → 10 min,
+1/3 or 0/3 → 5 min). After the quiz, a plan for the next session targets exactly what you missed.
 
-### A. Create the Supabase project
-1. Go to **supabase.com**, click **Start your project**, and sign in with GitHub.
-2. Click **New project**. Name it `studybuddy`, click **Generate a password** (save it somewhere safe), pick the region closest to you, and click **Create new project**. Wait a minute or two.
+## Features
 
-### B. Create the tables
-3. In the left sidebar, open **SQL Editor** and click **+ New query**.
-4. Open [`supabase/migrations/20261014000000_core.sql`](supabase/migrations/20261014000000_core.sql) on GitHub, click **Raw**, copy everything, paste it into the editor, and click **Run**. You should see "Success. No rows returned".
-5. Click **+ New query** again and do the same with [`supabase/migrations/20261014010000_documents.sql`](supabase/migrations/20261014010000_documents.sql). This adds documents, slide progress and private file storage.
-   If you set up StudyBuddy before this file existed, just run this one. Until you do, the site keeps syncing everything else and the footer reminds you.
+- **The study loop.** 25–45 minute sessions, a quiz at the end, a break set by your score, a long break every
+  fourth session, and a next-session plan built from your mistakes and your history on the topic.
+- **Your own material.** Upload a PDF, PowerPoint, Word file, text or photos of notes, then set a goal in plain words
+  ("up to the Aristotle slide"). The AI reads every upload in the background (topic, summary, key concepts), and
+  quizzes come only from the pages you covered.
+- **Follows along, privately.** Optional screen tracking works out which slide you're on by reading your slides window
+  with on-device OCR. Optional lecture-tab audio is transcribed on-device by a small Whisper model, so the quiz can
+  cover what the lecturer said.
+- **An AI study assistant.** A chat panel that sees your timer, to-do list and documents, answers questions, quizzes
+  you, and turns "here's everything I need to do tonight" into a to-do list sized in Pomodoro sessions.
+- **Stats.** Study time, streaks (with streak freezes), minutes per day, a 12-week heatmap, quiz accuracy by concept,
+  and slide-by-slide coverage of each document.
+- **Make it yours.** 12 themes, 5 study buddies that put on glasses and study at a desk while you do (including Albert,
+  a pixel-art gator), 7 clock fonts, 3 timer styles, Unsplash photo backgrounds, glass cards, saved timer presets,
+  a full-screen focus mode and a Spotify "now playing" widget.
+- **Accounts without friction.** Start instantly as a guest; sign in with Google or an email link later and keep
+  everything. Progress syncs across devices.
 
-### C. Switch on the sign-in options
-5. Go to **Authentication → Sign In / Providers**. Under *User Signups*, turn on **Allow anonymous sign-ins** (this is how guests work) and **Allow manual linking** (this is how a guest keeps their data when they sign in). Click **Save**. Email sign-in is on by default.
-6. Go to **Authentication → URL Configuration**:
-   - **Site URL**: your Vercel address, e.g. `https://studybuddy-xxxx.vercel.app`
-   - **Redirect URLs** → **Add URL**: `https://studybuddy-xxxx.vercel.app/**`, then add `http://localhost:3000/**`
-   - Click **Save**.
+## Screenshots
 
-### D. Give Vercel the keys
-7. In Supabase, click **Connect** at the top of the project (or **Project Settings → API Keys**). Copy the **Project URL** and the **Publishable key** (starts with `sb_publishable_`; older projects call it the `anon` `public` key).
-8. In Vercel, open your project → **Settings → Environment Variables** and add:
-   - `NEXT_PUBLIC_SUPABASE_URL` = the Project URL
-   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` = the Publishable key
-9. Go to **Deployments**, click **⋯** on the newest one, and choose **Redeploy**. (The keys are built into the site, so it needs a fresh build.)
+| | |
+| --- | --- |
+| <img src="docs/screenshots/quiz.jpg" alt="A quiz question answered wrong, showing the right answer, why the chosen one was wrong, and a memory aid"> | <img src="docs/screenshots/plan.jpg" alt="A 2/3 score earning a 10-minute break, and a next-session plan with timed active-recall, elaboration and flashcard steps"> |
+| **Quiz feedback.** The right answer, why yours was wrong, and a memory aid. | **Score → break → plan.** What you missed becomes the next session. |
+| <img src="docs/screenshots/stats.jpg" alt="Stats page with study time, quiz accuracy, streak, a minutes-per-day column chart and a 12-week heatmap"> | <img src="docs/screenshots/assistant.jpg" alt="The study assistant turning an evening's to-dos into four Pomodoro sessions, with buttons to add them to the to-do list"> |
+| **Stats.** Totals, streaks, minutes per day and a 12-week heatmap. | **Study assistant.** Plans your evening in Pomodoro sessions. |
+| <img src="docs/screenshots/focus.jpg" alt="Full-screen focus mode with a ring timer, Albert studying, and a small Spotify player in the corner"> | <img src="docs/screenshots/themes.jpg" alt="Four phones showing the Gator, Jungle, Robot lab and Sakura themes with different study buddies"> |
+| **Focus mode.** Full screen, with the music player in the corner. | **Themes and buddies,** on any screen size. |
 
-### E. Google sign-in (optional; email links work without it)
-10. Go to **console.cloud.google.com**, open the project picker at the top, click **New project**, name it `StudyBuddy`, and select it.
-11. Search for **Google Auth Platform** and click **Get started**. App name `StudyBuddy`, your email as support email, Audience **External**, your email as contact, then **Create**.
-12. Open **Clients → Create client**. Type **Web application**. Under **Authorized redirect URIs**, add the *Callback URL* shown in Supabase under **Authentication → Sign In / Providers → Google** (it looks like `https://your-project-ref.supabase.co/auth/v1/callback`). Click **Create** and copy the **Client ID** and **Client secret**.
-13. Back in Supabase, open **Authentication → Sign In / Providers → Google**, switch it on, paste the Client ID and secret, and **Save**.
-14. In Google Auth Platform, open **Audience** and click **Publish app**, so anyone with a Google account can sign in (otherwise only test users you add can).
+## How it's built
 
-Good to know: Supabase's built-in email service only sends a few emails per hour, which is fine while testing. Open a sign-in link in the same browser you requested it from.
+- **A timer that can't drift.** The timer stores an end timestamp, not a countdown, so it stays exact across
+  refreshes, sleeping laptops and background tabs.
+- **Local-first sync.** Everything lives in a [Zustand](https://zustand.docs.pmnd.rs) store on the device first.
+  Signed-in data syncs to Supabase as versioned slices (newest wins, with version numbers that only go up, so a
+  device with a fast clock can't overwrite newer edits) plus history merged by id. Guests are anonymous Supabase
+  users who are upgraded in place when they sign in, so nothing has to move.
+- **AI with guardrails.** Gemini runs in JSON mode behind this site's own API routes. Every reply is validated and
+  normalized on the server and again in the browser; a malformed reply gets one retry; a rate-limited model falls
+  back to a lighter one; a per-person daily allowance is enforced in Postgres; and if the AI is unavailable you
+  simply get a no-quiz break.
+- **On-device machine learning.** Screen tracking runs Tesseract.js OCR on changed frames only and matches the text
+  to slides with IDF-weighted word overlap. Lecture audio is cut into clips by an AudioWorklet and transcribed by
+  Whisper (Transformers.js) in a Web Worker. Frames and audio never leave the device.
+- **Documents parsed in the browser** with pdf.js, PowerPoint slide XML (JSZip) and mammoth for Word.
+- **Security by default.** Row-level security on every table and a private, per-user file bucket; API keys stay on
+  the server; Google's raw error text never reaches the browser; standard hardening headers. See
+  [Privacy](https://studybuddy-bay.vercel.app/privacy).
+- **Accessible.** Full keyboard control (press `?` in the app), screen-reader labels and live regions, focus
+  management through the quiz, and reduced-motion support.
 
-## Run it on your own computer (optional)
+More detail, including the data model and sync rules, is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-You need [Node.js](https://nodejs.org) 20 or newer.
-
-```bash
-npm install
-cp .env.example .env.local   # then fill in your Supabase keys (optional)
-npm run dev
+```mermaid
+flowchart LR
+  subgraph Browser["Browser · Next.js client app"]
+    UI["React 19 UI"] --> Store[("Zustand store<br/>localStorage + IndexedDB")]
+    UI --> OCR["Tesseract OCR<br/>screen tracking"]
+    UI --> ASR["Whisper Web Worker<br/>lecture audio"]
+  end
+  subgraph Vercel["Vercel · Next.js API routes"]
+    AI["/api/ai/*"]
+    PH["/api/unsplash/*"]
+  end
+  Store <-->|"sync, row-level security"| SB[("Supabase<br/>Auth · Postgres · Storage")]
+  UI --> AI -->|"JSON mode"| GEM["Google Gemini"]
+  AI -->|"daily allowance"| SB
+  UI --> PH --> UNS["Unsplash"]
+  UI -->|"PKCE; tokens stay in the browser"| SPOT["Spotify Web API"]
 ```
 
-Then open http://localhost:3000.
+## Tech stack
+
+| Area | Tools |
+| --- | --- |
+| App | Next.js 15 (App Router), React 19, TypeScript (strict), Tailwind CSS 4 plus hand-written CSS, Motion |
+| State and storage | Zustand with persist and Immer, localStorage, IndexedDB |
+| Backend | Supabase (Auth, Postgres with row-level security, Storage), Vercel |
+| AI | Google Gemini API (JSON mode), Tesseract.js, Whisper via Transformers.js |
+| Documents | pdf.js, JSZip, mammoth |
+| Integrations | Unsplash API, Spotify Web API (PKCE) |
+| Testing | Vitest, Playwright, PostgreSQL + PostgREST for sync tests, GitHub Actions |
+
+## Run it yourself
+
+```bash
+git clone https://github.com/abdulksidani-png/studybuddy.git pomogator
+cd pomogator
+npm install
+npm run dev        # http://localhost:3000
+```
+
+It runs with no keys at all, saving everything in the browser. To switch on accounts, AI, photos and music, copy
+`.env.example` to `.env.local` and follow **[docs/SETUP.md](docs/SETUP.md)** (free tiers only).
 
 ## Tests
 
 ```bash
-npm test            # unit tests: break rules, quiz validation, dates, sync merging
-npm run test:e2e    # browser tests: study → quiz → break loop, documents, goals, screen tracking, appearance
-npm run test:sync   # two-device sync tests (needs PostgreSQL and PostgREST, see below)
+npm run typecheck
+npm test            # 79 unit tests: break rules, AI reply validation, stats (time zones, 4 AM rollover, streak freezes), sync merging, saved timers
+npm run test:e2e    # 21 browser tests: study → quiz → break, document goals, screen tracking, tab audio, appearance, stats, focus mode
+npm run test:ai     # 6 browser tests of the AI, Unsplash and Spotify features against local stand-ins
+npm run test:sync   # two devices syncing through real Postgres + PostgREST running the actual migrations
 ```
 
-The sync tests run the real migrations on a local PostgreSQL, serve them with
-[PostgREST](https://postgrest.org) (what Supabase uses), and fake Supabase's sign-in service
-(`tests/fake-supabase/server.mjs`). Set `PGHOST`, `PGPORT`, `PGUSER` and `POSTGREST_BIN`.
-`tests/db/rls-check.sql` checks that no user can read or change another user's rows.
+GitHub Actions runs the typecheck, unit tests, build and both browser suites on every push.
+`tests/db/rls-check.sql` checks that no account can read or change another account's rows.
 
-## How it's built
+## Project layout
 
-- **Next.js (App Router) + TypeScript + Tailwind.** The original StudyBuddy styles live in `app/globals.css`.
-- **State:** `lib/store.ts` (Zustand). The timer stores an end timestamp and computes time left from it, so it stays accurate across refreshes and sleeping tabs.
-- **Pure logic with tests:** `lib/breaks.ts` (break rules), `lib/quiz.ts` (validating AI replies), `lib/context.ts` (topics, missed concepts).
-- **Sound:** `lib/sound.ts` synthesizes chimes and ambience with the Web Audio API, so there are no audio files.
-- **Accounts and sync:** `lib/sync.ts`. Guests are anonymous Supabase users; signing in links Google or an email to the same user, so nothing moves. Settings, the study panel, the running timer and tasks sync as versioned slices (newest wins); finished sessions merge by id. Every table has Row Level Security (`supabase/migrations`).
-- **Documents:** `lib/docs/parse.ts` reads PDFs (pdf.js), PowerPoint (slide XML), Word (mammoth) and text in the browser; photos and scanned pages go through on-device OCR (`lib/docs/ocr.ts`, Tesseract.js). Pages are kept in IndexedDB and synced to `documents` / `document_pages`; originals go to a private storage bucket.
-- **Goals and matching:** `lib/docs/match.ts` turns "up to the Aristotle slide" into a page and matches screen text to slides (weighted word overlap, title bonus, slide counters).
-- **Screen tracking:** `lib/docs/screen.ts` uses the browser's screen-share API, looks only while a study session runs, skips unchanged frames, reads text on the device and keeps only page/title/confidence.
-- **Appearance:** `lib/appearance.ts` and the theme blocks at the end of `app/globals.css`. A photo background stays in this browser's IndexedDB.
-- **Vendor files:** `scripts/copy-vendor.mjs` copies the pdf.js worker and Tesseract engine into `public/vendor` before every build, so they're served from this site.
-- **AI:** the browser calls this site's own `/api/ai/*` routes (`lib/ai-client.ts`). The Claude API key will live only on the server.
-- **Fonts** are bundled from npm (`@fontsource`), so nothing loads from Google at runtime.
+```
+app/                  routes: the app, /stats, /privacy, sign-in callbacks, and /api (AI, photos, config)
+components/           UI: timer and quiz (Stage), panels, documents, stats, assistant, music, study buddies
+lib/                  state (store), sync, stats engine, breaks, AI client and prompts, appearance, saved timers
+lib/docs/             parsing, OCR, screen tracking, lecture audio, goal and slide matching
+supabase/migrations/  database schema and row-level security policies
+tests/                unit, browser, AI and sync suites, plus stand-ins for Gemini and Supabase
+docs/                 setup guide, architecture notes, the original spec and prototype, screenshots
+```
+
+## Roadmap
+
+- Weekly report: a recap of the week's study time, quiz accuracy and weak spots.
+- Check-in streaks and celebrations.
+- Export your data and delete your account in one click.
+
+## Credits
+
+Photos come from [Unsplash](https://unsplash.com) and their photographers are credited in the app. Music data comes
+from Spotify. Fonts are bundled from [Fontsource](https://fontsource.org). Built with
+[Claude Code](https://claude.com/claude-code) as an AI pair programmer.
+
+PomoGator is a student project and is not affiliated with or endorsed by the University of Florida. The study buddies
+are original art.
+
+## License
+
+[MIT](LICENSE)

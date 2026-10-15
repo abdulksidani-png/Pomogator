@@ -1,4 +1,4 @@
-// StudyBuddy speech reader: turns short clips of a lecture tab's sound into text, on this device.
+// PomoGator speech reader: turns short clips of a lecture tab's sound into text, on this device.
 // Runs Whisper (tiny, English) with Transformers.js. The model (about 40 MB) downloads once and
 // is cached by the browser. Clips arrive as 16 kHz mono Float32Arrays.
 

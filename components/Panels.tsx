@@ -101,7 +101,7 @@ export function PlanCard() {
     const q = settings.questions;
     body = (
       <>
-        <p className="muted" style={{ margin: '0 0 12px' }}>After each quiz, StudyBuddy writes a plan for your next session from what you got right, what you missed and your history on the topic.</p>
+        <p className="muted" style={{ margin: '0 0 12px' }}>After each quiz, PomoGator writes a plan for your next session from what you got right, what you missed and your history on the topic.</p>
         {aiStatus === 'off' && <p className="qchip warn" style={{ margin: '0 0 12px' }}>Quizzes and plans aren&apos;t switched on for this site yet. The timer works without them.</p>}
         <div className="loop-steps">
           <div className="loop-step"><span className="n">1</span><b>Study</b><span>{settings.studyMin} min on your topic</span></div>

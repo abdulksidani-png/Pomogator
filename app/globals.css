@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* StudyBuddy styles, ported from the single-file version. They sit outside Tailwind's
+/* PomoGator styles, ported from the single-file version. They sit outside Tailwind's
    layers on purpose, so they win over Tailwind's base reset. Use Tailwind utilities
    freely for new screens. */
 /* Layout: a study desk. The timer "stage" (which turns into an index-card quiz) and the next-session plan sit in the wide left column; the study kit (what you're studying, tasks, today's log) sits in the right column. One column on phones. */
@@ -96,6 +96,7 @@ svg.i { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor;
 .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .brand-mark { width: 34px; height: 34px; flex: none; }
 .brand-name { font-family: var(--f-display); font-weight: 800; font-size: 22px; letter-spacing: -.015em; }
+.brand-gator { color: var(--accent); }
 .brand-tag { font-size: 13px; color: var(--fg-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .top-actions { display: flex; align-items: center; gap: 8px; flex: none; }
 .chip-btn {
@@ -164,7 +165,7 @@ svg.i { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor;
 .clock-col { text-align: center; min-width: 0; }
 .clock {
   font-family: var(--f-clock); font-weight: 600; line-height: 1; letter-spacing: -.02em;
-  font-size: clamp(62px, 15vw, 128px); color: var(--fg); margin: 10px 0 8px; white-space: nowrap;
+  --clock-size: clamp(62px, 15vw, 128px); --clock-ch: .7; font-size: var(--clock-size); color: var(--fg); margin: 10px 0 8px; white-space: nowrap;
 }
 html:root[data-skin="tomato"] .clock { font-weight: 700; }
 /* Each digit gets the width of a "0" in the current font, so the clock never jiggles. Flex centering keeps a
@@ -894,8 +895,8 @@ html:root[data-clockfont="condensed"] { --f-clock: "Bebas Neue", "Arial Narrow",
 html:root[data-clockfont="digital"] { --f-clock: "Orbitron Variable", ui-monospace, monospace; }
 html:root[data-clockfont="hand"] { --f-clock: "Caveat Variable", "Comic Sans MS", cursive; }
 html:root[data-clockfont="serif"] .clock, html:root[data-clockfont="condensed"] .clock { font-weight: 400; }
-html:root[data-clockfont="condensed"] .clock { font-size: clamp(80px, 19vw, 168px); letter-spacing: .01em; }
-html:root[data-clockfont="hand"] .clock { font-size: clamp(72px, 17vw, 150px); }
+html:root[data-clockfont="condensed"] .clock { --clock-size: clamp(80px, 19vw, 168px); letter-spacing: .01em; }
+html:root[data-clockfont="hand"] .clock { --clock-size: clamp(72px, 17vw, 150px); }
 
 /* ---------- corners and spacing ---------- */
 html:root[data-corners="sharp"] { --r-sm: 3px; --r-md: 4px; --r-lg: 6px; }
@@ -905,7 +906,7 @@ html:root[data-density="compact"] .desk, html:root[data-density="compact"] .col-
 html:root[data-density="compact"] .stage { padding: 14px 18px; }
 html:root[data-density="compact"] .side-card { padding: 12px 14px 14px; }
 html:root[data-density="compact"] .clock-row { margin-top: 12px; }
-html:root[data-density="compact"] .clock { font-size: clamp(52px, 12vw, 104px); }
+html:root[data-density="compact"] .clock { --clock-size: clamp(52px, 12vw, 104px); }
 html:root[data-density="compact"] .stage-foot { margin-top: 10px; padding-top: 10px; gap: 8px; }
 html:root[data-density="compact"] .form { gap: 8px; }
 
@@ -931,7 +932,7 @@ html:root[data-clockfont="condensed"] .timer-ring .clock { --clock-ch: .42; font
 html:root[data-clockfont="serif"] .timer-ring .clock { --clock-ch: .58; }
 html:root[data-clockfont="hand"] .timer-ring .clock { --clock-ch: .5; font-size: min(110px, calc(66cqi / (4.55 * var(--clock-ch)))); }
 html:root[data-timer="minimal"] .stage-foot .tiers { display: none; }
-html:root[data-timer="minimal"] .clock { font-size: clamp(72px, 18vw, 150px); }
+html:root[data-timer="minimal"] .clock { --clock-size: clamp(72px, 18vw, 150px); }
 
 /* ---------- appearance dialog ---------- */
 #lookDlg { width: min(720px, calc(100vw - 24px)); }
@@ -1087,16 +1088,9 @@ html:root[data-focus="on"] .stage {
 html:root[data-focus="on"] .stage-face { width: min(980px, 100%); }
 html:root[data-focus="on"] :is(.timer-menu-wrap, .full-btn, .stage-foot, .watch-row) { display: none; }
 /* The clock takes whatever width is left beside the buddy, sized so "00:00" always fits that width.
-   --clock-ch is how wide a digit is in each clock font (in em), as for the ring. */
+   --clock-ch is how wide a digit is in each clock font (in em). */
 html:root[data-focus="on"] .clock-row > .clock-col { flex: 1 1 0; min-width: 0; container-type: inline-size; }
-html:root[data-focus="on"] .clock-row > .clock-col .clock { --clock-ch: .7; font-size: min(28vh, 240px, calc(96cqi / (4.55 * var(--clock-ch)))); }
-html:root[data-focus="on"]:is([data-skin="tomato"], [data-clockfont="rounded"]) .clock-row > .clock-col .clock { --clock-ch: .62; }
-html:root[data-focus="on"][data-skin="robotlab"] .clock-row > .clock-col .clock { --clock-ch: .9; }
-html:root[data-focus="on"][data-clockfont="mono"] .clock-row > .clock-col .clock { --clock-ch: .7; }
-html:root[data-focus="on"][data-clockfont="digital"] .clock-row > .clock-col .clock { --clock-ch: .9; }
-html:root[data-focus="on"][data-clockfont="condensed"] .clock-row > .clock-col .clock { --clock-ch: .42; }
-html:root[data-focus="on"][data-clockfont="serif"] .clock-row > .clock-col .clock { --clock-ch: .58; }
-html:root[data-focus="on"][data-clockfont="hand"] .clock-row > .clock-col .clock { --clock-ch: .5; }
+html:root[data-focus="on"] .clock-row > .clock-col .clock { font-size: min(28vh, 240px, calc(96cqi / (4.55 * var(--clock-ch)))); }
 html:root[data-focus="on"] .clock-sub { font-size: 17px; }
 html:root[data-focus="on"] .clock-row { margin-top: clamp(16px, 5vh, 48px); gap: clamp(16px, 4vw, 44px); }
 html:root[data-focus="on"] .mascot-wrap { width: clamp(68px, 14vw, 190px); }
@@ -1139,3 +1133,29 @@ html:root[data-focus="on"][data-focus-music="off"] #musicCard { display: none; }
   html:root[data-focus="on"]:not([data-focus-music="off"]) body:has(#musicCard.music:not(.music-off)) .stage { padding-bottom: 150px; }
   html:root[data-focus="on"] .stage { padding-inline: 14px; }
 }
+
+/* ---------- plain document pages (privacy) ---------- */
+.doc-page { max-width: 680px; margin: 0 auto; padding: 40px max(20px, env(safe-area-inset-left, 0px)) 64px; line-height: 1.6; }
+.doc-page h1 { font-family: var(--f-display); font-size: 34px; margin: 12px 0 6px; }
+.doc-page h2 { font-family: var(--f-display); font-size: 19px; margin: 28px 0 6px; }
+.doc-page p { margin: 0 0 12px; color: var(--fg-2); }
+.doc-page .lede { font-size: 17px; color: var(--fg); }
+.doc-page a { color: var(--accent); }
+.foot-links a { color: inherit; }
+.foot-links a:hover { color: var(--accent); }
+
+/* ---------- the clock always fits its card ----------
+   --clock-ch is how wide a digit is in each clock font (in em); "00:00" is about 4.55 digit widths. Beside the buddy
+   (--clock-side: its width plus the gap), the clock takes its usual size unless the card is too narrow for it,
+   e.g. the wide Robot lab digits on a phone. */
+html:root:is([data-skin="tomato"], [data-clockfont="rounded"]) .clock { --clock-ch: .62; }
+html:root[data-skin="robotlab"] .clock { --clock-ch: .9; }
+html:root[data-clockfont="mono"] .clock { --clock-ch: .7; }
+html:root[data-clockfont="digital"] .clock { --clock-ch: .9; }
+html:root[data-clockfont="condensed"] .clock { --clock-ch: .42; }
+html:root[data-clockfont="serif"] .clock { --clock-ch: .58; }
+html:root[data-clockfont="hand"] .clock { --clock-ch: .5; }
+.stage { --clock-side: 150px; }
+html:root[data-mascot="off"] .stage { --clock-side: 0px; }
+@media (max-width: 560px) { .stage { --clock-side: 96px; } }
+.clock-row > .clock-col .clock { font-size: min(var(--clock-size), calc((100cqi - var(--clock-side)) / (4.55 * var(--clock-ch)))); }

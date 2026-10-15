@@ -1,4 +1,4 @@
-# StudyBuddy — notes for Claude Code
+# PomoGator — notes for Claude Code
 
 A Pomodoro study site: 25–45 min study sessions, then a 1–3 question quiz on what you studied.
 The score sets the break (3/3 → 15 min, 1/3 → 5 min), every answer gets a memory tip, and a
@@ -8,18 +8,25 @@ optional screen tracking, sign-in with cloud sync, and appearance customization.
 - **Full spec:** `docs/SPEC.md` (the owner's build prompt; sections 5–7 and 9–11 are still to do)
 - **Reference prototype:** `docs/reference/studybuddy.html`, the original single-file version.
   Its `window.claude.use("sample")` calls show the intended AI prompts and JSON shapes. Port; don't redesign.
-- **Live site:** https://studybuddy-bay.vercel.app (Vercel deploys every push to `main`)
-- **Repo:** github.com/abdulksidani-png/studybuddy
+- **Name:** PomoGator (renamed from StudyBuddy on 2026-10-15; the owner is a UF student). Browser storage keys
+  (`studybuddy.v1`, `studybuddy.chat`, `studybuddy.spotify`, IndexedDB `studybuddy`) keep the old name on purpose so
+  nobody's saved data is lost. `lib/site.ts` holds the public name, tagline and repo URL.
+- **Live site:** https://studybuddy-bay.vercel.app (Vercel deploys every push to `main`; a pomogator domain may replace it)
+- **Repo:** github.com/abdulksidani-png/studybuddy (to be renamed `pomogator`; GitHub redirects the old URL)
+- **Public-facing docs:** `README.md` (for recruiters/visitors), `docs/SETUP.md` (deploy your own, click by click),
+  `docs/ARCHITECTURE.md`, `LICENSE` (MIT). Screenshots in `docs/screenshots/` and the link preview
+  `app/opengraph-image.png` come from `scripts/screenshots.mjs` (sample data, stand-in AI replies; see its header).
 
 ## Working with the owner
 
-- He's a beginner. Give step-by-step setup instructions with exact clicks and plain words, with no jargon.
+- Give setup instructions step by step, with exact clicks and plain words, no jargon.
 - Build **one phase at a time**, end each phase with something he can test, and give him a short test checklist.
   **Don't start the next phase until he says the current one works.**
-- He can't run SQL from a file path: tell him to open the raw GitHub link, copy everything,
-  paste it into Supabase → SQL Editor, and click Run.
+- For SQL, give the raw GitHub link of the migration: he copies everything, pastes it into Supabase → SQL Editor,
+  and clicks Run.
 - He views the site on Vercel. The footer shows `v<commit>`; when he reports something missing,
   check that version first (stale tabs have happened).
+- The repo is public: never commit keys, personal emails or private data; keep README/SETUP/ARCHITECTURE current.
 
 ## Status
 
@@ -37,7 +44,7 @@ optional screen tracking, sign-in with cloud sync, and appearance customization.
 | 9 | Polish, export / delete account, full README guide | |
 
 Phase 3 also added the **study assistant** he asked for (`components/Assistant.tsx`, `lib/assistant.ts`): a corner
-"Ask StudyBuddy" button / `A` key opens a chat panel that sees the study panel, timer, to-do list, the selected
+"Ask PomoGator" button / `A` key opens a chat panel that sees the study panel, timer, to-do list, the selected
 document (whole deck if it fits 60k chars) and any lecture transcript. It answers anything, summarizes the document
 ("Summarize with AI" under the document), quizzes in chat, and proposes to-do lists sized in study sessions
 ("Plan with AI" on the To-do card); proposals are added only on a click, as "Task · N sessions" text so tasks sync unchanged.
@@ -46,7 +53,7 @@ The chat is local only (`studybuddy.chat`).
 **Phase 6 (built):** `lib/stats.ts` is pure (`computeStats`, `streakOf` with freezes, `DEFINITIONS` shown as "?" tooltips),
 tested in `tests/unit/stats.test.ts` (empty week, skipped quizzes, midnight, 4 AM rollover, time zone change, freezes).
 Days come from each session's stored `date`. The Stats page (`components/Stats.tsx`) is the same app at `/stats`
-(`app/stats/page.tsx` → `ClientApp view="stats"`; `StudyBuddyApp` switches views with `history.pushState`, so a running
+(`app/stats/page.tsx` → `ClientApp view="stats"`; `PomoGatorApp` switches views with `history.pushState`, so a running
 timer keeps going and shows as a pill in the header; timer shortcuts only work on the timer view). Charts follow the
 dataviz skill: single-series accent columns with hover/focus tooltips + table view, a 12-week one-hue heatmap, accuracy
 bars, per-page document coverage (not yet / studied / studied + quizzed).
@@ -101,6 +108,14 @@ Then (he confirmed these work on the live site, 2026-10-15):
 - **Fold-away plan card**: click the "Next-session plan" heading; `settings.folded` (ids) remembers it; CSS
   `grid-template-rows` 0fr↔1fr transition (no rAF, so tests with a fake clock aren't affected); the body is `inert` when shut.
 
+**Public launch (2026-10-15):** rename to PomoGator (logo `components/Brand.tsx` + `app/icon.svg`: a gator peeking
+out of the water inside the timer ring; "Gator" in the accent color), Albert the gator is the default buddy for new
+visitors, `/privacy` page (plain words: what's stored, Gemini free tier may use content, on-device OCR/audio), footer
+links (Privacy, Source), security headers in `next.config.ts`, the AI route returns only error codes (Google's text stays
+in the server log), visitor-facing AI errors no longer mention env vars, `.github/workflows/ci.yml` (typecheck, unit,
+build, both Playwright suites), and the clock sizes itself with container units in every view (`--clock-size`,
+`--clock-ch`, `--clock-side`), which fixed the Robot lab digits overflowing on phones.
+
 Earlier requests, all done and confirmed:
 - sign out (Settings → Account, avatar menu), more file types, screen-share button under "Study material", appearance options
 - faster screen tracking (checks every 2 s by default, `screenSec` 1–15)
@@ -135,7 +150,8 @@ Earlier requests, all done and confirmed:
   the end of a session rewrites it if screen tracking or the lecture transcript changed what was covered.
 
 ## Stack
-- Next.js 15 App Router and React 19. The app is client-only: `components/ClientApp.tsx` loads `StudyBuddyApp` with `ssr:false`.
+- Next.js 15 App Router and React 19. The app is client-only: `components/ClientApp.tsx` loads `PomoGatorApp` with `ssr:false`.
+  `app/privacy/page.tsx` is a plain server-rendered page.
 - TypeScript, Tailwind 4, and hand-written CSS in `app/globals.css`, unlayered.
 - Zustand 5 with persist + immer (`lib/store.ts`, localStorage key `studybuddy.v1`). The timer works from timestamps (`endAt`).
 - Supabase (`@supabase/ssr`): anonymous guests are upgraded in place with `linkIdentity` / `updateUser(email)`.
@@ -157,7 +173,8 @@ Earlier requests, all done and confirmed:
 - `lib/ai/`: `prompts.ts`, `gemini.ts` and `quota.ts` (server), `material.ts` (document excerpts, browser).
 - `lib/appearance.ts` + `components/Appearance.tsx`: look settings, applied as data attributes on `<html>`.
 - `components/`:
-  - `StudyBuddyApp.tsx`: layout, dialogs, Start/consent wiring
+  - `PomoGatorApp.tsx`: layout, dialogs, Start/consent wiring, footer
+  - `Brand.tsx`: logo mark and name
   - `Stage.tsx`: timer and quiz
   - `Panels.tsx`: context, tasks, today, plan
   - `Documents.tsx`

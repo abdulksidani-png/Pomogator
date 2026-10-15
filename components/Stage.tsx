@@ -175,9 +175,9 @@ export function TitleSync() {
   const now = useNow((s) => s.now);
   const text = fmt(remainingAt(T, now));
   const label = T.phase === 'study' ? 'Study' : T.phase === 'break' ? (T.breakKind === 'long' ? 'Long break' : 'Break') : 'Quiz';
-  const title = T.phase === 'quiz' ? 'Quiz time · StudyBuddy'
-    : T.status === 'idle' ? 'StudyBuddy'
-    : `${text} ${label}${T.status === 'paused' ? ' (paused)' : ''} · StudyBuddy`;
+  const title = T.phase === 'quiz' ? 'Quiz time · PomoGator'
+    : T.status === 'idle' ? 'PomoGator'
+    : `${text} ${label}${T.status === 'paused' ? ' (paused)' : ''} · PomoGator`;
   useEffect(() => { if (document.title !== title) document.title = title; }, [title]);
   return null;
 }
@@ -324,7 +324,7 @@ function QuizFace() {
   if (!quizReadyForTaking(Q)) {
     let body: React.ReactNode;
     if (!hasTopic(context)) {
-      body = (<div className="q-intro"><h2>What did you study?</h2><p>Add a subject or topic and StudyBuddy writes your quiz now.</p>
+      body = (<div className="q-intro"><h2>What did you study?</h2><p>Add a subject or topic and PomoGator writes your quiz now.</p>
         <div className="btn-row"><button className="btn btn-primary" type="button" onClick={() => focusContext(false)}>Add a topic</button>{skipBtn}</div></div>);
     } else if (Q.gen === 'loading') {
       body = (<div className="q-intro"><h2>Writing {settings.questions} question{plural(settings.questions)} on {topic}</h2>
@@ -337,7 +337,7 @@ function QuizFace() {
           <button className={`btn${canRetry ? '' : ' btn-primary'}`} type="button" id="qBegin" onClick={act.skipQuiz}>Take a {breakNone}-min {kindWord}</button>
         </div></div>);
     } else {
-      body = (<div className="q-intro"><h2>Quiz on {topic}?</h2><p>StudyBuddy writes {settings.questions} question{plural(settings.questions)} from what you entered.</p>
+      body = (<div className="q-intro"><h2>Quiz on {topic}?</h2><p>PomoGator writes {settings.questions} question{plural(settings.questions)} from what you entered.</p>
         <div className="btn-row"><button className="btn btn-primary" type="button" id="qBegin" onClick={act.retryQuiz}>Write my quiz</button>{skipBtn}</div></div>);
     }
     return <div className="qcard">{head}{body}</div>;

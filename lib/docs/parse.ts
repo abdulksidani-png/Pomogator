@@ -32,7 +32,7 @@ export function unsupportedMessage(file: File): string {
   if (n.endsWith('.ppt')) return 'Old PowerPoint files (.ppt) can\'t be read. In PowerPoint, choose File → Save As → .pptx or PDF.';
   if (n.endsWith('.doc')) return 'Old Word files (.doc) can\'t be read. In Word, choose File → Save As → .docx or PDF.';
   if (n.endsWith('.key') || n.endsWith('.pages')) return 'Apple Keynote and Pages files can\'t be read. Export them as PDF first.';
-  return `StudyBuddy can't read ${file.name}. Try a PDF, PowerPoint (.pptx), Word (.docx), text file or photo.`;
+  return `PomoGator can't read ${file.name}. Try a PDF, PowerPoint (.pptx), Word (.docx), text file or photo.`;
 }
 
 /** Read one or more files into pages. Several images become one document, one page each. */

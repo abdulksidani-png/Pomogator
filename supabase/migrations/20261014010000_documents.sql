@@ -1,4 +1,4 @@
--- StudyBuddy schema, part 2: documents, their pages, slide progress and goals.
+-- PomoGator schema, part 2: documents, their pages, slide progress and goals.
 -- Run after part 1 (20261014000000_core.sql), in the Supabase SQL Editor.
 
 create table public.documents (

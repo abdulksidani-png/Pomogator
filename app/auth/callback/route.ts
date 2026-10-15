@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
   const errorCode = searchParams.get('error_code');
   if (errorCode) {
-    // The Google account already has its own StudyBuddy account: sign in to that one instead,
+    // The Google account already has its own PomoGator account: sign in to that one instead,
     // and the guest's progress gets merged into it on the way in.
     if (errorCode === 'identity_already_exists') return fail('', { auth_next: 'google' });
     return fail(searchParams.get('error_description') || 'Sign-in didn\'t finish. Try again.');

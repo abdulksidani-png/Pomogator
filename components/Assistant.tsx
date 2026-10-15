@@ -10,7 +10,7 @@ import { EASE, SOFT, SPRING } from './motion';
 
 export const TODO_PROMPT = 'Make me a to-do list and plan it around my study timer. Here\'s everything I need to do: ';
 
-/** The round "Ask StudyBuddy" button in the corner. */
+/** The round "Ask PomoGator" button in the corner. */
 export function AssistantButton() {
   const open = useChat((s) => s.open);
   return (
@@ -18,7 +18,7 @@ export function AssistantButton() {
       aria-expanded={open} onClick={() => (open ? closeAssistant() : openAssistant())}
       initial={false} animate={{ scale: open ? 0.86 : 1, opacity: open ? 0 : 1 }} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.94 }} transition={SPRING}
       style={{ pointerEvents: open ? 'none' : 'auto' }}>
-      <Icon name="sparkle" /><span>Ask StudyBuddy</span>
+      <Icon name="sparkle" /><span>Ask PomoGator</span>
     </motion.button>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 /** A tiny IndexedDB key-value store for things too big for localStorage (document pages, a photo background). */
 
-const DB = 'studybuddy';
+const DB = 'studybuddy'; // the app's first name, kept so saved documents aren't lost
 const STORE = 'kv';
 let dbP: Promise<IDBDatabase> | null = null;
 

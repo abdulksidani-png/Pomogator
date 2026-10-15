@@ -15,7 +15,7 @@ function explain(e: { message?: string; code?: string } | null): string {
 
 /**
  * Google sign-in. A guest's account gets Google linked to it (so their progress stays put).
- * If that Google account already has a StudyBuddy account, the callback sends us back here
+ * If that Google account already has a PomoGator account, the callback sends us back here
  * with ?auth_next=google and we sign in to it normally; the guest's data merges in.
  */
 export async function signInWithGoogle(opts: { link?: boolean } = {}): Promise<void> {

@@ -5,7 +5,7 @@
  */
 import type { UnsplashPhoto } from './types';
 
-export const UTM = 'utm_source=studybuddy&utm_medium=referral';
+export const UTM = 'utm_source=pomogator&utm_medium=referral';
 export const unsplashHome = `https://unsplash.com/?${UTM}`;
 export const withUtm = (url: string) => `${url}${url.includes('?') ? '&' : '?'}${UTM}`;
 

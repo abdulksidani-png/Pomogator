@@ -106,8 +106,7 @@ export function aiErrorText(e: unknown): string {
     case 'rate_limited': return 'The free AI limit was reached for now. Wait a minute and try again; if it keeps happening, it resets tomorrow.';
     case 'unauthorized': return 'Your sign-in expired. Sign in again, then try again.';
     case 'refused': return 'The AI declined this request. Try rewording it.';
-    case 'bad_key': return 'The site\'s AI key isn\'t working. Check GEMINI_API_KEY in Vercel.';
-    case 'model_missing': return 'The AI model this site uses isn\'t available. Check GEMINI_MODEL in Vercel.';
+    case 'bad_key': case 'model_missing': return 'The AI isn\'t working on this site right now. The timer works without it; try again later.';
     case 'prompt_too_large': return 'Your notes are too long. Trim them and try again.';
     case 'invalid_json': case 'empty_completion': return 'The reply came back incomplete. Try again.';
     default: return 'Couldn\'t reach the AI. Check your connection and try again.';

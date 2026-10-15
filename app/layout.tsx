@@ -11,9 +11,14 @@ import '@fontsource-variable/orbitron';
 import '@fontsource-variable/caveat';
 import './globals.css';
 
+const description = 'A Pomodoro study timer that quizzes you on what you studied, sets your break from your score, and plans your next session.';
+
 export const metadata: Metadata = {
-  title: 'StudyBuddy',
-  description: 'A Pomodoro study timer that quizzes you on what you studied, sets your break from your score, and plans your next session.',
+  title: 'PomoGator',
+  applicationName: 'PomoGator',
+  description,
+  openGraph: { title: 'PomoGator: study, quiz yourself, earn your break', description, type: 'website', siteName: 'PomoGator' },
+  twitter: { card: 'summary_large_image', title: 'PomoGator', description },
 };
 
 export const viewport: Viewport = {

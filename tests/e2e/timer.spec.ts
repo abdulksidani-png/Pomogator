@@ -100,3 +100,14 @@ test('the next-session plan folds shut and stays that way', async ({ page }) => 
   await expect(head).toHaveAttribute('aria-expanded', 'true');
   await expect.poll(async () => (await page.locator('#planBody').boundingBox())?.height ?? 0).toBeGreaterThan(40);
 });
+
+test('PomoGator: the footer links to a plain-words privacy page and the source', async ({ page }) => {
+  await page.goto('/');
+  await expect(page).toHaveTitle('PomoGator');
+  await expect(page.locator('.brand-name')).toHaveText('PomoGator');
+  await expect(page.getByRole('link', { name: 'Source' })).toHaveAttribute('href', /github\.com/);
+  await page.getByRole('link', { name: 'Privacy' }).click();
+  await expect(page.getByRole('heading', { name: 'Privacy', level: 1 })).toBeVisible();
+  await expect(page.locator('main')).toContainText('row-level security');
+  await expect(page.locator('main')).toContainText('free tier');
+});

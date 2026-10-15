@@ -1,3 +1,7 @@
+> **About this file:** the original product spec for PomoGator (then called StudyBuddy), written as a build brief
+> for an AI pair programmer. Where the finished app deliberately differs (for example Google Gemini instead of Claude,
+> and on-device OCR for screen tracking), see [ARCHITECTURE.md](ARCHITECTURE.md) and the project notes in `CLAUDE.md`.
+
 You are a senior full-stack engineer and product designer. Build StudyBuddy as a real website I can deploy and share, with sign-in, cloud sync, document upload, optional screen monitoring, progress stats, weekly reports and streaks.
 
 I've attached studybuddy.html, a working single-file version that runs inside Claude. Use it as the reference for features, layout, wording and behavior. Port it; don't redesign it. It calls Claude through `window.claude.use("sample")`, which only exists inside Claude. Replace every one of those calls with your own server API routes.

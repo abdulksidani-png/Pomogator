@@ -21,7 +21,7 @@ test('Unsplash: pick a background by mood, credit the photographer, and get a ne
   expect(await bgImage(page)).toContain('/img/rain-on-window-0.svg');
   expect(await bgImage(page)).toContain('w=2400');
   await expect(page.locator('.foot .photo-credit')).toHaveText('Photo by Photographer 0 on Unsplash');
-  await expect(page.locator('.foot .photo-credit a').first()).toHaveAttribute('href', /utm_source=studybuddy/);
+  await expect(page.locator('.foot .photo-credit a').first()).toHaveAttribute('href', /utm_source=pomogator/);
   await expect.poll(async () => (await (await page.request.get(`${FAKE}/__unsplash`)).json()).join(' ')).toContain('/photos/rain-on-window-0/download');
 
   await dlg.getByRole('button', { name: 'More photos' }).click();

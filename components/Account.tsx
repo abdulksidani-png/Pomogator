@@ -87,7 +87,7 @@ export function SignInDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialogEle
         <button className="icon-btn" type="button" aria-label="Close sign in" onClick={close}><Icon name="x" /></button>
       </div>
       <div className="dlg-body signin-body">
-        <p className="muted" style={{ margin: 0 }}>Use StudyBuddy on any device. Everything you did as a guest comes with you. No password needed.</p>
+        <p className="muted" style={{ margin: 0 }}>Use PomoGator on any device. Everything you did as a guest comes with you. No password needed.</p>
         <button className="btn btn-primary btn-wide" type="button" onClick={google} disabled={!!busy}>
           {busy === 'google' ? <><span className="spin" aria-hidden="true" />Opening Google…</> : 'Continue with Google'}
         </button>

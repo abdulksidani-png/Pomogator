@@ -1,4 +1,4 @@
--- StudyBuddy migration 3: a daily allowance of AI calls per person.
+-- PomoGator migration 3: a daily allowance of AI calls per person.
 -- Paste into Supabase → SQL Editor → Run. Safe to run more than once.
 
 create table if not exists public.ai_usage (

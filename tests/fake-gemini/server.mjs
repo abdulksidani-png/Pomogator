@@ -86,7 +86,7 @@ http.createServer((req, res) => {
     requests.push({ model: m[1], body });
     const system = body.systemInstruction?.parts?.map((p) => p.text).join('') ?? '';
     const prompt = body.contents?.at(-1)?.parts?.map((p) => p.text).join('') ?? '';
-    if (system.includes('You are StudyBuddy')) {
+    if (system.includes('You are PomoGator')) {
       const a = assistant(system, body.contents);
       return a ? answer(res, a) : reply(res, 429, { error: { code: 429, message: 'Quota exceeded', status: 'RESOURCE_EXHAUSTED' } });
     }

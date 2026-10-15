@@ -14,7 +14,8 @@ const STATUS: Record<string, number> = {
   prompt_too_large: 413, refused: 422, bad_key: 502, model_missing: 502, invalid_json: 502, empty_completion: 502,
 };
 
-const fail = (e: AiError) => Response.json({ code: e.code, message: e.message }, { status: STATUS[e.code] ?? 502 });
+// Only the error code goes back to the browser; Google's own wording (which can name the project) stays in the server log.
+const fail = (e: AiError) => Response.json({ code: e.code, ...(e.code === 'not_configured' ? { message: e.message } : {}) }, { status: STATUS[e.code] ?? 502 });
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 
 export async function POST(req: Request, { params }: { params: Promise<{ action: string }> }) {
@@ -59,7 +60,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ action:
     return Response.json(cleanAssistant(raw));
   } catch (e) {
     const err = isObj(e) && typeof e.code === 'string' ? (e as unknown as AiError) : { code: 'upstream_error' };
-    if (err.code === 'bad_key' || err.code === 'model_missing' || err.code === 'upstream_error') console.error('AI call failed:', action, err.code, err.message);
+    if (err.code !== 'cancelled' && err.code !== 'rate_limited') console.error('AI call failed:', action, err.code, err.message);
     return fail(err);
   }
 }

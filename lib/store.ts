@@ -1,6 +1,6 @@
 'use client';
 /**
- * All of StudyBuddy's state and actions in one store. The timer is timestamp based:
+ * All of PomoGator's state and actions in one store. The timer is timestamp based:
  * remaining = endAt - now, so it stays right across refreshes and sleeping tabs.
  * Phase 1 persists to this browser's localStorage. Phase 2 adds account sync.
  */
@@ -228,7 +228,7 @@ export const useStudy = create<Store>()(
         if (!opts.quiet) Sound.chime(settings.chime, settings.chimeVol);
         if (settings.notify && !opts.quiet) {
           try {
-            if ('Notification' in window && Notification.permission === 'granted') new Notification(title, { body, tag: 'studybuddy' });
+            if ('Notification' in window && Notification.permission === 'granted') new Notification(title, { body, tag: 'pomogator' });
           } catch { /* notifications not allowed here */ }
         }
         toast(title);
@@ -762,7 +762,7 @@ export const useStudy = create<Store>()(
       };
     }),
     {
-      name: 'studybuddy.v1',
+      name: 'studybuddy.v1', // storage keys keep the app's first name, so nobody's saved data is lost
       version: 1,
       storage: createJSONStorage(() => localStorage),
       partialize: (s): Data => ({
