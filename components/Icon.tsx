@@ -1,5 +1,5 @@
 export type IconName =
-  | 'user' | 'palette' | 'monitor' | 'upload' | 'download' | 'trash' | 'play' | 'pause' | 'reset' | 'skip' | 'loop' | 'gear' | 'kbd' | 'x' | 'check' | 'plus' | 'flag' | 'file' | 'camera' | 'sound' | 'sparkle' | 'send' | 'prev' | 'next' | 'music' | 'external' | 'chart' | 'bookmark' | 'expand' | 'shrink' | 'chevron';
+  | 'user' | 'palette' | 'monitor' | 'upload' | 'download' | 'trash' | 'play' | 'pause' | 'reset' | 'skip' | 'loop' | 'gear' | 'kbd' | 'x' | 'check' | 'plus' | 'flag' | 'file' | 'camera' | 'sound' | 'sparkle' | 'send' | 'prev' | 'next' | 'music' | 'external' | 'chart' | 'bookmark' | 'expand' | 'shrink' | 'chevron' | 'image';
 
 export function Icon({ name }: { name: IconName }) {
   return (
@@ -44,6 +44,7 @@ export function IconSprite() {
         <symbol id="i-expand" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></symbol>
         <symbol id="i-shrink" viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /></symbol>
         <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></symbol>
+        <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5" /><circle cx="9" cy="10" r="1.8" /><path d="M21 16l-5-5-9 9" /></symbol>
         <symbol id="i-sound" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4z" /><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14" /></symbol>
       </defs>
     </svg>

@@ -51,6 +51,9 @@ browser (lib/ai-client.ts) → POST /api/ai/{action} → sign-in + daily allowan
   codes, and only the code reaches the browser.
 - **Allowance:** `use_ai()` is a `security definer` Postgres function that counts calls per user per day in
   `ai_usage`; guests get fewer calls than signed-in accounts.
+- **Photos in the assistant** are shrunk on the device (≤1280 px JPEG) and sent with the message they belong to
+  (`Turn.images` → Gemini `inlineData`), at most four per request, newest first. The chat in localStorage keeps only
+  200 px thumbnails. The assistant also returns a `mood` ("happy" / "sad") that the study buddy beside the reply shows.
 - **Background reading:** each upload is "digested" once (topic, summary, key concepts, sections), stored in IndexedDB,
   and fed to quizzes and to the assistant's view of your library.
 
@@ -106,6 +109,10 @@ Look settings (theme, accent, clock font, timer style, background, cards, corner
 as `data-*` attributes and CSS variables on `<html>` (`lib/appearance.ts`), with the styles in `app/globals.css`. The
 clock is sized with container query units so "00:00" always fits its card, its ring or the full-screen view, whatever
 the font. Saved timers (`lib/presets.ts`) snapshot a chosen set of these settings plus the session lengths.
+
+The study buddies (`components/Mascot.tsx`) have one picture per mood (idle, focus, quiz, happy, sad, rest, cheer): the
+tomato and robot are SVG groups shown by CSS, the pixel buddies are a base sprite plus the pixels that change per mood.
+The picked buddy also sits beside each quiz question (happy when you're right, sad when you're not) and in the assistant.
 
 The logo is pixel art in the same 2-bit style as the study buddies, stored as rows of letters in `lib/logo.ts`
 (`scripts/icon.mts` writes `app/icon.svg` from it). The loading screen (`components/Splash.tsx`) is part of the first

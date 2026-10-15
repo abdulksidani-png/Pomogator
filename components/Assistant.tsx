@@ -1,11 +1,12 @@
 'use client';
-import { Fragment, useEffect, useRef, type ReactNode } from 'react';
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 import { useStudy } from '@/lib/store';
-import { clearChat, closeAssistant, openAssistant, resolveTasks, sendToAssistant, useChat } from '@/lib/assistant';
+import { MAX_PHOTOS, addPhotos, clearChat, closeAssistant, openAssistant, removePhoto, resolveTasks, sendToAssistant, useChat } from '@/lib/assistant';
 import { hasTopic, topicLabel } from '@/lib/context';
 import type { ChatMessage } from '@/lib/types';
 import { Icon } from './Icon';
+import { Mascot, type Mood } from './Mascot';
 import { EASE, SOFT, SPRING } from './motion';
 
 export const TODO_PROMPT = 'Make me a to-do list and plan it around my study timer. Here\'s everything I need to do: ';
@@ -25,8 +26,11 @@ export function AssistantButton() {
 
 /** The chat panel. Always mounted, so opening and closing never wait on an exit animation. */
 export function AssistantPanel() {
-  const { open, busy, messages, draft } = useChat();
+  const { open, busy, messages, draft, pending } = useChat();
   const aiStatus = useStudy((s) => s.aiStatus);
+  const buddy = useStudy((s) => (s.settings.mascot === 'off' ? null : s.settings.mascotKind));
+  const fileIn = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
   const docName = useStudy((s) => s.docs.find((d) => d.id === s.context.docId)?.name ?? '');
   const ctx = useStudy((s) => s.context);
   const box = useRef<HTMLTextAreaElement>(null);
@@ -49,7 +53,7 @@ export function AssistantPanel() {
 
   const send = (text?: string) => {
     const t = (text ?? box.current?.value ?? '').trim();
-    if (!t || busy) return;
+    if ((!t && !(text === undefined && pending.length)) || busy) return;
     void sendToAssistant(t);
     if (box.current && text === undefined) { box.current.value = ''; autosize(box.current); }
   };
@@ -63,11 +67,21 @@ export function AssistantPanel() {
     ...(docName || topic ? [{ label: 'Quiz me', run: () => send('Ask me one quick question on what I\'m studying. Wait for my answer, then tell me if I\'m right and ask the next one.') }] : []),
   ];
 
+  // The buddy reacts to the chat: thinking while a reply is written, then the reply's mood.
+  const lastBot = [...messages].reverse().find((m) => m.role === 'assistant');
+  const mood: Mood = busy ? 'quiz' : !messages.length ? 'cheer' : lastBot?.error ? 'sad' : lastBot?.mood ?? 'idle';
+  const hasFiles = (e: React.DragEvent) => [...e.dataTransfer.types].includes('Files');
+
   return (
-    <motion.aside className="assistant" aria-label="Study assistant" aria-hidden={!open} inert={!open}
-      initial={false} animate={open ? { x: 0, opacity: 1 } : { x: '104%', opacity: 0.6 }} transition={{ duration: 0.34, ease: EASE }}>
+    <motion.aside className={`assistant${dragging ? ' dropping' : ''}`} aria-label="Study assistant" aria-hidden={!open} inert={!open}
+      initial={false} animate={open ? { x: 0, opacity: 1 } : { x: '104%', opacity: 0.6 }} transition={{ duration: 0.34, ease: EASE }}
+      onDragOver={(e) => { if (hasFiles(e)) { e.preventDefault(); setDragging(true); } }}
+      onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false); }}
+      onDrop={(e) => { if (!hasFiles(e)) return; e.preventDefault(); setDragging(false); void addPhotos(e.dataTransfer.files); }}>
       <header className="assistant-head">
-        <span className="assistant-mark" aria-hidden="true"><Icon name="sparkle" /></span>
+        <span className={`assistant-mark${buddy ? ' has-buddy' : ''}`} aria-hidden="true" data-mood={mood}>
+          {buddy ? <motion.span key={mood} className="buddy-pop" initial={{ scale: 0.8, y: 3 }} animate={{ scale: 1, y: 0 }} transition={SPRING}><Mascot mood={mood} kind={buddy} /></motion.span> : <Icon name="sparkle" />}
+        </span>
         <div className="assistant-title">
           <h2>Study assistant</h2>
           <span>{docName ? `Reading ${shortName(docName, 34)}` : topic ? `Studying ${shortName(topic, 34)}` : 'Ask anything'}</span>
@@ -79,12 +93,19 @@ export function AssistantPanel() {
       <div className="assistant-list" ref={list} aria-live="polite">
         {messages.length === 0 && (
           <motion.div className="assistant-hello" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={SOFT}>
-            <p><strong>Hi! I&apos;m your study assistant.</strong> I can read your document, explain things, answer any question, quiz you, and turn everything you need to do into a to-do list planned around your timer.</p>
+            <p><strong>Hi! I&apos;m your study assistant.</strong> I can read your document and photos of your notes, explain things, answer any question, quiz you, and turn everything you need to do into a to-do list planned around your timer.</p>
             {aiStatus === 'off' && <p className="hint warn">The AI isn&apos;t switched on for this site yet.</p>}
           </motion.div>
         )}
-        {messages.map((m) => <Bubble key={m.id} m={m} />)}
-        {busy && <div className="bubble bot typing" aria-label="The assistant is writing"><span /><span /><span /></div>}
+        {messages.map((m) => (m.role === 'assistant' && m === lastBot && buddy && !busy
+          ? <div key={m.id} className="bot-row"><BuddyAvatar kind={buddy} mood={mood} /><Bubble m={m} /></div>
+          : <Bubble key={m.id} m={m} />))}
+        {busy && (
+          <div className="bot-row">
+            {buddy && <BuddyAvatar kind={buddy} mood="quiz" />}
+            <div className="bubble bot typing" aria-label="The assistant is writing"><span /><span /><span /></div>
+          </div>
+        )}
       </div>
 
       {messages.length === 0 && (
@@ -93,14 +114,38 @@ export function AssistantPanel() {
         </div>
       )}
 
+      {pending.length > 0 && (
+        <div className="photo-tray" aria-label="Photos to send">
+          {pending.map((im, i) => (
+            <motion.span key={im.thumb.slice(-24) + i} className="photo-thumb" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={SOFT}>
+              <img src={im.thumb} alt={`Photo ${i + 1} to send`} />
+              <button type="button" className="photo-x" aria-label={`Remove photo ${i + 1}`} onClick={() => removePhoto(i)}><Icon name="x" /></button>
+            </motion.span>
+          ))}
+          <span className="small muted">{pending.length} of {MAX_PHOTOS}</span>
+        </div>
+      )}
       <form className="assistant-input" onSubmit={(e) => { e.preventDefault(); send(); }}>
+        <input ref={fileIn} id="assistantPhotos" type="file" accept="image/*" multiple hidden
+          onChange={(e) => { if (e.currentTarget.files) void addPhotos(e.currentTarget.files); e.currentTarget.value = ''; }} />
+        <button className="icon-btn attach-btn" type="button" aria-label="Add photos" title="Add photos of notes, problems or diagrams"
+          disabled={busy || pending.length >= MAX_PHOTOS} onClick={() => fileIn.current?.click()}><Icon name="image" /></button>
         <label className="sr-only" htmlFor="assistantBox">Message the study assistant</label>
-        <textarea id="assistantBox" ref={box} rows={1} placeholder="Ask anything, or list your to-dos…" maxLength={4000}
+        <textarea id="assistantBox" ref={box} rows={1} placeholder={pending.length ? 'Add a question about your photo…' : 'Ask anything, or list your to-dos…'} maxLength={4000}
           onInput={(e) => autosize(e.currentTarget)}
+          onPaste={(e) => { const files = [...e.clipboardData.files].filter((f) => f.type.startsWith('image/')); if (files.length) { e.preventDefault(); void addPhotos(files); } }}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(); } }} />
         <button className="btn btn-primary send-btn" type="submit" aria-label="Send" disabled={busy}><Icon name="send" /></button>
       </form>
     </motion.aside>
+  );
+}
+
+function BuddyAvatar({ kind, mood }: { kind: NonNullable<Parameters<typeof Mascot>[0]['kind']>; mood: Mood }) {
+  return (
+    <motion.span key={mood} className="bot-avatar" data-mood={mood} aria-hidden="true" initial={{ scale: 0.8, y: 4 }} animate={{ scale: 1, y: 0 }} transition={SPRING}>
+      <Mascot mood={mood} kind={kind} />
+    </motion.span>
   );
 }
 
@@ -110,6 +155,9 @@ function Bubble({ m }: { m: ChatMessage }) {
   return (
     <motion.div className={`bubble ${mine ? 'me' : 'bot'}${m.error ? ' err' : ''}`}
       initial={{ opacity: 0, y: 10, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={SOFT}>
+      {m.images && m.images.length > 0 && (
+        <span className="bubble-photos">{m.images.map((im, i) => <img key={i} src={im.thumb} alt={`Photo ${i + 1} you sent`} />)}</span>
+      )}
       {mine ? m.text : <Rich text={m.text} />}
       {m.tasks && m.tasks.length > 0 && (
         <div className="proposal">

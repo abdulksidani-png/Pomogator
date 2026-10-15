@@ -13,7 +13,7 @@ const MODELS = () => [process.env.GEMINI_MODEL || 'gemini-flash-latest', process
 const apiKey = () => (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '').trim();
 export const geminiConfigured = () => !!apiKey();
 
-export interface Turn { role: 'user' | 'model'; text: string }
+export interface Turn { role: 'user' | 'model'; text: string; images?: Image[] }
 export interface Image { mimeType: string; data: string }
 
 interface GeminiReply {
@@ -82,6 +82,7 @@ export async function askJson(opts: { system?: string; turns: Turn[]; images?: I
   const contents = opts.turns.map((t, i) => ({
     role: t.role,
     parts: [
+      ...(t.images ?? []).map((im) => ({ inlineData: im })),
       ...(i === opts.turns.length - 1 ? (opts.images ?? []).map((im) => ({ inlineData: im })) : []),
       { text: t.text },
     ],

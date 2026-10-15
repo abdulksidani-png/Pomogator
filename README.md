@@ -43,15 +43,16 @@ comes with an explanation and a memory aid, and **your score earns your break** 
   said. Before the quiz starts, "Quiz me on" lets you pick the sources and the topic.
 - **Plans on demand.** After every quiz you get a plan for the next session; "Plan my next session" makes one any time
   from your to-do list, today's uploads and your shared screen.
-- **An AI study assistant.** A chat panel that sees your timer, to-do list and documents, answers questions, quizzes
-  you, and turns "here's everything I need to do tonight" into a to-do list sized in Pomodoro sessions.
+- **An AI study assistant.** A chat panel that sees your timer, to-do list and documents, reads photos of your notes
+  or homework (attach, paste or drop them), answers questions, quizzes you, and turns "here's everything I need to do
+  tonight" into a to-do list sized in Pomodoro sessions.
 - **A weekly report.** Every week gets a review: an AI-written summary, key numbers with ▲/▼ vs. last week, minutes
   and accuracy per day, documents covered, concepts missed and mastered, and three focus steps for next week. Browse
   past weeks, and save any week as a shareable image or a PDF.
 - **Stats.** Study time, streaks (with streak freezes), minutes per day, a 12-week heatmap, quiz accuracy by concept,
   and slide-by-slide coverage of each document.
 - **Make it yours.** 12 themes, 5 study buddies that put on glasses and study at a desk while you do (including Albert,
-  a pixel-art gator), 7 clock fonts, 3 timer styles, Unsplash photo backgrounds, glass cards, saved timer presets,
+  a pixel-art gator), cheer you through the quiz (happy when you're right, sad when you're not) and react in the chat, 7 clock fonts, 3 timer styles, Unsplash photo backgrounds, glass cards, saved timer presets,
   a full-screen focus mode and a Spotify "now playing" widget.
 - **Accounts without friction.** Start instantly as a guest; sign in with Google or an email link later and keep
   everything. Progress syncs across devices.
@@ -141,9 +142,9 @@ It runs with no keys at all, saving everything in the browser. To switch on acco
 
 ```bash
 npm run typecheck
-npm test            # 97 unit tests: break rules, AI reply validation, stats (time zones, 4 AM rollover, streak freezes), weekly reports, sync merging, saved timers
+npm test            # 98 unit tests: break rules, AI reply validation, stats (time zones, 4 AM rollover, streak freezes), weekly reports, sync merging, saved timers
 npm run test:e2e    # 24 browser tests: study → quiz → break, document goals, screen tracking, tab audio, appearance, stats, weekly report, focus mode
-npm run test:ai     # 9 browser tests of the AI, Unsplash and Spotify features against local stand-ins
+npm run test:ai     # 10 browser tests of the AI, Unsplash and Spotify features against local stand-ins
 npm run test:sync   # two devices syncing through real Postgres + PostgREST running the actual migrations
 ```
 

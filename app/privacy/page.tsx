@@ -24,9 +24,11 @@ export default function Privacy() {
 
       <h2>AI features</h2>
       <p>Quizzes, plans, document summaries and the study assistant are written by Google&apos;s Gemini API. When you use them, this
-        site&apos;s server sends Gemini what the request needs: your topic, the pages you covered, your chat messages, any lecture
+        site&apos;s server sends Gemini what the request needs: your topic, the pages you covered, your chat messages and any photos you attach to them, any lecture
         notes captured from a shared tab, and your week's study numbers for the weekly report. The site uses Gemini&apos;s free tier, under which Google may use what it receives to improve
-        its products, so don&apos;t upload anything private or sensitive. The API key stays on the server.</p>
+        its products, so don&apos;t upload anything private or sensitive. The API key stays on the server. Photos you attach in the assistant
+        are shrunk on your device before they&apos;re sent; this browser keeps only small thumbnails of them with the chat, and they
+        aren&apos;t synced.</p>
 
       <h2>Screen sharing and lecture sound</h2>
       <p>Screen tracking reads the window you share on your device. To write that session&apos;s quiz (and a plan, if you ask for

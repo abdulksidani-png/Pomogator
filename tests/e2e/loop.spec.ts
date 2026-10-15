@@ -33,7 +33,12 @@ test('a guest studies, takes the quiz and earns a break that matches the score',
   await expect(page.getByText('Quiz ready · 3 questions')).toBeVisible();
 
   await page.clock.fastForward('25:02');
+  // The picked study buddy (Albert by default) cheers the quiz on, then reacts to every answer.
+  const buddy = page.locator('.quiz-buddy');
+  await expect(buddy).toHaveAttribute('data-mood', 'cheer');
+  await expect(buddy.locator('.mascot.gator')).toBeVisible();
   await page.getByRole('button', { name: 'Start quiz' }).click();
+  await expect(buddy).toHaveAttribute('data-mood', 'quiz');
 
   for (let i = 0; i < 3; i++) {
     const q = (await page.locator('#qText').textContent()) ?? '';
@@ -45,6 +50,10 @@ test('a guest studies, takes the quiz and earns a break that matches the score',
       await expect(page.locator('.verdict')).toContainText('Not quite');
       await expect(page.locator('.aid')).toBeVisible();
       await expect(page.locator('.why')).toBeVisible();
+      await expect(buddy).toHaveAttribute('data-mood', 'sad');
+    } else {
+      await expect(buddy).toHaveAttribute('data-mood', 'happy');
+      await expect(buddy.locator('.buddy-say')).toBeVisible();
     }
     await page.locator('#qNext').click();
   }

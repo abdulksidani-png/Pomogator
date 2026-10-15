@@ -131,6 +131,14 @@ Plan card: "Plan my next session" (`planFromWork`, action `plan-now`, `workPlanP
 digests, screen text) and "Clear plan" (`clearPlan`); `plan.kind` 'quiz' | 'work'. Consent dialog + privacy page say the
 screen text and snapshots go to the AI.
 
+**Buddy reactions + assistant photos (2026-10-15, his request, waiting on his test):** new `sad` mood for every buddy
+(tomato brows + tear, robot frown, pixel `sad` overlays with a tear color `t`). `QuizBuddy` in `components/Stage.tsx`
+sits beside the quiz heading/question (`.quiz-buddy[data-mood]`: cheer → quiz → happy/sad with a short line); it shows
+whenever the buddy isn't switched off, even in "Automatic". The assistant header (`.assistant-mark`) and the latest reply
+(`.bot-avatar`) show the picked buddy: thinking while busy, sad on errors, else the reply's `mood` (AI field, `happy`/`sad`).
+Photos: image button `#assistantPhotos`, paste or drop; `addPhotos` in `lib/assistant.ts` shrinks to ≤1280 px JPEG +
+200 px thumb; max 4 per message and 4 per request (`LIMITS.chatPhotos`); only thumbs are persisted.
+
 **Logo + loading screen (2026-10-15, his request):** the logo is now 2-bit pixel art like the buddies: Albert in study
 glasses peeking out of water inside a pixel timer ring (`lib/logo.ts` rows → `components/Brand.tsx`; `scripts/icon.mts`
 regenerates `app/icon.svg`). `components/Splash.tsx` (rendered by `ClientApp` in the first HTML): the ring fills pixel by
@@ -221,7 +229,7 @@ Earlier requests, all done and confirmed:
 ```bash
 npm run dev          # http://localhost:3000 (copies vendor files first)
 npm run typecheck
-npm test             # Vitest unit tests (97)
+npm test             # Vitest unit tests (98)
 npm run test:e2e     # Playwright: loop, documents, goals, screen tracking, tab sound, sounds, appearance, buddies, stats,
                      # saved timers, full screen, plan fold, weekly report, loading screen
 npm run test:ai      # Playwright: AI, Unsplash and Spotify against stand-ins (tests/fake-gemini; Spotify faked in-test)

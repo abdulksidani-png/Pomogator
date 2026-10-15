@@ -89,6 +89,51 @@ test('the assistant answers questions about the document and plans a to-do list'
   await expect(panel).toBeHidden();
 });
 
+test('photos go to the assistant, and the study buddy reacts to the conversation', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /Ask the study assistant/ }).click();
+  const panel = page.locator('.assistant');
+  const mark = panel.locator('.assistant-mark');
+  await expect(mark.locator('.mascot.gator')).toBeVisible(); // the picked buddy, Albert by default
+
+  // Attach a photo of notes: it shows in the tray, then rides along with the message.
+  await page.locator('#assistantPhotos').setInputFiles(fixture('notes-photo.png'));
+  await expect(panel.locator('.photo-tray img')).toHaveCount(1);
+  await page.locator('#assistantBox').fill("Here's my answer to question 2. I think it's B");
+  await page.keyboard.press('Enter');
+  await expect(panel.locator('.bubble.me .bubble-photos img')).toHaveCount(1);
+  await expect(panel.locator('.photo-tray')).toHaveCount(0);
+  await expect(panel.locator('.bubble.bot').last()).toContainText('I can see 1 photo');
+  const req = (await sent(page)).at(-1)!;
+  const parts = req.body.contents.at(-1)!.parts as { inlineData?: { mimeType: string; data: string } }[];
+  expect(parts[0].inlineData?.mimeType).toBe('image/jpeg');
+  expect(parts[0].inlineData!.data.length).toBeGreaterThan(1000);
+  expect(req.body.systemInstruction!.parts[0].text).toContain('attach photos');
+  // A right answer makes the buddy happy, a wrong one sad.
+  await expect(mark).toHaveAttribute('data-mood', 'happy');
+  await expect(panel.locator('.bot-avatar')).toHaveAttribute('data-mood', 'happy');
+  await page.locator('#assistantBox').fill("Next one: I think it's C");
+  await page.keyboard.press('Enter');
+  await expect(panel.locator('.bubble.bot').last()).toContainText('Turns so far: 3');
+  await expect(mark).toHaveAttribute('data-mood', 'sad');
+
+  // Photos alone can be sent; removing one from the tray works.
+  await page.locator('#assistantPhotos').setInputFiles([fixture('notes-photo.png'), fixture('notes-photo.png')]);
+  await expect(panel.locator('.photo-tray img')).toHaveCount(2);
+  await panel.getByRole('button', { name: 'Remove photo 2' }).click();
+  await expect(panel.locator('.photo-tray img')).toHaveCount(1);
+  await panel.getByRole('button', { name: 'Send' }).click();
+  await expect(panel.locator('.bubble.bot').last()).toContainText('I can see 2 photos');
+
+  // After a reload the chat keeps small thumbnails only; the full photos aren't saved.
+  await page.reload();
+  const saved = await page.evaluate(() => localStorage.getItem('studybuddy.chat') ?? '');
+  expect(saved).toContain('data:image/jpeg');
+  expect(saved).not.toContain('"data":');
+  await page.getByRole('button', { name: /Ask the study assistant/ }).click();
+  await expect(panel.locator('.bubble-photos img')).toHaveCount(2);
+});
+
 test('"Plan with AI" opens the assistant ready for a to-do list', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Plan with AI' }).click();

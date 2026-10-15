@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { MascotKind } from '@/lib/types';
 
-export type Mood = 'idle' | 'focus' | 'quiz' | 'happy' | 'rest' | 'cheer';
+export type Mood = 'idle' | 'focus' | 'quiz' | 'happy' | 'rest' | 'cheer' | 'sad';
 
 const INK = '#3A1D22';
 
@@ -43,6 +43,12 @@ function Tomato({ mood }: { mood: Mood }) {
         <path className="v v-happy" d="M49 83q11 15 22 0z" fill={INK} />
         <path className="v v-rest" d="M55 87q5 3 10 0" fill="none" stroke={INK} strokeWidth="3.5" strokeLinecap="round" />
         <g className="v v-rest" fill="var(--fg-3)"><text x="96" y="30" fontSize="14">z</text><text x="106" y="18" fontSize="10">z</text></g>
+        <g className="v v-sad">
+          <ellipse cx="46" cy="73" rx="4.2" ry="4.8" fill={INK} /><ellipse cx="74" cy="73" rx="4.2" ry="4.8" fill={INK} />
+          <path d="M38 64l12-4M82 64l-12-4" stroke={INK} strokeWidth="3" strokeLinecap="round" />
+          <path d="M51 91q9-8 18 0" fill="none" stroke={INK} strokeWidth="3.5" strokeLinecap="round" />
+          <path className="tear" d="M80 79q-3 5 0 7q3-2 0-7z" fill="#7FC4FF" />
+        </g>
         <g className="v v-focus" fill="#FFFFFF" fillOpacity=".28" stroke={INK} strokeWidth="3"><circle cx="46" cy="72" r="9.5" /><circle cx="74" cy="72" r="9.5" /><path d="M55.5 71q4.5-3 9 0" fill="none" /></g>
       </g>
       <g className="v v-focus">
@@ -78,6 +84,7 @@ function Robot({ mood }: { mood: Mood }) {
           <path className="v v-happy v-cheer" d="M51 61q9 8 18 0z" strokeWidth="2" />
           <circle className="v v-quiz" cx="60" cy="64" r="3" stroke="none" />
           <path className="v v-rest" d="M56 64h8" fill="none" strokeWidth="3" />
+          <g className="v v-sad" fill="none" strokeWidth="4"><path d="M42 49l10-4M78 49l-10-4" /><path d="M44 54h7M69 54h7" /><path d="M52 66q8-6 16 0" strokeWidth="3" /></g>
         </g>
         <rect x="36" y="86" width="48" height="24" rx="9" fill={metal} stroke={shade} strokeWidth="3" />
         <circle className="r-chest" cx="60" cy="98" r="5" fill="var(--accent)" />
@@ -127,7 +134,7 @@ function toRuns(rows: string[][] | string[], pal: Record<string, string>, ox = 0
 const SPRITES: Record<'gorilla' | 'gator' | 'panther', Sprite> = {
   gorilla: {
     w: 24,
-    pal: {"k": "#1E1410", "b": "#5B3A29", "f": "#C9946A", "w": "#F4E9DC"},
+    pal: {"k": "#1E1410", "b": "#5B3A29", "f": "#C9946A", "w": "#F4E9DC", "t": "#7FC4FF"},
     base: [
       '........kkkkkkkk........',
       '......kkbbbbbbbbkk......',
@@ -161,6 +168,7 @@ const SPRITES: Record<'gorilla' | 'gator' | 'panther', Sprite> = {
       happy: { 6: [7, ".k....k."], 7: [7, "k.k..k.k"], 10: [9, "kwwwwk"], 11: [10, "kkkk"] },
       rest: { 7: [7, "kk....kk"], 10: [11, "kk"], 0: [20, "kkkk"], 1: [22, "k"], 2: [21, "k"], 3: [20, "kkkk"] },
       cheer: { 6: [7, "ww....ww"], 7: [7, "kw....wk"], 10: [9, "kwwwwk"], 11: [10, "kkkk"] },
+      sad: { 5: [8, "k....k"], 6: [7, "kk....kk"], 7: [7, "wk....kw"], 8: [8, "t"], 10: [10, "kkkk"], 11: [9, "k....k"] },
     },
     study: [
       { x: 0, y: 19, rows: ["DDDDDDDDDDDDDDDDDDDDDDDD", "dddddddddddddddddddddddd", "d......................d", "d......................d", "d......................d"] },
@@ -170,7 +178,7 @@ const SPRITES: Record<'gorilla' | 'gator' | 'panther', Sprite> = {
   },
   gator: {
     w: 28,
-    pal: {"k": "#0D2418", "g": "#3F9B4A", "l": "#B6E07A", "w": "#FFFFFF", "o": "#FA4616", "u": "#1F3FB5"},
+    pal: {"k": "#0D2418", "g": "#3F9B4A", "l": "#B6E07A", "w": "#FFFFFF", "o": "#FA4616", "u": "#1F3FB5", "t": "#7FC4FF"},
     base: [
       '............................',
       '.......kkkk.................',
@@ -204,6 +212,7 @@ const SPRITES: Record<'gorilla' | 'gator' | 'panther', Sprite> = {
       happy: { 3: [7, "k."], 4: [6, "k.k"] },
       rest: { 4: [7, "kk"], 0: [15, "kkkk"], 1: [17, "k"], 2: [16, "k"], 3: [15, "kkkk"] },
       cheer: { 3: [7, "ww"], 4: [7, "wk"], 10: [9, "lwwwwwwwwwwwl"] },
+      sad: { 2: [8, "k"], 3: [7, "kk"], 4: [7, "wk"], 5: [8, "t"], 6: [8, "t"], 9: [9, "kkkkkkkkkkkkkkkk"] },
     },
     study: [
       { x: 0, y: 19, rows: ["DDDDDDDDDDDDDDDDDDDDDDDDDDDD", "dddddddddddddddddddddddddddd", "d..........................d", "d..........................d", "d..........................d"] },
@@ -214,7 +223,7 @@ const SPRITES: Record<'gorilla' | 'gator' | 'panther', Sprite> = {
   },
   panther: {
     w: 24,
-    pal: {"k": "#3A230F", "y": "#D9A13B", "c": "#F7E2B0", "p": "#E58BA0", "n": "#0B2A63", "o": "#E3B23C", "w": "#FFFFFF"},
+    pal: {"k": "#3A230F", "y": "#D9A13B", "c": "#F7E2B0", "p": "#E58BA0", "n": "#0B2A63", "o": "#E3B23C", "w": "#FFFFFF", "t": "#7FC4FF"},
     base: [
       '....kk..........kk......',
       '...kyyk........kyyk.....',
@@ -248,6 +257,7 @@ const SPRITES: Record<'gorilla' | 'gator' | 'panther', Sprite> = {
       happy: { 6: [5, ".k........k."], 7: [5, "k.k......k.k"], 11: [9, "kccccc"] },
       rest: { 7: [6, "kk......kk"], 0: [19, "kkkk"], 1: [21, "k"], 2: [20, "k"], 3: [19, "kkkk"] },
       cheer: { 6: [6, "ww......ww"], 7: [6, "kw......wk"], 11: [9, "kkkkkk"] },
+      sad: { 5: [7, "k......k"], 6: [6, "kk......kk"], 7: [6, "wk......kw"], 8: [6, "t"], 11: [10, "kkkk"], 12: [9, "k....k"] },
     },
     study: [
       { x: 0, y: 19, rows: ["DDDDDDDDDDDDDDDDDDDDDDDD", "dddddddddddddddddddddddd", "d......................d", "d......................d", "d......................d"] },

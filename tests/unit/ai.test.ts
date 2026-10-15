@@ -126,6 +126,13 @@ describe('assistant replies', () => {
     expect(taskLine(r.tasks[2])).toBe('Flashcards · 1 session');
   });
 
+  it('keeps the buddy mood only when it is happy or sad', () => {
+    expect(cleanAssistant({ reply: 'Correct!', tasks: [], mood: 'happy' }).mood).toBe('happy');
+    expect(cleanAssistant({ reply: 'Not quite.', tasks: [], mood: 'sad' }).mood).toBe('sad');
+    expect(cleanAssistant({ reply: 'Hi', tasks: [], mood: 'neutral' })).not.toHaveProperty('mood');
+    expect(cleanAssistant({ reply: 'Hi', tasks: [], mood: '<b>' })).not.toHaveProperty('mood');
+  });
+
   it('rejects an empty reply', () => {
     expect(() => cleanAssistant({ reply: '', tasks: [] })).toThrow();
     expect(() => cleanAssistant('nope')).toThrow();

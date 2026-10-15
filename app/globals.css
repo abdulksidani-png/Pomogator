@@ -180,7 +180,13 @@ html:root[data-skin="tomato"] .mascot-wrap { display: block; }
 .mascot { width: 100%; height: auto; display: block; overflow: visible; }
 .mascot .v { display: none; }
 .mascot[data-mood="idle"] .v-idle, .mascot[data-mood="focus"] .v-focus, .mascot[data-mood="quiz"] .v-quiz,
-.mascot[data-mood="happy"] .v-happy, .mascot[data-mood="rest"] .v-rest, .mascot[data-mood="cheer"] .v-cheer { display: inline; }
+.mascot[data-mood="happy"] .v-happy, .mascot[data-mood="rest"] .v-rest, .mascot[data-mood="cheer"] .v-cheer, .mascot[data-mood="sad"] .v-sad { display: inline; }
+.mascot[data-mood="sad"] .m-bob { animation: droop 2.4s ease-in-out infinite; }
+.mascot.pixel[data-mood="sad"] .m-bob { animation: px-droop 2.4s steps(1) infinite; }
+@keyframes droop { 0%, 100% { transform: translateY(2px) rotate(-2deg); } 50% { transform: translateY(3px) rotate(-1deg); } }
+@keyframes px-droop { 0%, 100% { transform: translateY(1px); } 50% { transform: translateY(0); } }
+.mascot .tear { animation: tear 1.6s ease-in infinite; }
+@keyframes tear { 0% { transform: translateY(-2px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(8px); opacity: 0; } }
 .mascot .m-bob { transform-origin: 60px 110px; }
 .mascot[data-mood="focus"] .m-bob { animation: breathe 3.6s ease-in-out infinite; }
 .mascot[data-mood="happy"] .m-bob { animation: hop 1.2s ease-in-out 2; }
@@ -273,6 +279,17 @@ html:root[data-skin="tomato"] .mascot-wrap { display: block; }
 .aid-label { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; opacity: .78; margin-bottom: 4px; }
 .q-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
 .q-intro { display: grid; gap: 14px; padding-top: 10px; }
+/* The study buddy beside the question: happy when you're right, sad when you're not. */
+.q-main { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.q-main > :first-child { flex: 1; min-width: 0; }
+.quiz-buddy { flex: none; width: 96px; display: grid; justify-items: center; gap: 6px; margin-top: 8px; }
+.quiz-buddy-art { width: 100%; }
+.quiz-buddy .mascot { display: block; width: 100%; height: auto; }
+.buddy-say { margin: 0; max-width: 130px; padding: 4px 9px; border-radius: 10px; font-size: 12px; font-weight: 600; line-height: 1.3; text-align: center;
+  background: var(--sunk); color: var(--fg-2); }
+.quiz-buddy[data-mood="happy"] .buddy-say { background: color-mix(in srgb, var(--accent) 16%, var(--card)); color: var(--fg); }
+html:root[data-mascot="off"] .quiz-buddy { display: none; }
+@media (max-width: 560px) { .quiz-buddy { width: 64px; } .buddy-say { font-size: 11px; max-width: 92px; } }
 .q-intro h2 { margin: 0; font-family: var(--f-display); font-size: clamp(24px, 3vw, 30px); font-weight: 700; letter-spacing: -.015em; text-wrap: balance; }
 .q-intro p { margin: 0; color: var(--fg-2); max-width: 58ch; }
 .btn-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
@@ -639,6 +656,27 @@ html:root[data-cards="glass"] .card .modes, html:root[data-cards="glass"] .card 
 .assistant-head { display: flex; align-items: center; gap: 10px; padding: 14px 14px 12px 16px; border-bottom: 1px solid var(--rule); }
 .assistant-mark { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); flex: none; }
 .assistant-mark svg.i { width: 19px; height: 19px; }
+/* The picked study buddy in the assistant: in the header, and beside the latest reply. */
+.assistant-mark.has-buddy { width: 46px; height: 46px; border-radius: 13px; padding: 4px; overflow: hidden; }
+.assistant-mark .buddy-pop, .bot-avatar { display: block; }
+.assistant-mark .mascot, .bot-avatar .mascot { width: 100%; height: 100%; }
+.bot-row { display: flex; align-items: flex-end; gap: 8px; align-self: flex-start; max-width: 100%; }
+.bot-row .bubble { min-width: 0; }
+.bot-avatar { flex: none; width: 38px; height: 38px; margin-bottom: 2px; }
+html:root[data-mascot="off"] .bot-avatar { display: none; }
+.bubble-photos { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.bubble-photos img { width: 92px; height: 92px; object-fit: cover; border-radius: 10px; display: block; background: var(--card); }
+.bubble.me:has(.bubble-photos) { padding: 6px; }
+.bubble.me:has(.bubble-photos) .bubble-photos:last-child { margin-bottom: 0; }
+.photo-tray { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px 14px 0; border-top: 1px solid var(--rule); }
+.photo-tray + .assistant-input { border-top: 0; }
+.photo-thumb { position: relative; width: 58px; height: 58px; }
+.photo-thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; border: 1px solid var(--rule); display: block; }
+.photo-x { position: absolute; top: -7px; right: -7px; width: 22px; height: 22px; border-radius: 50%; border: 0; padding: 0; display: grid; place-items: center;
+  background: var(--fg); color: var(--card); }
+.photo-x svg.i { width: 12px; height: 12px; }
+.attach-btn { width: 44px; height: 44px; flex: none; }
+.assistant.dropping { outline: 3px dashed var(--accent); outline-offset: -8px; }
 .assistant-title { flex: 1; min-width: 0; }
 .assistant-title h2 { margin: 0; font-family: var(--f-display); font-size: 17px; font-weight: 700; }
 .assistant-title span { display: block; font-size: 12.5px; color: var(--fg-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -45,7 +45,9 @@ function assistant(system, turns) {
     };
   }
   const doc = system.match(/The document open now, "([^"]+)"/)?.[1];
-  return { reply: `You asked: "${last}". ${doc ? `I can see ${doc}.` : 'No document is open.'} Turns so far: ${turns.length}.`, tasks: [] };
+  const photos = turns.flatMap((t) => t.parts ?? []).filter((p) => p.inlineData).length;
+  const mood = /I think it's B/i.test(last) ? 'happy' : /I think it's C/i.test(last) ? 'sad' : 'neutral';
+  return { reply: `You asked: "${last}". ${doc ? `I can see ${doc}.` : 'No document is open.'}${photos ? ` I can see ${photos} photo${photos === 1 ? '' : 's'}.` : ''} Turns so far: ${turns.length}.`, tasks: [], mood };
 }
 
 const COLORS = ['#7A9E7E', '#C98B5E', '#5E7FC9', '#B65E8F', '#5EB3B3', '#C9B85E'];

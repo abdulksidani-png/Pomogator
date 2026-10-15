@@ -13,7 +13,7 @@ const DIFF_TEXT: Record<string, string> = {
 };
 
 /** Caps for text sent to the AI, in characters. */
-export const LIMITS = { notes: 12_000, material: 60_000, heard: 6_000, screen: 12_000, chatTurns: 16, chatChars: 4_000 };
+export const LIMITS = { notes: 12_000, material: 60_000, heard: 6_000, screen: 12_000, chatTurns: 16, chatChars: 4_000, chatPhotos: 4 };
 
 /** A document excerpt as numbered pages, e.g. "[Slide 3] Title" then its text. */
 export function materialText(m: Material | undefined, cap = LIMITS.material): string {
@@ -226,6 +226,8 @@ export function assistantSystem(a: AssistantInput): string {
     '- Explain ideas from the student\'s document, notes or lecture, and summarize them when asked. Cite page or slide numbers from the material, like "(slide 4)". Never invent what the material says; if it doesn\'t cover something, say so and answer from general knowledge.',
     '- Make and plan to-do lists. When the student lists things to do or asks for a to-do list or a plan, break the work into concrete tasks and fill "tasks". Size each task in study sessions of the student\'s session length, and in "reply" give a short schedule that fits the timer: sessions in order with their breaks, with clock times if the current time is known.',
     '- Only fill "tasks" when the student asks for tasks, a to-do list or a plan. Otherwise leave it empty.',
+    '- The student can attach photos: handwritten notes, textbook pages, worksheets, problems, diagrams, screenshots. Read them carefully and refer to what is actually in them. For a problem, explain how to solve it step by step; for notes, explain or quiz from them. If a photo is unreadable, say so.',
+    '- Set "mood" for the study buddy shown next to your reply: "happy" when the student got an answer right, finished something or shared good news; "sad" (sympathetic, never blaming) when they got an answer wrong, are stuck or stressed; otherwise "neutral".',
     '',
     'STYLE',
     '- Short, warm and specific. Plain text. Use "- " for bullet lists and **double asterisks** for the few words that matter most. No headings, no tables, no code blocks unless asked.',
@@ -242,6 +244,6 @@ export function assistantSystem(a: AssistantInput): string {
     spoken ? `\nWhat the lecture said so far (automatic transcript):\n<<<LECTURE\n${spoken}\nLECTURE>>>` : '',
     '',
     'Reply with only this JSON and no other text:',
-    '{"reply":"your message to the student","tasks":[{"text":"a concrete task under 80 characters","sessions":1}]}',
+    '{"reply":"your message to the student","tasks":[{"text":"a concrete task under 80 characters","sessions":1}],"mood":"neutral"}',
   ].filter((l) => l !== '').join('\n');
 }

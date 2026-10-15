@@ -390,12 +390,18 @@ export interface ChatMessage {
   /** What happened to the proposal. */
   tasksAdded?: 'added' | 'replaced' | 'dismissed';
   error?: boolean;
+  /** Photos the student attached. `data` (full size, for the AI) stays in memory; only the thumbnail is saved. */
+  images?: ChatImage[];
+  /** How the study buddy reacts to this reply. */
+  mood?: 'happy' | 'sad';
 }
+
+export interface ChatImage { thumb: string; mimeType?: string; data?: string }
 
 export interface ProposedTask { text: string; sessions: number }
 
 export interface AssistantInput {
-  messages: { role: 'user' | 'assistant'; text: string }[];
+  messages: { role: 'user' | 'assistant'; text: string; images?: QuizImage[] }[];
   ctx: StudyContext;
   timer: { studyMin: number; shortBreak: number; longBreak: number; longEvery: number; state: string };
   tasks: { text: string; done: boolean }[];
@@ -407,7 +413,7 @@ export interface AssistantInput {
   now?: string;
 }
 
-export interface AssistantReply { reply: string; tasks: ProposedTask[] }
+export interface AssistantReply { reply: string; tasks: ProposedTask[]; mood?: 'happy' | 'sad' }
 
 export interface DayInput {
   sessions: { time: string; topic: string; studiedMin?: number; quiz: string; missed: string[] }[];

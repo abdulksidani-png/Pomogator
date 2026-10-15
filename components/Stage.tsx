@@ -335,6 +335,22 @@ function QuizPicker() {
 
 const LETTERS = 'ABCD';
 
+const CHEERS = ['Nice one!', 'You got it!', 'Yes! Nailed it.'];
+const COMFORT = ['Aw, close one.', "We'll get the next one.", 'Tricky one. You learned it now.'];
+
+/** The picked study buddy, reacting to the quiz: thinking, happy when you're right, sad when you're not. */
+function QuizBuddy({ mood, say }: { mood: Mood; say?: string }) {
+  const kind = useStudy((s) => s.settings.mascotKind);
+  return (
+    <div className="quiz-buddy" data-mood={mood} aria-hidden="true">
+      <motion.div key={mood} className="quiz-buddy-art" initial={{ scale: 0.84, y: 6 }} animate={{ scale: 1, y: 0 }} transition={SPRING}>
+        <Mascot mood={mood} kind={kind} />
+      </motion.div>
+      {say && <motion.p key={say} className="buddy-say" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={SOFT}>{say}</motion.p>}
+    </div>
+  );
+}
+
 function QuizFace() {
   const T = useStudy((s) => s.timer);
   const Q = useStudy((s) => s.quiz);
@@ -370,7 +386,7 @@ function QuizFace() {
       body = (<div className="q-intro"><h2>What did you study?</h2><p>Add a subject or topic and PomoGator writes your quiz now.</p>
         <div className="btn-row"><button className="btn btn-primary" type="button" onClick={() => focusContext(false)}>Add a topic</button>{skipBtn}</div></div>);
     } else if (Q.gen === 'loading') {
-      body = (<div className="q-intro"><h2>Writing {settings.questions} question{plural(settings.questions)} on {topic}</h2>
+      body = (<div className="q-intro"><div className="q-main"><h2>Writing {settings.questions} question{plural(settings.questions)} on {topic}</h2><QuizBuddy mood="quiz" /></div>
         <QuizPicker />
         <p className="loading-line"><span className="spin" aria-hidden="true" />Thinking…</p><p>This usually takes a few seconds.</p><div className="btn-row">{skipBtn}</div></div>);
     } else if (Q.gen === 'failed' || Q.gen === 'off' || aiStatus === 'off') {
@@ -381,7 +397,7 @@ function QuizFace() {
           <button className={`btn${canRetry ? '' : ' btn-primary'}`} type="button" id="qBegin" onClick={act.skipQuiz}>Take a {breakNone}-min {kindWord}</button>
         </div></div>);
     } else {
-      body = (<div className="q-intro"><h2>Quiz on {topic}?</h2><QuizPicker /><p>PomoGator writes {settings.questions} question{plural(settings.questions)} from what you entered.</p>
+      body = (<div className="q-intro"><div className="q-main"><h2>Quiz on {topic}?</h2><QuizBuddy mood="idle" /></div><QuizPicker /><p>PomoGator writes {settings.questions} question{plural(settings.questions)} from what you entered.</p>
         <div className="btn-row"><button className="btn btn-primary" type="button" id="qBegin" onClick={act.retryQuiz}>Write my quiz</button>{skipBtn}</div></div>);
     }
     return <div className="qcard">{head}{body}</div>;
@@ -392,7 +408,7 @@ function QuizFace() {
     return (
       <div className="qcard">{head}
         <div className="q-intro">
-          <h2>Time&apos;s up. {n} quick question{plural(n)} on {topic}.</h2>
+          <div className="q-main"><h2>Time&apos;s up. {n} quick question{plural(n)} on {topic}.</h2><QuizBuddy mood="cheer" /></div>
           <QuizPicker />
           <p>Your score sets your {kindWord}: {tierSentence(n, settings.tiers[T.breakKind])}</p>
           <div className="btn-row">
@@ -422,7 +438,10 @@ function QuizFace() {
           })}
         </span>
       </div>
-      <p className="q-text" id="qText">{q.question}</p>
+      <div className="q-main">
+        <p className="q-text" id="qText">{q.question}</p>
+        <QuizBuddy mood={a ? (a.correct ? 'happy' : 'sad') : 'quiz'} say={a ? (a.correct ? CHEERS : COMFORT)[Q.index % 3] : undefined} />
+      </div>
       <div className="opts" role="group" aria-labelledby="qText">
         {q.options.map((o, i) => {
           let cls = 'opt';

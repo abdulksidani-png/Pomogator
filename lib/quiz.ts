@@ -98,7 +98,8 @@ export function cleanAssistant(d: unknown): AssistantReply {
     .filter((t) => t.text)
     .slice(0, 20);
   if (!reply && !tasks.length) throw { code: 'empty_completion' } satisfies AiError;
-  return { reply: reply || 'Here\'s a to-do list for you.', tasks };
+  const mood = d.mood === 'happy' || d.mood === 'sad' ? d.mood : undefined;
+  return { reply: reply || 'Here\'s a to-do list for you.', tasks, ...(mood ? { mood } : {}) };
 }
 
 /** How a proposed task reads in the to-do list, e.g. "Read chapter 4 · 2 sessions". */
