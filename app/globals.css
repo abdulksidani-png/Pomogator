@@ -1542,3 +1542,8 @@ html[data-ready] .splash { animation: splash-out .6s cubic-bezier(.22,1,.36,1) v
 .username-form .dlg-body { gap: 10px; }
 .username-lead { margin: 0; color: var(--fg-2); }
 #usernameIn { width: 100%; font-size: 17px; }
+/* Friend nicknames */
+.friend-real { margin-left: 6px; font-weight: 500; font-size: 12px; color: var(--fg-3); }
+.friend-nick { display: grid; gap: 6px; margin: 4px 0 10px; }
+.friend-nick .inline { display: flex; gap: 8px; }
+.friend-nick input { flex: 1; min-width: 0; }

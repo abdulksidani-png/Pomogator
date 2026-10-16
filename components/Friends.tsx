@@ -20,6 +20,7 @@ import { FoldCard } from './Panels';
 import { SOFT, SPRING } from './motion';
 import { encodeBuddy } from '@/lib/cosmetics';
 import { pullNow } from '@/lib/sync';
+import { useNameOf } from '@/lib/social';
 
 const hm = (min: number) => (min >= 60 ? `${Math.floor(min / 60)} h${min % 60 ? ` ${min % 60} min` : ''}` : `${min} min`);
 const days = (n: number) => `${n} day${n === 1 ? '' : 's'}`;
@@ -139,6 +140,7 @@ function doingText(f: Friend): string {
 
 /** The friends widget in the side column. */
 export function FriendsCard({ onSignIn, onOpen, onTogether }: { onSignIn: () => void; onOpen: () => void; onTogether: (friendId: string) => void }) {
+  const nameOf = useNameOf();
   const { status, friends } = useSocial();
   const account = useStudy((s) => s.account.status);
   const [openId, setOpenId] = useState('');
@@ -168,7 +170,7 @@ export function FriendsCard({ onSignIn, onOpen, onTogether }: { onSignIn: () => 
           {requests.map((f) => (
             <div key={f.id} className="friend-request">
               <span className="friend-ava" aria-hidden="true"><Mascot mood="happy" kind={f.buddy} wear={f.wear} /></span>
-              <span className="friend-main"><strong>{f.name}</strong><span>wants to be friends</span></span>
+              <span className="friend-main"><strong>{nameOf(f.id, f.name)}</strong><span>wants to be friends</span></span>
               <span className="friend-req-btns">
                 <button className="btn btn-primary" type="button" onClick={() => void respondFriend(f.id, true)}>Accept</button>
                 <button className="btn-quiet" type="button" onClick={() => void respondFriend(f.id, false)}>Decline</button>
@@ -193,13 +195,14 @@ export function FriendsCard({ onSignIn, onOpen, onTogether }: { onSignIn: () => 
 }
 
 function FriendRow({ f, open, onToggle, onTogether }: { f: Friend; open: boolean; onToggle: () => void; onTogether: () => void }) {
+  const nameOf = useNameOf();
   const pending = f.relation === 'sent';
   return (
     <li className="friend" data-online={f.online ? '1' : '0'} data-open={open ? '1' : undefined}>
       <button className="friend-row" type="button" aria-expanded={open} disabled={pending} onClick={onToggle}>
         <span className="friend-ava" aria-hidden="true"><Mascot mood={moodOf(f)} kind={f.buddy} wear={f.wear} /></span>
         <span className="friend-main">
-          <strong>{f.name}</strong>
+          <strong>{nameOf(f.id, f.name)}{nameOf(f.id, f.name) !== f.name && <small className="friend-real">{f.name}</small>}</strong>
           <span className="friend-doing">{doingText(f)}</span>
           {f.music && <span className="friend-music"><Icon name="music" />{f.music.title} · {f.music.artist}</span>}
         </span>
@@ -207,7 +210,8 @@ function FriendRow({ f, open, onToggle, onTogether }: { f: Friend; open: boolean
       </button>
       {open && !pending && (
         <motion.div className="friend-more" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} transition={SOFT}>
-          {f.stats ? <FriendStats s={f.stats} /> : <p className="muted small">{f.name} keeps their stats private.</p>}
+          {f.stats ? <FriendStats s={f.stats} /> : <p className="muted small">{nameOf(f.id, f.name)} keeps their stats private.</p>}
+          <NicknameField f={f} />
           <SupportPicker f={f} />
           <div className="friend-actions">
             <button className="btn" type="button" onClick={onTogether}><Icon name="loop" />Study together</button>
@@ -245,24 +249,47 @@ function FriendStats({ s }: { s: SharedStats }) {
   );
 }
 
+/** Your own nickname for this friend, e.g. to tell two "Alex"es apart. Only you see it. */
+function NicknameField({ f }: { f: Friend }) {
+  const saved = useStudy((s) => s.settings.nicknames[f.id] ?? '');
+  const [nick, setNick] = useState(saved);
+  useEffect(() => setNick(saved), [saved]);
+  const id = `nick-${f.id}`;
+  const save = (v: string) => {
+    useStudy.getState().setNickname(f.id, v);
+    useStudy.getState().showToast(v.trim() ? `You'll see ${f.name} as "${v.trim()}".` : `Nickname removed. Back to ${f.name}.`);
+  };
+  return (
+    <form className="friend-nick" onSubmit={(e) => { e.preventDefault(); if (nick.trim() !== saved) save(nick); }}>
+      <label className="fs-label" htmlFor={id}>Nickname <small>(only you see it; their username is {f.name})</small></label>
+      <span className="inline">
+        <input id={id} type="text" maxLength={24} value={nick} placeholder={`e.g. ${f.name} (bio lab)`} onChange={(e) => setNick(e.target.value)} />
+        <button className="btn" type="submit" disabled={nick.trim() === saved}>Save</button>
+        {saved && <button className="btn-quiet" type="button" onClick={() => { setNick(''); save(''); }}>Clear</button>}
+      </span>
+    </form>
+  );
+}
+
 /** One support message per friend per day, said by my study buddy. */
 function SupportPicker({ f }: { f: Friend }) {
+  const nameOf = useNameOf();
   const kind = useStudy((s) => s.settings.mascotKind);
   const [text, setText] = useState(SUPPORT_LINES[0]);
   const [state, setState] = useState<'' | 'sending' | 'sent' | 'error'>('');
   if (f.supportedToday || state === 'sent') {
-    return <p className="support-done"><Icon name="check" />Support sent today. You can send {f.name} another tomorrow.</p>;
+    return <p className="support-done"><Icon name="check" />Support sent today. You can send {nameOf(f.id, f.name)} another tomorrow.</p>;
   }
   const buddy = MASCOTS.find((m) => m.id === kind)?.name ?? 'Your buddy';
   const send = async () => {
     setState('sending');
     const r = await sendSupport(f.id, text);
     setState(r === 'sent' || r === 'already_sent' ? 'sent' : 'error');
-    if (r === 'sent') useStudy.getState().showToast(`${buddy} is taking your message to ${f.name}`);
+    if (r === 'sent') useStudy.getState().showToast(`${buddy} is taking your message to ${nameOf(f.id, f.name)}`);
   };
   return (
     <div className="support-pick">
-      <span className="fs-label">Send {f.name} some support <small>(one a day, delivered by {buddy})</small></span>
+      <span className="fs-label">Send {nameOf(f.id, f.name)} some support <small>(one a day, delivered by {buddy})</small></span>
       <div className="support-chips" role="group" aria-label="Messages">
         {SUPPORT_LINES.slice(0, 4).map((l) => <button key={l} className="chip" type="button" aria-pressed={text === l} onClick={() => setText(l)}>{l}</button>)}
       </div>
@@ -279,10 +306,11 @@ function SupportPicker({ f }: { f: Friend }) {
 }
 
 function RemoveFriend({ f }: { f: Friend }) {
+  const nameOf = useNameOf();
   const [armed, setArmed] = useState(false);
   return (
     <button className="btn-quiet danger" type="button" onClick={() => (armed ? void respondFriend(f.id, false) : setArmed(true))} onBlur={() => setArmed(false)}>
-      {armed ? `Remove ${f.name}?` : 'Remove friend'}
+      {armed ? `Remove ${nameOf(f.id, f.name)}?` : 'Remove friend'}
     </button>
   );
 }
@@ -382,6 +410,7 @@ export function SupportPopup() {
 }
 
 function SupportBubble({ msg }: { msg: Support }) {
+  const nameOf = useNameOf();
   const [replying, setReplying] = useState(false);
   const [text, setText] = useState(REPLY_LINES[0]);
   const [state, setState] = useState('');
@@ -389,7 +418,7 @@ function SupportBubble({ msg }: { msg: Support }) {
   const send = async () => {
     setState('sending');
     const r = await replySupport(msg.id, text);
-    if (r === 'sent' || r === 'already_replied') useStudy.getState().showToast(`Your reply is on its way to ${msg.fromName}`);
+    if (r === 'sent' || r === 'already_replied') useStudy.getState().showToast(`Your reply is on its way to ${nameOf(msg.fromId, msg.fromName)}`);
     else setState(r === 'not_ready' ? 'Replies aren\'t switched on for this site yet.' : 'Couldn\'t send it. Try again.');
   };
   return (
@@ -400,7 +429,7 @@ function SupportBubble({ msg }: { msg: Support }) {
       </motion.span>
       <motion.div className="support-bubble" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ ...SPRING, delay: 0.5 }}>
         <p className="support-text">{msg.text}</p>
-        <p className="support-from">{buddy} brought {msg.isReply ? 'a reply' : 'this'} from <strong>{msg.fromName}</strong></p>
+        <p className="support-from">{buddy} brought {msg.isReply ? 'a reply' : 'this'} from <strong>{nameOf(msg.fromId, msg.fromName)}</strong></p>
         {replying ? (
           <div className="support-reply">
             <div className="support-chips" role="group" aria-label="Quick replies">

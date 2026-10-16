@@ -39,6 +39,7 @@ Every push to the main branch redeploys the site. After adding or changing an en
    3. [`supabase/migrations/20261015000000_ai_usage.sql`](../supabase/migrations/20261015000000_ai_usage.sql): the daily AI allowance (strongly recommended on a public site)
    4. [`supabase/migrations/20261016000000_friends.sql`](../supabase/migrations/20261016000000_friends.sql): "Delete my account", friends, support messages and studying together
    5. [`supabase/migrations/20261017000000_support_replies.sql`](../supabase/migrations/20261017000000_support_replies.sql): replies to friends' support messages
+   6. [`supabase/migrations/20261018000000_sender_ids.sql`](../supabase/migrations/20261018000000_sender_ids.sql): your nicknames for friends also show on their messages and study invites
 
    Each file is safe to run again. If a feature says it "isn't switched on for this site yet", the file it needs
    hasn't been run.

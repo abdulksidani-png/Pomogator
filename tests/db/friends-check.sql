@@ -60,7 +60,7 @@ select 'only one a day', public.send_support('aaaaaaaa-0000-0000-0000-0000000000
 select 'marked as sent today', (select supported_today from public.friends_overview(current_date) where name = 'Bo') as ok;
 select 'not to strangers', public.send_support('aaaaaaaa-0000-0000-0000-000000000003', current_date, 'Hi', 'gator') = 'not_friends' as ok;
 set request.jwt.claims = '{"sub": "aaaaaaaa-0000-0000-0000-000000000002", "role": "authenticated", "is_anonymous": false}';
-select 'bo gets it from Ana', (select from_name = 'Ana' and text = 'You got this!' and buddy = 'gator' from public.support_inbox()) as ok;
+select 'bo gets it from Ana', (select from_name = 'Ana' and text = 'You got this!' and buddy = 'gator' and from_id is not null from public.support_inbox()) as ok;
 -- Bo replies (once); a reply doesn't use up Bo's own message for today, and can't be replied to.
 select set_config('test.msg', (select id::text from public.support_inbox()), false);
 select 'reply sent', public.reply_support(current_setting('test.msg')::uuid, 'Thank you! 💛', 'panther') = 'sent' as ok;
@@ -95,7 +95,7 @@ set request.jwt.claims = '{"sub": "aaaaaaaa-0000-0000-0000-000000000003", "role"
 select 'strangers cannot read the room', public.collab_room(current_setting('test.room')::uuid) is null as ok;
 select 'strangers cannot change it', public.set_collab_state(current_setting('test.room')::uuid, '{"status": "running"}', 0) is null as ok;
 set request.jwt.claims = '{"sub": "aaaaaaaa-0000-0000-0000-000000000002", "role": "authenticated", "is_anonymous": false}';
-select 'bo is invited, with the agreed break', (select host_name = 'Ana' and break_min = 7 and note = 'Chem cram' and people = 2 from public.collab_invites()) as ok;
+select 'bo is invited, with the agreed break', (select host_name = 'Ana' and host_id is not null and break_min = 7 and note = 'Chem cram' and people = 2 from public.collab_invites()) as ok;
 select 'bo joins', public.respond_collab(current_setting('test.room')::uuid, true) = 'joined' as ok;
 select 'bo starts the timer', (public.set_collab_state(current_setting('test.room')::uuid, '{"phase": "study", "status": "running", "endAt": 123}', 0) ->> 'v')::int = 1 as ok;
 set request.jwt.claims = '{"sub": "aaaaaaaa-0000-0000-0000-000000000001", "role": "authenticated", "is_anonymous": false}';

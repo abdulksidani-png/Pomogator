@@ -14,7 +14,7 @@
 import type { SupabaseClient, User } from '@supabase/supabase-js';
 import { getSupabase } from './supabase/client';
 import { normalizeData, useStudy, type Data } from './store';
-import { DEFAULT_CONTEXT, DEFAULT_SETTINGS } from './defaults';
+import { DEFAULT_CONTEXT } from './defaults';
 import { todayFor } from './dates';
 import { mergeDeep } from './util';
 import { cleanBadges, cleanDates, mergeBadges, mergeDates } from './checkins';
@@ -371,7 +371,7 @@ async function pull({ adopt = false }: { adopt?: boolean } = {}) {
     state().mutate((d) => {
       if (prof) {
         const sv = { settings: Number(prof.settings_v), context: Number(prof.context_v), app: Number(prof.app_state_v), tasks: Number(prof.tasks_v) };
-        if (sv.settings > d.sync.v.settings) d.settings = mergeDeep(DEFAULT_SETTINGS, prof.settings);
+        if (sv.settings > d.sync.v.settings) d.settings = normalizeData({ settings: prof.settings as never }).settings; // same cleanup as loading (keeps nicknames)
         if (sv.context > d.sync.v.context) d.context = mergeDeep(DEFAULT_CONTEXT, prof.context);
         if (sv.app > d.sync.v.app && prof.app_state) {
           const a = normalizeData({ ...prof.app_state, settings: d.settings });

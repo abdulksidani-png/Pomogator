@@ -98,3 +98,11 @@ describe('restoring saved data', () => {
     expect(d.sync.v).toEqual({ settings: 5, context: 0, app: 0, tasks: 0 });
   });
 });
+
+describe('saved settings with open-ended maps', () => {
+  it('keeps friend nicknames when loading (the defaults have none, so a plain merge would drop them)', () => {
+    const d = normalizeData({ settings: { nicknames: { 'friend-1': 'Alex (bio lab)', 'friend-2': '  ' } } as never });
+    expect(d.settings.nicknames).toEqual({ 'friend-1': 'Alex (bio lab)' });
+    expect(normalizeData(undefined).settings.nicknames).toEqual({});
+  });
+});

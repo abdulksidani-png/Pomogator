@@ -50,6 +50,7 @@ optional screen tracking, sign-in with cloud sync, and appearance customization.
 | + | Propeller cap, gear everywhere (assistant button too), friends see outfits, saved outfits, cartoon Sugarcane, gifts | Built, waiting on his test (no migration; gift SQL run by him) |
 | + | Last.fm music for everyone (gets around Spotify's 5-user cap) | Built, waiting on his test (needs `LASTFM_API_KEY` in Vercel; no migration) |
 | + | Pick a username after signing in (what friends see instead of "Study buddy") | Built, waiting on his test (no migration) |
+| + | Private nicknames for friends | Built, waiting on his test (migration 6 for nicknames on messages and invites) |
 
 Phase 3 also added the **study assistant** he asked for (`components/Assistant.tsx`, `lib/assistant.ts`): a corner
 "Ask PomoGator" button / `A` key opens a chat panel that sees the study panel, timer, to-do list, the selected
@@ -237,6 +238,16 @@ if the synced app-slice flag `pickedName` is false (sync pull ORs it). Saves wit
 `lib/username.ts` (2–20 letters/numbers/space . _ ' -, no @). Sync tests: `emailSignIn` answers it for new accounts
 and checks a second device isn't asked.
 
+**Friend nicknames (2026-10-16, his request):** `settings.nicknames` ({friendId: nick}, synced, private), rules in
+`lib/nicknames.ts` (`cleanNickname` ≤24, `cleanNicknames`, `shownName`), store `setNickname`, hook `useNameOf()` in
+social.ts used for every friend name in Friends.tsx/Together.tsx; the row shows the nickname with the username small
+beside it (`.friend-real`); `NicknameField` in the expanded row (`#nick-<id>`). Migration 6
+(`20261018000000_sender_ids.sql`) adds `from_id` to `support_inbox()` and `host_id` to `collab_invites()`
+(`Support.fromId`, `Invite.hostId`); before it's run those fall back to the username. **Gotcha found here:**
+`mergeDeep(DEFAULT_SETTINGS, …)` keeps only keys the defaults have, so an open-ended map with a `{}` default is
+emptied; `normalizeData` reads `nicknames` from the raw settings, and sync pull now applies settings through
+`normalizeData` too (regression test in tests/unit/sync.test.ts).
+
 **Quizzes from the shared screen (2026-10-15, his report: a Python session got a quiz on yesterday's philosophy deck):**
 screen tracking used OCR only to match slides, so off-document work was ignored. Now `capture()` in `lib/docs/screen.ts`
 puts every read frame's text on the live session (`addScreenText` → `session.screen`, ≤24k chars, dropped from history like
@@ -343,7 +354,7 @@ Earlier requests, all done and confirmed:
   - `TimerMenu.tsx` (saved timers menu), `Weekly.tsx` (weekly report, review banner), `Splash.tsx` (loading screen)
   - `Shop.tsx` (buddy shop, points chip, `MyBuddy`)
 - `supabase/migrations/`: `…000000_core.sql`, `…010000_documents.sql`, `20261015000000_ai_usage.sql`,
-  `20261016000000_friends.sql`, `20261017000000_support_replies.sql` (delete account, friends, presence, support messages, study rooms; other people's data only
+  `20261016000000_friends.sql`, `20261017000000_support_replies.sql`, `20261018000000_sender_ids.sql` (delete account, friends, presence, support messages, study rooms; other people's data only
   through security-definer functions that check the friendship and sharing switches). RLS restricts every table to
   `user_id = (select auth.uid())`. The owner pastes migrations into the SQL Editor by hand.
 
@@ -351,7 +362,7 @@ Earlier requests, all done and confirmed:
 ```bash
 npm run dev          # http://localhost:3000 (copies vendor files first)
 npm run typecheck
-npm test             # Vitest unit tests (128)
+npm test             # Vitest unit tests (132)
 npm run test:e2e     # Playwright: loop, documents, goals, screen tracking, tab sound, sounds, appearance, buddies, stats,
                      # saved timers, full screen, plan fold, weekly report, loading screen
 npm run test:ai      # Playwright: AI, Unsplash and Spotify against stand-ins (tests/fake-gemini; Spotify faked in-test)

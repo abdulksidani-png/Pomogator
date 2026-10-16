@@ -247,11 +247,18 @@ test('friends: add by code, see each other studying and their stats, and send su
   await pb.locator('#friendsCard .friend', { hasText: 'Ana' }).locator('.friend-row').click();
   await expect(pb.locator('#friendsCard .friend', { hasText: 'Ana' })).toContainText('Support sent today');
 
+  // Ana gives Bo a nickname only she sees; it shows in her list and on his messages, with his username beside it.
+  const bo = pa.locator('#friendsCard .friend', { hasText: 'Bo' });
+  await bo.locator('.friend-row').click();
+  await bo.getByLabel(/Nickname/).fill('Bo (chem lab)');
+  await bo.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(bo.locator('.friend-row strong')).toHaveText('Bo (chem lab)Bo');
+
   // Ana's screen: Bo's buddy walks in with the message.
   await pa.reload();
   const pop = pa.locator('.support-pop');
   await expect(pop).toContainText('You\'ve got this!', { timeout: 15_000 });
-  await expect(pop).toContainText('brought this from Bo');
+  await expect(pop).toContainText('brought this from Bo (chem lab)');
   await expect(pop.locator('.mascot')).toHaveAttribute('data-wear', 'sunglasses');
   await expect(pa.locator('#friendsCard .friend', { hasText: 'Bo' }).locator('.friend-ava .mascot')).toHaveAttribute('data-wear', 'sunglasses');
   // Ana replies in her own words, and her buddy carries it back to Bo.
@@ -266,6 +273,7 @@ test('friends: add by code, see each other studying and their stats, and send su
   const back = pb.locator('.support-pop');
   await expect(back).toContainText('Thanks Bo, you too!', { timeout: 15_000 });
   await expect(back).toContainText('brought a reply from Ana');
+  await expect(pb.locator('#friendsCard .friend', { hasText: 'Ana' }).locator('.friend-row strong')).toHaveText('Ana'); // nicknames are private
   await expect(back.getByRole('button', { name: 'Reply' })).toHaveCount(0); // no replies to replies
   await back.getByRole('button', { name: /Thanks/ }).click();
   await expect(back).toHaveCount(0);

@@ -21,6 +21,7 @@ import type { MascotKind } from './types';
 import { refreshInvites, resetCollab, resumeRoom } from './collab';
 import { decodeBuddy, encodeBuddy } from './cosmetics';
 import { useLastfm } from './lastfm';
+import { shownName } from './nicknames';
 export { cleanUsername } from './username';
 
 export type Doing = 'studying' | 'paused' | 'quiz' | 'break' | 'idle';
@@ -37,7 +38,7 @@ export interface Friend {
   online: boolean; activity: Activity | null; music: Music | null; stats: SharedStats | null; supportedToday: boolean;
 }
 export interface MyProfile { code: string; name: string; buddy: MascotKind; buddyCode: string; shareOnline: boolean; shareMusic: boolean; shareStats: boolean }
-export interface Support { id: string; fromName: string; buddy: MascotKind; wear: string[]; text: string; at: string; isReply: boolean }
+export interface Support { id: string; fromId: string; fromName: string; buddy: MascotKind; wear: string[]; text: string; at: string; isReply: boolean }
 
 export type SocialStatus = 'off' | 'guest' | 'loading' | 'ready' | 'not_ready' | 'error';
 interface SocialState {
@@ -188,7 +189,7 @@ export async function refreshInbox() {
   if (error) return;
   const seen = new Set(useSocial.getState().inbox.map((m) => m.id));
   const fresh = ((data ?? []) as Record<string, unknown>[])
-    .map((r) => ({ id: String(r.id), fromName: String(r.from_name), buddy: buddyOf(r.buddy), wear: wearOf(r.buddy), text: String(r.text), at: String(r.created_at), isReply: !!r.is_reply }))
+    .map((r) => ({ id: String(r.id), fromId: r.from_id ? String(r.from_id) : '', fromName: String(r.from_name), buddy: buddyOf(r.buddy), wear: wearOf(r.buddy), text: String(r.text), at: String(r.created_at), isReply: !!r.is_reply }))
     .filter((m) => !seen.has(m.id));
   if (fresh.length) set({ inbox: [...useSocial.getState().inbox, ...fresh] });
 }
@@ -285,6 +286,12 @@ export async function syncBuddy(code: string) {
   if (!c || !me || me.buddyCode === code) return;
   set({ me: { ...me, buddy: buddyOf(code), buddyCode: code } });
   await c.sb.rpc('social_me', { p_name: null, p_buddy: code });
+}
+
+/** In components: (friend id, their username) → your nickname for them, else the username. */
+export function useNameOf() {
+  const nicks = useStudy((s) => s.settings.nicknames);
+  return (id: string | undefined, name: string) => shownName(nicks, id, name);
 }
 
 /** Link that opens the site with the add-a-friend box filled in. */

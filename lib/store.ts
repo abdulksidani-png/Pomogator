@@ -25,6 +25,7 @@ import { celebrationFor, cleanBadges, cleanDates, type Celebration } from './che
 import { COSMETICS, cleanOutfits, cleanOwned, cleanWear, saveOutfit, wearing } from './cosmetics';
 import { pointsSummary, sessionPoints } from './points';
 import { cleanLastfmUser } from './lastfm-core';
+import { cleanNickname, cleanNicknames } from './nicknames';
 import type { Press } from './collab-core';
 
 /**
@@ -140,6 +141,8 @@ interface Actions {
   buyCosmetic: (id: string) => boolean;
   /** Put on or take off a bought cosmetic (one per slot). */
   setWear: (id: string, on: boolean) => void;
+  /** Your own nickname for a friend ('' removes it). */
+  setNickname: (friendId: string, nick: string) => void;
   /** Save the current buddy and what it wears under a name; put a saved outfit on; delete one. */
   saveOutfit: (name: string) => void;
   wearOutfit: (name: string) => void;
@@ -295,6 +298,7 @@ export function normalizeData(p: Partial<Data> | undefined): Data {
   settings.wear = cleanWear(settings.wear);
   settings.outfits = cleanOutfits(settings.outfits);
   settings.lastfmUser = cleanLastfmUser(settings.lastfmUser);
+  settings.nicknames = cleanNicknames((p.settings as Partial<Settings> | undefined)?.nicknames); // mergeDeep keeps only keys the defaults have, and the default map is empty
   const quiz: QuizState = { ...freshQuiz(), ...(p.quiz || {}) };
   if (quiz.gen === 'loading') quiz.gen = 'none'; // a reload dropped the request in flight
   const plan: PlanState = { status: 'none', ...(p.plan || {}) };
@@ -872,6 +876,10 @@ export const useStudy = create<Store>()(
         setWear(id, on) {
           if (on && !hasItem(get(), id)) return;
           set((d) => { d.settings.wear = wearing(d.settings.wear, id, on); });
+        },
+        setNickname(friendId, nick) {
+          const n = cleanNickname(nick);
+          set((d) => { if (n) d.settings.nicknames[friendId] = n; else delete d.settings.nicknames[friendId]; });
         },
         saveOutfit(name) {
           set((d) => { d.settings.outfits = saveOutfit(d.settings.outfits, name, d.settings.mascotKind, d.settings.wear); });

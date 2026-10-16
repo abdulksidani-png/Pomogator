@@ -16,7 +16,7 @@ import { MIN } from './util';
 import type { CollabMember, CollabRoom, MascotKind } from './types';
 import { decodeBuddy } from './cosmetics';
 
-export interface Invite { roomId: string; hostName: string; hostBuddy: MascotKind; hostWear: string[]; studyMin: number; breakMin: number; note: string; people: number }
+export interface Invite { roomId: string; hostId: string; hostName: string; hostBuddy: MascotKind; hostWear: string[]; studyMin: number; breakMin: number; note: string; people: number }
 
 export const useInvites = create<{ invites: Invite[] }>(() => ({ invites: [] }));
 
@@ -194,7 +194,7 @@ export async function refreshInvites() {
   if (error) return;
   useInvites.setState({
     invites: ((data ?? []) as Record<string, unknown>[]).map((r) => ({
-      roomId: String(r.room_id), hostName: String(r.host_name), hostBuddy: decodeBuddy(r.host_buddy).kind, hostWear: decodeBuddy(r.host_buddy).wear,
+      roomId: String(r.room_id), hostId: r.host_id ? String(r.host_id) : '', hostName: String(r.host_name), hostBuddy: decodeBuddy(r.host_buddy).kind, hostWear: decodeBuddy(r.host_buddy).wear,
       studyMin: Number(r.study_min), breakMin: Number(r.break_min), note: String(r.note ?? ''), people: Number(r.people) || 0,
     })),
   });

@@ -12,12 +12,14 @@ import { effective, roomTerms } from '@/lib/collab-core';
 import { Icon } from './Icon';
 import { Mascot } from './Mascot';
 import { SOFT } from './motion';
+import { useNameOf } from '@/lib/social';
 
 const STUDY = [25, 30, 45, 50];
 const BREAK = [5, 10, 15];
 
 /** Invite friends to a shared session. `friendId` is the friend it was opened from. */
 export function TogetherDialog({ friendId, onClose }: { friendId: string | null; onClose: () => void }) {
+  const nameOf = useNameOf();
   const ref = useRef<HTMLDialogElement>(null);
   const all = useSocial((s) => s.friends); // (filter outside the selector: a fresh array each time would re-render forever)
   const friends = useMemo(() => all.filter((f) => f.relation === 'friend'), [all]);
@@ -62,7 +64,7 @@ export function TogetherDialog({ friendId, onClose }: { friendId: string | null;
                 <label>
                   <input type="checkbox" checked={picked.includes(f.id)} disabled={!picked.includes(f.id) && picked.length >= 3} onChange={() => toggle(f.id)} />
                   <span className="friend-ava" aria-hidden="true"><Mascot mood={f.online ? 'happy' : 'idle'} kind={f.buddy} wear={f.wear} /></span>
-                  <span>{f.name}<small>{f.online ? 'online' : 'offline'}</small></span>
+                  <span>{nameOf(f.id, f.name)}<small>{f.online ? 'online' : 'offline'}</small></span>
                 </label>
               </li>
             ))}
@@ -97,6 +99,7 @@ export function TogetherDialog({ friendId, onClose }: { friendId: string | null;
 
 /** Invites to study together, above the timer. */
 export function InviteBanner() {
+  const nameOf = useNameOf();
   const invites = useInvites((s) => s.invites);
   const inRoom = useStudy((s) => !!s.collab);
   const T = useStudy((s) => s.timer);
@@ -106,14 +109,14 @@ export function InviteBanner() {
   const isBusy = T.phase === 'quiz' || T.status !== 'idle';
   const accept = async () => {
     const r = await answerInvite(inv.roomId, true);
-    if (r === 'joined') useStudy.getState().showToast(`You joined ${inv.hostName}'s session`);
+    if (r === 'joined') useStudy.getState().showToast(`You joined ${nameOf(inv.hostId, inv.hostName)}'s session`);
     else setErr(r === 'full' ? 'That group is full.' : r === 'ended' ? 'That session has ended.' : 'Couldn\'t join. Try again.');
   };
   return (
     <motion.section className="card week-banner invite-banner" id="inviteBanner" aria-label="Study together invite" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={SOFT}>
       <span className="invite-ava" aria-hidden="true"><Mascot mood="cheer" kind={inv.hostBuddy} wear={inv.hostWear} /></span>
       <div className="week-banner-text">
-        <strong>{inv.hostName} invited you to study together</strong>
+        <strong>{nameOf(inv.hostId, inv.hostName)} invited you to study together</strong>
         <span>{roomTerms(inv.studyMin, inv.breakMin)} · same break for everyone · {inv.people} of 4{inv.note ? ` · "${inv.note}"` : ''}</span>
         {(isBusy || inRoom) && <span className="hint">{inRoom ? 'Joining leaves your current group.' : 'Finish or reset your current session to join.'}</span>}
         {err && <span className="hint warn">{err}</span>}
@@ -126,6 +129,7 @@ export function InviteBanner() {
 
 /** While in a room: who's in it, the agreed lengths, and Leave. */
 export function RoomPanel() {
+  const nameOf = useNameOf();
   const room = useStudy((s) => s.collab);
   const me = useStudy((s) => s.account.userId);
   if (!room) return null;
@@ -136,15 +140,15 @@ export function RoomPanel() {
     <motion.section className="card room-panel" id="roomPanel" aria-label="Studying together" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={SOFT}>
       <div className="room-people">
         {joined.map((m) => (
-          <span key={m.id} className="room-person" title={m.id === me ? 'You' : m.name}>
+          <span key={m.id} className="room-person" title={m.id === me ? 'You' : nameOf(m.id, m.name)}>
             <span className="friend-ava" aria-hidden="true"><Mascot mood={e.phase === 'break' ? 'rest' : e.status === 'running' ? 'focus' : 'happy'} kind={m.buddy} wear={m.wear} /></span>
-            <span className="room-name">{m.id === me ? 'You' : m.name}</span>
+            <span className="room-name">{m.id === me ? 'You' : nameOf(m.id, m.name)}</span>
           </span>
         ))}
         {waiting.map((m) => (
-          <span key={m.id} className="room-person waiting" title={`${m.name} hasn't joined yet`}>
+          <span key={m.id} className="room-person waiting" title={`${nameOf(m.id, m.name)} hasn't joined yet`}>
             <span className="friend-ava" aria-hidden="true"><Mascot mood="idle" kind={m.buddy} wear={m.wear} /></span>
-            <span className="room-name">{m.name}<small>invited</small></span>
+            <span className="room-name">{nameOf(m.id, m.name)}<small>invited</small></span>
           </span>
         ))}
       </div>

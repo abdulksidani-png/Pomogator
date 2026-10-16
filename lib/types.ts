@@ -91,6 +91,8 @@ export interface Settings {
   wear: string[];
   /** Last.fm username for the music card and friends (no Spotify user limit); '' = not used. */
   lastfmUser: string;
+  /** Private nicknames for friends, by their account id (only you see them). */
+  nicknames: Record<string, string>;
   /** Saved buddy outfits (a buddy + what it wears), switched with one click in the shop. */
   outfits: Outfit[];
   /** The Unsplash photo used when background is 'unsplash'. */
