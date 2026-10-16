@@ -14,8 +14,9 @@ import { useSocial } from './social';
 import { effective, pressed, type Press } from './collab-core';
 import { MIN } from './util';
 import type { CollabMember, CollabRoom, MascotKind } from './types';
+import { decodeBuddy } from './cosmetics';
 
-export interface Invite { roomId: string; hostName: string; hostBuddy: MascotKind; studyMin: number; breakMin: number; note: string; people: number }
+export interface Invite { roomId: string; hostName: string; hostBuddy: MascotKind; hostWear: string[]; studyMin: number; breakMin: number; note: string; people: number }
 
 export const useInvites = create<{ invites: Invite[] }>(() => ({ invites: [] }));
 
@@ -24,14 +25,13 @@ let poll: ReturnType<typeof setTimeout> | undefined;
 let writing = 0;
 const serverNow = () => Date.now() + skew;
 const toLocal = (serverMs: number) => serverMs - skew;
-const BUDDIES: MascotKind[] = ['gorilla', 'gator', 'panther', 'bulldog', 'ibis'];
 
 function toRoom(j: Record<string, unknown>): CollabRoom & { ended: boolean } {
   return {
     id: String(j.id), host: String(j.host), studyMin: Number(j.studyMin), breakMin: Number(j.breakMin), note: String(j.note ?? ''),
     state: (j.state ?? {}) as CollabRoom['state'], v: Number(j.v) || 0, ended: !!j.ended,
     members: ((j.members ?? []) as Record<string, unknown>[]).map((m): CollabMember => ({
-      id: String(m.id), name: String(m.name), buddy: BUDDIES.includes(m.buddy as MascotKind) ? (m.buddy as MascotKind) : 'gator',
+      id: String(m.id), name: String(m.name), buddy: decodeBuddy(m.buddy).kind, wear: decodeBuddy(m.buddy).wear,
       status: m.status === 'invited' ? 'invited' : 'joined',
     })),
   };
@@ -194,7 +194,7 @@ export async function refreshInvites() {
   if (error) return;
   useInvites.setState({
     invites: ((data ?? []) as Record<string, unknown>[]).map((r) => ({
-      roomId: String(r.room_id), hostName: String(r.host_name), hostBuddy: BUDDIES.includes(r.host_buddy as MascotKind) ? (r.host_buddy as MascotKind) : 'gator',
+      roomId: String(r.room_id), hostName: String(r.host_name), hostBuddy: decodeBuddy(r.host_buddy).kind, hostWear: decodeBuddy(r.host_buddy).wear,
       studyMin: Number(r.study_min), breakMin: Number(r.break_min), note: String(r.note ?? ''), people: Number(r.people) || 0,
     })),
   });

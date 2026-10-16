@@ -99,6 +99,23 @@ Unsplash requires.
 Spotify's development mode allows only accounts added under **User Management** (up to 5), and the app owner needs
 Premium. Play, pause and skip also need Premium; showing what's playing works on any plan.
 
+## Give someone a cosmetic
+
+Buddy shop items are normally bought with study points. To give one to an account for free (a prize, or to try it
+yourself), open Supabase → **SQL Editor**, paste this, put the person's sign-in email and the item in the last two
+lines, and click **Run**. Items: `sunglasses`, `tie`, `cowboy`, `propeller`.
+
+```sql
+update public.profiles p
+set app_state = jsonb_set(coalesce(p.app_state, '{}'::jsonb), '{gifts}',
+  to_jsonb(array(select distinct g from jsonb_array_elements_text(coalesce(p.app_state->'gifts', '[]'::jsonb) || jsonb_build_array('propeller')) g)))
+where p.id = (select id from auth.users where email = 'their-email@example.com')
+returning p.app_state->'gifts' as gifts;
+```
+
+The result shows their gifts. "No rows returned" means that email hasn't signed in to the site yet. Gifts cost no
+points; they show up as "A gift, free to wear" the next time the site is opened or reloaded.
+
 ## What it costs
 
 Nothing, on these free plans, for a personal or class-sized site:

@@ -18,6 +18,7 @@ import { Mascot, type Mood } from './Mascot';
 import { Medal } from './Streaks';
 import { FoldCard } from './Panels';
 import { SOFT, SPRING } from './motion';
+import { encodeBuddy } from '@/lib/cosmetics';
 
 const hm = (min: number) => (min >= 60 ? `${Math.floor(min / 60)} h${min % 60 ? ` ${min % 60} min` : ''}` : `${min} min`);
 const days = (n: number) => `${n} day${n === 1 ? '' : 's'}`;
@@ -32,7 +33,9 @@ export function SocialHost({ onOpenFriends }: { onOpenFriends: (code: string) =>
   const ready = useSocial((s) => s.status === 'ready');
 
   useEffect(() => { startSocial(status); }, [status, userId]);
-  useEffect(() => { if (ready) void syncBuddy(kind); }, [ready, kind]);
+  const wear = useStudy((s) => s.settings.wear);
+  // My buddy and its outfit, as my friends see them (in their list, my messages and our study rooms).
+  useEffect(() => { if (ready) void syncBuddy(encodeBuddy(kind, wear)); }, [ready, kind, wear]);
   useEffect(() => {
     if (!ready) return;
     const t = setTimeout(() => void publishStats(), 3000);
@@ -104,7 +107,7 @@ export function FriendsCard({ onSignIn, onOpen, onTogether }: { onSignIn: () => 
         <>
           {requests.map((f) => (
             <div key={f.id} className="friend-request">
-              <span className="friend-ava" aria-hidden="true"><Mascot mood="happy" kind={f.buddy} /></span>
+              <span className="friend-ava" aria-hidden="true"><Mascot mood="happy" kind={f.buddy} wear={f.wear} /></span>
               <span className="friend-main"><strong>{f.name}</strong><span>wants to be friends</span></span>
               <span className="friend-req-btns">
                 <button className="btn btn-primary" type="button" onClick={() => void respondFriend(f.id, true)}>Accept</button>
@@ -134,7 +137,7 @@ function FriendRow({ f, open, onToggle, onTogether }: { f: Friend; open: boolean
   return (
     <li className="friend" data-online={f.online ? '1' : '0'} data-open={open ? '1' : undefined}>
       <button className="friend-row" type="button" aria-expanded={open} disabled={pending} onClick={onToggle}>
-        <span className="friend-ava" aria-hidden="true"><Mascot mood={moodOf(f)} kind={f.buddy} /></span>
+        <span className="friend-ava" aria-hidden="true"><Mascot mood={moodOf(f)} kind={f.buddy} wear={f.wear} /></span>
         <span className="friend-main">
           <strong>{f.name}</strong>
           <span className="friend-doing">{doingText(f)}</span>
@@ -330,7 +333,7 @@ function SupportBubble({ msg }: { msg: Support }) {
     <motion.div key={msg.id} className="support-pop" role="status" aria-live="polite"
       initial={{ x: -260, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ ...SPRING, stiffness: 160 }}>
       <motion.span className="support-buddy" aria-hidden="true" animate={{ y: [0, -8, 0, -4, 0] }} transition={{ duration: 1.1, delay: 0.45 }}>
-        <Mascot mood="cheer" kind={msg.buddy} />
+        <Mascot mood="cheer" kind={msg.buddy} wear={msg.wear} />
       </motion.span>
       <motion.div className="support-bubble" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ ...SPRING, delay: 0.5 }}>
         <p className="support-text">{msg.text}</p>

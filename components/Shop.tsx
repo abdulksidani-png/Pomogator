@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { pointsOf, useStudy } from '@/lib/store';
 import { COSMETICS, wearing } from '@/lib/cosmetics';
 import { POINT_RULES } from '@/lib/points';
@@ -41,6 +41,9 @@ export function ShopDialog() {
   const kind = useStudy((s) => s.settings.mascotKind);
   const wear = useStudy((s) => s.settings.wear);
   const owned = useStudy((s) => s.owned);
+  const gifts = useStudy((s) => s.gifts);
+  const outfits = useStudy((s) => s.settings.outfits);
+  const [outfitName, setOutfitName] = useState('');
   const checkins = useStudy((s) => s.checkins);
   const history = useStudy((s) => s.history);
   const bank = useStudy((s) => s.pointsBank);
@@ -83,16 +86,47 @@ export function ShopDialog() {
           </div>
         </div>
 
+        <div className="set-row stack" id="outfits">
+          <span className="field-label">Saved outfits<span className="sub">Save this buddy and what it's wearing, then switch back in one click.</span></span>
+          {outfits.length > 0 && (
+            <ul className="outfit-list" aria-label="Saved outfits">
+              {outfits.map((o) => {
+                const on = o.kind === kind && o.wear.length === wear.length && o.wear.every((w) => wear.includes(w));
+                return (
+                  <li key={o.name} className="outfit">
+                    <button type="button" className="outfit-pick" aria-pressed={on} onClick={() => st.wearOutfit(o.name)} aria-label={`Wear the outfit "${o.name}"`}>
+                      <span className="outfit-prev" aria-hidden="true"><Mascot mood="idle" kind={o.kind} wear={o.wear} /></span>
+                      <span className="outfit-name">{o.name}</span>
+                    </button>
+                    <button type="button" className="icon-btn outfit-del" aria-label={`Delete the outfit "${o.name}"`} onClick={() => st.deleteOutfit(o.name)}><Icon name="x" /></button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <form className="outfit-save" onSubmit={(e) => {
+            e.preventDefault();
+            if (!outfitName.trim()) return;
+            st.saveOutfit(outfitName);
+            st.showToast(`Saved the outfit "${outfitName.trim()}".`);
+            setOutfitName('');
+          }}>
+            <input type="text" id="outfitName" value={outfitName} maxLength={24} placeholder="Name this outfit, e.g. Game day" aria-label="Outfit name" onChange={(e) => setOutfitName(e.target.value)} />
+            <button className="btn" type="submit" disabled={!outfitName.trim()}><Icon name="bookmark" />Save outfit</button>
+          </form>
+        </div>
+
         <ul className="shop-grid" aria-label="Cosmetics">
           {COSMETICS.map((c) => {
-            const has = owned.includes(c.id);
+            const gift = gifts.includes(c.id) && !owned.includes(c.id);
+            const has = owned.includes(c.id) || gift;
             const on = wear.includes(c.id);
             const short = c.price - p.balance;
             return (
               <li key={c.id} className="shop-item" data-id={c.id} data-owned={has ? '1' : '0'}>
                 <span className="shop-prev" aria-hidden="true"><Mascot mood="idle" kind={kind} wear={wearing(wear, c.id, true)} /></span>
                 <b>{c.name}</b>
-                <span className="shop-blurb">{c.blurb}</span>
+                <span className="shop-blurb">{gift ? 'A gift, free to wear.' : c.blurb}</span>
                 {has ? (
                   <button className="btn" type="button" aria-pressed={on} onClick={() => st.setWear(c.id, !on)}>{on ? <><Icon name="check" />Wearing</> : 'Wear'}</button>
                 ) : (

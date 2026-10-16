@@ -29,6 +29,7 @@ export const DEFAULT_SETTINGS: Settings = {
   mascot: 'auto',
   mascotKind: 'gator', // PomoGator's own buddy, Albert
   wear: [],
+  outfits: [],
   bgPhoto: null,
   bgDaily: '',
   cardStyle: 'glass',

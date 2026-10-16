@@ -19,6 +19,7 @@ import { todayFor } from './dates';
 import { MIN } from './util';
 import type { MascotKind } from './types';
 import { refreshInvites, resetCollab, resumeRoom } from './collab';
+import { decodeBuddy, encodeBuddy } from './cosmetics';
 
 export type Doing = 'studying' | 'paused' | 'quiz' | 'break' | 'idle';
 export interface Activity { state: Doing; sessionMin?: number; todayMin: number; together?: boolean }
@@ -29,11 +30,12 @@ export interface SharedStats {
   totalMin: number; totalSessions: number; accuracy: number | null; badges: number[];
 }
 export interface Friend {
-  id: string; name: string; buddy: MascotKind; relation: 'friend' | 'sent' | 'received';
+  /** `wear`: the friend's outfit from the shop (it travels inside the buddy field, see encodeBuddy). */
+  id: string; name: string; buddy: MascotKind; wear: string[]; relation: 'friend' | 'sent' | 'received';
   online: boolean; activity: Activity | null; music: Music | null; stats: SharedStats | null; supportedToday: boolean;
 }
-export interface MyProfile { code: string; name: string; buddy: MascotKind; shareOnline: boolean; shareMusic: boolean; shareStats: boolean }
-export interface Support { id: string; fromName: string; buddy: MascotKind; text: string; at: string; isReply: boolean }
+export interface MyProfile { code: string; name: string; buddy: MascotKind; buddyCode: string; shareOnline: boolean; shareMusic: boolean; shareStats: boolean }
+export interface Support { id: string; fromName: string; buddy: MascotKind; wear: string[]; text: string; at: string; isReply: boolean }
 
 export type SocialStatus = 'off' | 'guest' | 'loading' | 'ready' | 'not_ready' | 'error';
 interface SocialState {
@@ -61,8 +63,10 @@ export const SUPPORT_LINES = [
   'Study hard, then treat yourself 🍦',
 ];
 
-const BUDDIES: MascotKind[] = ['gorilla', 'gator', 'panther', 'bulldog', 'ibis'];
-const buddyOf = (v: unknown): MascotKind => (BUDDIES.includes(v as MascotKind) ? (v as MascotKind) : 'gator');
+const buddyOf = (v: unknown): MascotKind => decodeBuddy(v).kind;
+const wearOf = (v: unknown): string[] => decodeBuddy(v).wear;
+/** My buddy and outfit, as friends will see it. */
+export const myBuddyCode = () => { const s = useStudy.getState().settings; return encodeBuddy(s.mascotKind, s.wear); };
 const notReady = (e: { code?: string; message?: string } | null) => !!e && /PGRST202|42883|42P01|social_me|friends_overview/.test(`${e.code} ${e.message}`);
 
 /* ------------------------------------------------------------------ what I share */
@@ -147,13 +151,13 @@ async function loadMe(): Promise<boolean> {
   const s = useStudy.getState();
   // A first name from Google, never an email address; it can be changed in the friends dialog.
   const first = s.account.name && !s.account.name.includes('@') ? s.account.name.split(' ')[0] : null;
-  const { data, error } = await c.sb.rpc('social_me', { p_name: first, p_buddy: s.settings.mascotKind });
+  const { data, error } = await c.sb.rpc('social_me', { p_name: first, p_buddy: myBuddyCode() });
   if (error) { set({ status: notReady(error) ? 'not_ready' : 'error', error: error.message }); return false; }
   const row = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | undefined;
   if (!row) { set({ status: 'error' }); return false; }
   set({
     status: 'ready',
-    me: { code: String(row.code), name: String(row.name), buddy: buddyOf(row.buddy), shareOnline: !!row.share_online, shareMusic: !!row.share_music, shareStats: !!row.share_stats },
+    me: { code: String(row.code), name: String(row.name), buddy: buddyOf(row.buddy), buddyCode: String(row.buddy), shareOnline: !!row.share_online, shareMusic: !!row.share_music, shareStats: !!row.share_stats },
   });
   return true;
 }
@@ -165,7 +169,7 @@ export async function refreshFriends() {
   if (error) return;
   set({
     friends: ((data ?? []) as Record<string, unknown>[]).map((r) => ({
-      id: String(r.user_id), name: String(r.name || 'Friend'), buddy: buddyOf(r.buddy), relation: r.relation as Friend['relation'],
+      id: String(r.user_id), name: String(r.name || 'Friend'), buddy: buddyOf(r.buddy), wear: wearOf(r.buddy), relation: r.relation as Friend['relation'],
       online: !!r.online, activity: (r.activity as Activity) ?? null, music: (r.music as Music) ?? null,
       stats: (r.stats as SharedStats) ?? null, supportedToday: !!r.supported_today,
     })),
@@ -179,7 +183,7 @@ export async function refreshInbox() {
   if (error) return;
   const seen = new Set(useSocial.getState().inbox.map((m) => m.id));
   const fresh = ((data ?? []) as Record<string, unknown>[])
-    .map((r) => ({ id: String(r.id), fromName: String(r.from_name), buddy: buddyOf(r.buddy), text: String(r.text), at: String(r.created_at), isReply: !!r.is_reply }))
+    .map((r) => ({ id: String(r.id), fromName: String(r.from_name), buddy: buddyOf(r.buddy), wear: wearOf(r.buddy), text: String(r.text), at: String(r.created_at), isReply: !!r.is_reply }))
     .filter((m) => !seen.has(m.id));
   if (fresh.length) set({ inbox: [...useSocial.getState().inbox, ...fresh] });
 }
@@ -229,7 +233,7 @@ export async function sendSupport(to: string, text: string): Promise<string> {
   const c = syncClient();
   if (!c) return 'error';
   const s = useStudy.getState();
-  const { data, error } = await c.sb.rpc('send_support', { p_to: to, p_day: todayFor(s.settings), p_text: text.trim().slice(0, 140), p_buddy: s.settings.mascotKind });
+  const { data, error } = await c.sb.rpc('send_support', { p_to: to, p_day: todayFor(s.settings), p_text: text.trim().slice(0, 140), p_buddy: myBuddyCode() });
   if (error) return 'error';
   await refreshFriends();
   return String(data);
@@ -242,7 +246,7 @@ export const REPLY_LINES = ['Thank you! 💛', 'You too! 💪', 'Study together 
 export async function replySupport(id: string, text: string): Promise<string> {
   const c = syncClient();
   if (!c) return 'error';
-  const { data, error } = await c.sb.rpc('reply_support', { p_message: id, p_text: text.trim().slice(0, 140), p_buddy: useStudy.getState().settings.mascotKind });
+  const { data, error } = await c.sb.rpc('reply_support', { p_message: id, p_text: text.trim().slice(0, 140), p_buddy: myBuddyCode() });
   if (error) return /PGRST202|42883|reply_support/.test(`${error.code} ${error.message}`) ? 'not_ready' : 'error';
   if (data === 'sent' || data === 'already_replied') set({ inbox: useSocial.getState().inbox.filter((m) => m.id !== id) });
   return String(data);
@@ -269,13 +273,13 @@ export async function updateMe(patch: Partial<Pick<MyProfile, 'name' | 'shareOnl
   await heartbeat(true);
 }
 
-/** Keep my buddy on my friend profile in step with the one I picked. */
-export async function syncBuddy(kind: MascotKind) {
+/** Keep my buddy and outfit on my friend profile in step with what I picked. */
+export async function syncBuddy(code: string) {
   const c = syncClient();
   const me = useSocial.getState().me;
-  if (!c || !me || me.buddy === kind) return;
-  set({ me: { ...me, buddy: kind } });
-  await c.sb.rpc('social_me', { p_name: null, p_buddy: kind });
+  if (!c || !me || me.buddyCode === code) return;
+  set({ me: { ...me, buddy: buddyOf(code), buddyCode: code } });
+  await c.sb.rpc('social_me', { p_name: null, p_buddy: code });
 }
 
 /** Link that opens the site with the add-a-friend box filled in. */

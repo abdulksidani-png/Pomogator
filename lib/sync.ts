@@ -187,7 +187,7 @@ function watchLocalChanges() {
     if (s.context !== prev.context) bump.context = next('context');
     if (s.timer !== prev.timer || s.quiz !== prev.quiz || s.plan !== prev.plan || s.day !== prev.day || s.asked !== prev.asked || s.weekly !== prev.weekly || s.weeklySeen !== prev.weeklySeen
       || s.checkins !== prev.checkins || s.celebrated !== prev.celebrated || s.badges !== prev.badges || s.tour !== prev.tour
-      || s.owned !== prev.owned || s.pointsBank !== prev.pointsBank) bump.app = next('app');
+      || s.owned !== prev.owned || s.pointsBank !== prev.pointsBank || s.gifts !== prev.gifts) bump.app = next('app');
     if (s.tasks !== prev.tasks) bump.tasks = next('tasks');
     const historyChanged = s.history !== prev.history || s.sync.clearPending !== prev.sync.clearPending;
     if (Object.keys(bump).length) {
@@ -211,7 +211,7 @@ export async function flush() {
 
 const appStateOf = (s: Data) => ({
   timer: s.timer, quiz: s.quiz, plan: s.plan, day: s.day, asked: s.asked, weekly: s.weekly, weeklySeen: s.weeklySeen,
-  checkins: s.checkins, celebrated: s.celebrated, badges: s.badges, tour: s.tour, owned: s.owned, pointsBank: s.pointsBank,
+  checkins: s.checkins, celebrated: s.celebrated, badges: s.badges, tour: s.tour, owned: s.owned, pointsBank: s.pointsBank, gifts: s.gifts,
 });
 
 async function push(): Promise<void> {
@@ -390,10 +390,12 @@ async function pull({ adopt = false }: { adopt?: boolean } = {}) {
           // What was bought is combined too (a purchase is never undone), and the larger points bank wins.
           const rOwned = cleanOwned(prof.app_state.owned), rBank = Math.max(0, Math.round(Number(prof.app_state.pointsBank) || 0));
           const owned = cleanOwned([...d.owned, ...rOwned]);
+          const rGifts = cleanOwned(prof.app_state.gifts), gifts = cleanOwned([...d.gifts, ...rGifts]);
           const bank = Math.max(d.pointsBank, rBank);
           const localExtra = checkins.length > r.checkins.length || Object.keys(badges).some((k) => badges[k] !== r.badges[k]) || celebrated !== r.celebrated
-            || owned.length > rOwned.length || bank > rBank;
+            || owned.length > rOwned.length || bank > rBank || gifts.length > rGifts.length;
           if (owned.length !== d.owned.length) d.owned = owned;
+          if (gifts.length !== d.gifts.length) d.gifts = gifts;
           if (bank !== d.pointsBank) d.pointsBank = bank;
           if (checkins.length !== d.checkins.length) d.checkins = checkins;
           if (Object.keys(badges).some((k) => badges[k] !== d.badges[k])) d.badges = badges;

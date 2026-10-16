@@ -1503,3 +1503,17 @@ html[data-ready] .splash { animation: splash-out .6s cubic-bezier(.22,1,.36,1) v
 @media (max-width: 560px) { .shop-top { grid-template-columns: 84px 1fr; gap: 12px; } .shop-buddy { height: 96px; } .shop-buddy .mascot { width: 80px; } }
 .pts-earned { display: inline-flex; align-items: center; gap: 5px; font-weight: 700; color: var(--fg); }
 .pts-earned svg.i { width: 16px; height: 16px; color: #C98A0B; fill: color-mix(in srgb, #F5C542 60%, transparent); }
+.outfit-list { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.outfit { position: relative; }
+.outfit-pick { display: grid; justify-items: center; gap: 4px; width: 92px; padding: 8px 6px 6px; border: 1px solid var(--rule); border-radius: var(--r-md); background: var(--card); color: var(--fg-2); font-size: 12.5px; font-weight: 700; cursor: pointer; }
+.outfit-pick:hover { border-color: var(--accent); }
+.outfit-pick[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--fg); }
+.outfit-prev { width: 52px; height: 52px; display: grid; place-items: end center; }
+.outfit-prev .mascot { width: 48px; max-height: 52px; }
+.outfit-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.outfit-del.icon-btn { position: absolute; top: -8px; right: -8px; width: 26px; height: 26px; min-height: 0; padding: 0; background: var(--card); }
+.outfit-del svg.i { width: 13px; height: 13px; }
+.outfit-save { display: flex; gap: 8px; }
+.outfit-save input { flex: 1; min-width: 0; }
+.fab-buddy { width: 30px; height: 30px; margin: -8px 0 -6px -4px; display: grid; place-items: end center; }
+.fab-buddy .mascot { width: 30px; max-height: 32px; }

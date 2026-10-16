@@ -22,7 +22,7 @@ import { MIN, clamp, mergeDeep, round1, timeOf, uid } from './util';
 import { applyPreset, cleanName, savePreset } from './presets';
 import { dayOf, detectTimeZone, todayFor } from './dates';
 import { celebrationFor, cleanBadges, cleanDates, type Celebration } from './checkins';
-import { COSMETICS, cleanOwned, cleanWear, wearing } from './cosmetics';
+import { COSMETICS, cleanOutfits, cleanOwned, cleanWear, saveOutfit, wearing } from './cosmetics';
 import { pointsSummary, sessionPoints } from './points';
 import type { Press } from './collab-core';
 
@@ -62,6 +62,8 @@ export interface Data {
   /** Cosmetics bought in the buddy shop, and study points from sessions too old to keep in history (see lib/points.ts). */
   owned: string[];
   pointsBank: number;
+  /** Cosmetics given rather than bought (added on the server, e.g. by the site owner); they cost no points. */
+  gifts: string[];
 }
 interface Flash { msg: string; id: number }
 interface Ui {
@@ -135,6 +137,10 @@ interface Actions {
   buyCosmetic: (id: string) => boolean;
   /** Put on or take off a bought cosmetic (one per slot). */
   setWear: (id: string, on: boolean) => void;
+  /** Save the current buddy and what it wears under a name; put a saved outfit on; delete one. */
+  saveOutfit: (name: string) => void;
+  wearOutfit: (name: string) => void;
+  deleteOutfit: (name: string) => void;
   /** Add several tasks at once, optionally replacing the list (used by the assistant). */
   addTasks: (texts: string[], replace?: boolean) => void;
   /** Keep a weekly summary (only the newest 26 weeks), and remember that a week's review was seen. */
@@ -224,6 +230,9 @@ export function sourcesKey(d: Data): string {
 const quizReusable = (d: Data) =>
   d.quiz.gen === 'ready' && d.quiz.ctxKey === ctxKey(d.context, d.settings) && (d.quiz.sources ?? '') === sourcesKey(d) && !d.quiz.used && d.quiz.madeOn === todayFor(d.settings);
 export const quizMatches = (d: Data) => d.quiz.gen === 'ready' && d.quiz.ctxKey === ctxKey(d.context, d.settings) && (d.quiz.sources ?? '') === sourcesKey(d) && !d.quiz.used;
+/** Bought or given. */
+export const hasItem = (d: Pick<Data, 'owned' | 'gifts'>, id: string) => d.owned.includes(id) || d.gifts.includes(id);
+
 /** Study points: earned from check-ins and sessions, minus what the shop cost (lib/points.ts). */
 export const pointsOf = (d: Pick<Data, 'checkins' | 'history' | 'owned' | 'pointsBank'> & { settings: Pick<Settings, 'streakFreeze'> }) =>
   pointsSummary({ checkins: d.checkins, history: d.history, owned: d.owned, bank: d.pointsBank, freezes: d.settings.streakFreeze });
@@ -251,6 +260,7 @@ function initialData(): Data {
     tour: '',
     owned: [],
     pointsBank: 0,
+    gifts: [],
   };
 }
 
@@ -279,6 +289,7 @@ export function normalizeData(p: Partial<Data> | undefined): Data {
     if ((t.values.skin as string) === 'tomato') t.values.skin = 'gator';
   }
   settings.wear = cleanWear(settings.wear);
+  settings.outfits = cleanOutfits(settings.outfits);
   const quiz: QuizState = { ...freshQuiz(), ...(p.quiz || {}) };
   if (quiz.gen === 'loading') quiz.gen = 'none'; // a reload dropped the request in flight
   const plan: PlanState = { status: 'none', ...(p.plan || {}) };
@@ -303,6 +314,7 @@ export function normalizeData(p: Partial<Data> | undefined): Data {
     badges: cleanBadges(p.badges),
     tour: typeof p.tour === 'string' ? p.tour : '',
     owned: cleanOwned(p.owned),
+    gifts: cleanOwned(p.gifts),
     pointsBank: Math.max(0, Math.round(Number(p.pointsBank) || 0)),
     sync: p.sync
       ? { ...fs, ...p.sync, v: { ...fs.v, ...p.sync.v }, acked: { ...fs.acked, ...p.sync.acked }, pushed: { ...(p.sync.pushed || {}) } }
@@ -846,14 +858,26 @@ export const useStudy = create<Store>()(
         buyCosmetic(id) {
           const s = get();
           const item = COSMETICS.find((c) => c.id === id);
-          if (!item || s.owned.includes(id)) return false;
+          if (!item || hasItem(s, id)) return false;
           if (pointsOf(s).balance < item.price) return false;
           set((d) => { d.owned = cleanOwned([...d.owned, id]); d.settings.wear = wearing(d.settings.wear, id, true); });
           return true;
         },
         setWear(id, on) {
-          if (on && !get().owned.includes(id)) return;
+          if (on && !hasItem(get(), id)) return;
           set((d) => { d.settings.wear = wearing(d.settings.wear, id, on); });
+        },
+        saveOutfit(name) {
+          set((d) => { d.settings.outfits = saveOutfit(d.settings.outfits, name, d.settings.mascotKind, d.settings.wear); });
+        },
+        wearOutfit(name) {
+          const s = get();
+          const o = s.settings.outfits.find((x) => x.name === name);
+          if (!o) return;
+          set((d) => { d.settings.mascotKind = o.kind; d.settings.mascot = 'on'; d.settings.wear = cleanWear(o.wear, [...s.owned, ...s.gifts]); });
+        },
+        deleteOutfit(name) {
+          set((d) => { d.settings.outfits = d.settings.outfits.filter((x) => x.name !== name); });
         },
         saveWeekly(week, data) {
           set((d) => {
@@ -999,7 +1023,7 @@ export const useStudy = create<Store>()(
         settings: s.settings, context: s.context, timer: s.timer, quiz: s.quiz, plan: s.plan, day: s.day,
         tasks: s.tasks, history: s.history, stats: s.stats, asked: s.asked, sync: s.sync, docs: s.docs,
         weekly: s.weekly, weeklySeen: s.weeklySeen, checkins: s.checkins, celebrated: s.celebrated, badges: s.badges, tour: s.tour,
-        owned: s.owned, pointsBank: s.pointsBank,
+        owned: s.owned, pointsBank: s.pointsBank, gifts: s.gifts,
       }),
       merge: (persisted, cur) => ({ ...cur, ...normalizeData(persisted as Partial<Data> | undefined) }),
     },

@@ -138,6 +138,14 @@ const server = http.createServer(async (req, res) => {
       const { rows } = await db.query(`select * from public.${table}`);
       return send(res, 200, rows);
     }
+    // The SQL the site owner runs in the Supabase SQL Editor to give someone a cosmetic (see docs/SETUP.md).
+    if (p === '/test/gift') {
+      const { rowCount } = await db.query(`update public.profiles p
+        set app_state = jsonb_set(coalesce(p.app_state, '{}'::jsonb), '{gifts}',
+          to_jsonb(array(select distinct g from jsonb_array_elements_text(coalesce(p.app_state->'gifts', '[]'::jsonb) || jsonb_build_array($2::text)) g)))
+        where p.id = (select id from auth.users where email = $1)`, [url.searchParams.get('email'), url.searchParams.get('item')]);
+      return send(res, 200, { updated: rowCount });
+    }
 
     const body = req.method === 'GET' ? {} : await readBody(req);
     const redirectTo = url.searchParams.get('redirect_to');

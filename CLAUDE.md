@@ -47,6 +47,7 @@ optional screen tracking, sign-in with cloud sync, and appearance customization.
 | 11 | Study together: synced timers, groups of 4, agreed break | Built, waiting on his test (needs migration 4) |
 | + | UF default look, Rocket (robot retired), fold-away cards, Today → Stats, replies to support messages | Built, waiting on his test (replies need migration 5) |
 | + | Study points + buddy shop, Sugarcane + Canes theme (tomato retired), "How far did you get?" removed | Built, waiting on his test (no migration) |
+| + | Propeller cap, gear everywhere (assistant button too), friends see outfits, saved outfits, cartoon Sugarcane, gifts | Built, waiting on his test (no migration; gift SQL run by him) |
 
 Phase 3 also added the **study assistant** he asked for (`components/Assistant.tsx`, `lib/assistant.ts`): a corner
 "Ask PomoGator" button / `A` key opens a chat panel that sees the study panel, timer, to-do list, the selected
@@ -201,6 +202,20 @@ orange stripes, UM-style, not UM's logo) + **Canes** theme (`canes`, light green
 Tomato theme are gone (`normalizeData` maps them to gator); `mascot` 'auto' now always shows the buddy. ReachPicker
 ("How far did you get?") is removed; `setReached` stays unused.
 
+**Shop round 2 (2026-10-16, his request, waiting on his test):** the propeller hat is a ball cap (yellow/red front panels,
+blue sides, green brim, navy blades on a yellow hub) from his photo; `HATS` entries have `rows`, an optional `side` view for
+profile buddies (gator, ibis: brim sticks out right) and `blades` (two `type-a/type-b` frames). Sugarcane redrawn as an
+upright cartoon ibis like the UM mascot photo he sent (original art: sailor cap without a logo, green jersey with orange
+stripes, white fists, long beak, orange feet; 26×27); `Sprite.capless` swaps out his cap under a shop hat. Corner
+assistant button shows `MyBuddy` (`.fab-buddy`). Friends: `encodeBuddy(kind, wear)` → `"ibis.ps"` (one-letter
+`Cosmetic.code`) in the existing ≤20-char buddy field (`social_me`, `send_support`, `reply_support`; rooms/invites read
+it from `social_profiles`); `decodeBuddy` in social.ts/collab.ts gives `wear` on `Friend`, `Support`, `CollabMember`,
+`Invite.hostWear`; `SocialHost` re-sends on outfit change. Saved outfits `settings.outfits` (`saveOutfit`, max 12, by
+name; store `saveOutfit/wearOutfit/deleteOutfit`; shop `#outfits`). Gifts: app-slice `gifts` (union-merged in sync,
+free; `hasItem`), given with the SQL in docs/SETUP.md "Give someone a cosmetic" (the fake Supabase has `/test/gift`
+running the same SQL, used in the sync test). He asked for the propeller on his own account: he runs that SQL himself
+(his email is never committed).
+
 **Quizzes from the shared screen (2026-10-15, his report: a Python session got a quiz on yesterday's philosophy deck):**
 screen tracking used OCR only to match slides, so off-document work was ignored. Now `capture()` in `lib/docs/screen.ts`
 puts every read frame's text on the live session (`addScreenText` → `session.screen`, ≤24k chars, dropped from history like
@@ -315,7 +330,7 @@ Earlier requests, all done and confirmed:
 ```bash
 npm run dev          # http://localhost:3000 (copies vendor files first)
 npm run typecheck
-npm test             # Vitest unit tests (120)
+npm test             # Vitest unit tests (122)
 npm run test:e2e     # Playwright: loop, documents, goals, screen tracking, tab sound, sounds, appearance, buddies, stats,
                      # saved timers, full screen, plan fold, weekly report, loading screen
 npm run test:ai      # Playwright: AI, Unsplash and Spotify against stand-ins (tests/fake-gemini; Spotify faked in-test)

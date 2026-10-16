@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { MascotKind } from '@/lib/types';
-import { COSMETIC_PAL, cosmeticLayers } from '@/lib/cosmetics';
+import { COSMETIC_PAL, cosmeticLayers, slotOf } from '@/lib/cosmetics';
 
 export type Mood = 'idle' | 'focus' | 'quiz' | 'happy' | 'rest' | 'cheer' | 'sad';
 
@@ -15,7 +15,11 @@ const NONE: readonly string[] = [];
 /* ---------------- pixel buddies ---------------- */
 
 interface Layer { x: number; y: number; rows: string[]; cls?: string }
-interface Sprite { w: number; pal: Record<string, string>; base: string[]; moods: Partial<Record<Mood, Record<number, [number, string]>>>; study: Layer[] }
+interface Sprite {
+  w: number; pal: Record<string, string>; base: string[];
+  /** The top rows without a built-in hat, swapped in while a shop hat is worn. */
+  capless?: string[];
+  moods: Partial<Record<Mood, Record<number, [number, string]>>>; study: Layer[] }
 
 /** Colors for the study props (desk, paper, pencil, laptop, typing hands). */
 const PROPS: Record<string, string> = { D: '#8A5A3B', d: '#6B4329', P: '#FBF7EE', L: '#BFC6D6', Y: '#F2C14E', R: '#E07A7A', G: '#3A3A3A', S: '#9AD1FF', g: '#3F9B4A' };
@@ -215,62 +219,76 @@ const SPRITES: Record<'gorilla' | 'gator' | 'panther' | 'bulldog' | 'ibis', Spri
       { x: 16, y: 13, rows: ["..R", "..Y", ".Y.", "Y..", "G.."], cls: "pencil" },
     ],
   },
+  // Sugarcane: an upright, cartoon ibis in a sailor cap and a green jersey with orange stripes, fists up (original art).
   ibis: {
-    w: 24,
-    pal: {"k": "#1B2A22", "w": "#FFFFFF", "o": "#F47321", "r": "#E2503B", "g": "#00563A", "x": "#2B2B2B", "t": "#7FC4FF"},
+    w: 26,
+    pal: {"k": "#1B2A22", "w": "#FFFFFF", "s": "#D5DDE0", "o": "#F47321", "e": "#C2541A", "g": "#00704A", "h": "#004A31", "x": "#1B2A22", "t": "#7FC4FF"},
     base: [
-      '........................',
-      '..........kkkk..........',
-      '.........kwwwwk.........',
-      '........kwwwwwwk........',
-      '........kwwwwrrkk.......',
-      '........kwwwwrrooook....',
-      '........kwwwwrkkooooook.',
-      '.........kwwwk....kkooo.',
-      '.........kwwwk......koo.',
-      '.........kwwwk.......ko.',
-      '........kwwwwwk......kk.',
-      '......kkwwwwwwwk........',
-      '....kkgggggggggkk.......',
-      '...kgggoooooooggk.......',
-      '..kxwgggggggggggk.......',
-      '..kxwwgggggggggk........',
-      '...kxwwgggggggggk.......',
-      '...kxkgoooooooggk.......',
-      '....kkgggggggggk........',
-      '.....kkkkkkkkkkk........',
-      '........ko..ko..........',
-      '........ko..ko..........',
-      '.......koo.koo..........',
-      '.......kkk.kkk..........',
+      '........kkkkkk............',
+      '.......kwwwwwwk...........',
+      '......kwwwwwwwwk..........',
+      '......kssssssssk..........',
+      '.......kkkkkkkk...........',
+      '.......kswwwwwk...........',
+      '......kswwwwwwkk..........',
+      '......kswwwwwxwkkkkkk.....',
+      '......kswwwwwwwooooooook..',
+      '.......kswwwwwkeeeeeoooook',
+      '........kswwwk.kkkkkkkeook',
+      '........kswwk.........keok',
+      '........kswwk..........kok',
+      '.......kkswwkk..........k.',
+      '.....kkggoowoogkk.........',
+      '....kggggggoggggkkk.......',
+      '...kgoggggggggggooogk.kk..',
+      '..kgogggggggggggkkkkgkwwk.',
+      '.kwkoggggggggggk...kkwwwwk',
+      '.kwwkgggggggggk.....kkkkk.',
+      '.kwwk.kggggggggk..........',
+      '..kk..khhhhhhhhk..........',
+      '.......kwk...kwk..........',
+      '......kwk.....kwk.........',
+      '.....kook.....kook........',
+      '....kooook...kooooook.....',
+      '....kkkkkk...kkkkkkkk.....',
+    ],
+    // His head without the sailor cap, used while he wears a hat from the shop.
+    capless: [
+      '..........................',
+      '..........................',
+      '..........................',
+      '..........................',
+      '........kkkkkk............',
     ],
     moods: {
-      idle: { 3: [11, "k"], 4: [11, "k"] },
-      focus: { 2: [9, "kkkk"], 3: [7, "kkkwwk"], 4: [9, "kwkk"], 5: [9, "kkkk"] },
-      quiz: { 2: [11, "k"], 3: [11, "k"] },
-      happy: { 3: [11, "k"], 4: [10, "k.k"] },
-      rest: { 4: [10, "kk"], 0: [1, "kkkk"], 1: [3, "k"], 2: [2, "k"], 3: [1, "kkkk"] },
-      cheer: { 3: [11, "k"], 4: [11, "k"], 6: [15, "k"] },
-      sad: { 2: [10, "k"], 3: [11, "k"], 4: [11, "k"], 5: [11, "t"], 6: [11, "t"] },
+      idle: {},
+      focus: { 6: [12, "kkkk"], 7: [11, "kkxk"], 8: [12, "kkk"] },
+      quiz: { 6: [13, "x"], 7: [13, "w"] },
+      happy: { 6: [13, "k"], 7: [12, "kwk"] },
+      rest: { 7: [12, "kkw"], 0: [1, "kkkk"], 1: [3, "k"], 2: [2, "k"], 3: [1, "kkkk"] },
+      cheer: { 6: [11, "kkk"], 7: [13, "kx"] },
+      sad: { 6: [13, "kk"], 8: [13, "t"], 9: [13, "t"] },
     },
     study: [
-      { x: 0, y: 19, rows: ["DDDDDDDDDDDDDDDDDDDDDDDD", "dddddddddddddddddddddddd", "d......................d", "d......................d", "d......................d"] },
-      { x: 13, y: 13, rows: ["GGGGGGGGG", "GLLLLLLLG", "GLLLSLLLG", "GLLLLLLLG", "GLLLLLLLG", "GGGGGGGGGGG"] },
-      { x: 13, y: 17, rows: ["..w...w.."], cls: "type-a" },
-      { x: 13, y: 17, rows: ["...w.w..."], cls: "type-b" },
+      { x: 0, y: 22, rows: ["DDDDDDDDDDDDDDDDDDDDDDDDDD", "dddddddddddddddddddddddddd", "d........................d", "d........................d", "d........................d"] },
+      { x: 15, y: 16, rows: ["GGGGGGGGG", "GLLLLLLLG", "GLLLSLLLG", "GLLLLLLLG", "GLLLLLLLG", "GGGGGGGGGGG"] },
+      { x: 15, y: 20, rows: ["..w...w.."], cls: "type-a" },
+      { x: 15, y: 20, rows: ["...w.w..."], cls: "type-b" },
     ],
   },
 };
 
 /** Draw a sprite as rows of pixel runs (one <rect> per run), crisp at any size. */
 function Pixel({ mood, sprite, name, wear }: { mood: Mood; sprite: Sprite; name: keyof typeof SPRITES; wear: readonly string[] }) {
+  const hatOn = wear.some((id) => slotOf(id) === 'hat');
   const runs = useMemo(() => {
-    const rows = sprite.base.map((r) => r.split(''));
+    const base = sprite.capless && hatOn ? [...sprite.capless, ...sprite.base.slice(sprite.capless.length)] : sprite.base;
+    const rows = base.map((r) => r.split(''));
     for (const [y, [x, s]] of Object.entries(sprite.moods[mood] ?? {})) {
       [...s].forEach((c, i) => { if (c !== '.') rows[Number(y)][x + i] = c; });
     }
     return toRuns(rows, sprite.pal);
-  }, [mood, sprite]);
+  }, [mood, sprite, hatOn]);
   // While studying: a desk, paper or a laptop, and a pencil or typing hands that move.
   const props = useMemo(() => (mood === 'focus' ? sprite.study.map((l) => ({ cls: l.cls ?? '', runs: toRuns(l.rows, { ...PROPS, ...sprite.pal }, l.x, l.y) })) : []), [mood, sprite]);
   // Shop cosmetics, on top of the buddy (and moving with it). A tall hat makes the picture taller, not the buddy smaller.

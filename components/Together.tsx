@@ -61,7 +61,7 @@ export function TogetherDialog({ friendId, onClose }: { friendId: string | null;
               <li key={f.id}>
                 <label>
                   <input type="checkbox" checked={picked.includes(f.id)} disabled={!picked.includes(f.id) && picked.length >= 3} onChange={() => toggle(f.id)} />
-                  <span className="friend-ava" aria-hidden="true"><Mascot mood={f.online ? 'happy' : 'idle'} kind={f.buddy} /></span>
+                  <span className="friend-ava" aria-hidden="true"><Mascot mood={f.online ? 'happy' : 'idle'} kind={f.buddy} wear={f.wear} /></span>
                   <span>{f.name}<small>{f.online ? 'online' : 'offline'}</small></span>
                 </label>
               </li>
@@ -111,7 +111,7 @@ export function InviteBanner() {
   };
   return (
     <motion.section className="card week-banner invite-banner" id="inviteBanner" aria-label="Study together invite" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={SOFT}>
-      <span className="invite-ava" aria-hidden="true"><Mascot mood="cheer" kind={inv.hostBuddy} /></span>
+      <span className="invite-ava" aria-hidden="true"><Mascot mood="cheer" kind={inv.hostBuddy} wear={inv.hostWear} /></span>
       <div className="week-banner-text">
         <strong>{inv.hostName} invited you to study together</strong>
         <span>{roomTerms(inv.studyMin, inv.breakMin)} · same break for everyone · {inv.people} of 4{inv.note ? ` · "${inv.note}"` : ''}</span>
@@ -137,13 +137,13 @@ export function RoomPanel() {
       <div className="room-people">
         {joined.map((m) => (
           <span key={m.id} className="room-person" title={m.id === me ? 'You' : m.name}>
-            <span className="friend-ava" aria-hidden="true"><Mascot mood={e.phase === 'break' ? 'rest' : e.status === 'running' ? 'focus' : 'happy'} kind={m.buddy} /></span>
+            <span className="friend-ava" aria-hidden="true"><Mascot mood={e.phase === 'break' ? 'rest' : e.status === 'running' ? 'focus' : 'happy'} kind={m.buddy} wear={m.wear} /></span>
             <span className="room-name">{m.id === me ? 'You' : m.name}</span>
           </span>
         ))}
         {waiting.map((m) => (
           <span key={m.id} className="room-person waiting" title={`${m.name} hasn't joined yet`}>
-            <span className="friend-ava" aria-hidden="true"><Mascot mood="idle" kind={m.buddy} /></span>
+            <span className="friend-ava" aria-hidden="true"><Mascot mood="idle" kind={m.buddy} wear={m.wear} /></span>
             <span className="room-name">{m.name}<small>invited</small></span>
           </span>
         ))}

@@ -146,7 +146,11 @@ propeller's two frames reuse the typing animation. Study points (`lib/points.ts`
 from what's already saved: check-in days (10 each, +10% per day of streak up to +50%), sessions of 20+ minutes that ran
 at least 90% of their planned length (1 per 5 minutes, +5 at 45), and a bank for sessions old enough to leave the
 local history, minus the price of what was bought. Because nothing is counted twice, two devices always agree. Bought
-items (`owned`) are combined across devices when syncing; what's worn is a setting (`settings.wear`).
+items (`owned`) and gifts (`gifts`, added on the server by the site owner; they cost nothing) are combined across
+devices when syncing; what's worn (`settings.wear`) and saved outfits (`settings.outfits`) are settings. A buddy with a
+built-in hat (Sugarcane's sailor cap) has `capless` rows that replace it while a shop hat is on. Friends see outfits
+without a migration: the buddy field they already read carries a short code, e.g. `ibis.ps` for Sugarcane in the
+propeller cap and sunglasses (`encodeBuddy` / `decodeBuddy`), which also goes on support messages and study rooms.
 The picked buddy also sits beside each quiz question (happy when you're right, sad when you're not) and in the assistant.
 
 The logo is pixel art in the same 2-bit style as the study buddies, stored as rows of letters in `lib/logo.ts`

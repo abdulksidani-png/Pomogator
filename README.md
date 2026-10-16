@@ -60,11 +60,13 @@ comes with an explanation and a memory aid, and **your score earns your break** 
   pause), everyone still gets a quiz, and the break is the length agreed in the invite, the same for the whole group.
 - **Study points and a buddy shop.** Each check-in earns 10 points (up to 15 with a streak going), and every session of
   20+ minutes studied without skipping earns a point per 5 minutes, with a bonus at 45. Spend them on pixel-art
-  sunglasses, a tie, a cowboy hat or a spinning rainbow propeller hat, which fit every buddy.
+  sunglasses, a tie, a cowboy hat or a propeller cap with spinning blades. Everything fits every buddy, and outfits can
+  be saved and switched in one click. Friends see your buddy's outfit in their list, on the messages it delivers and
+  in shared study rooms.
 - **Stats.** Today's sessions and an AI day summary, study time, check-in and study streaks, minutes per day, a 12-week
   heatmap, quiz accuracy by concept, your badges, and slide-by-slide coverage of each document.
 - **Make it yours.** It starts in UF blue and orange with Albert, a pixel-art gator. 12 themes, 5 study buddies (Albert,
-  Rocket the bulldog, Sugarcane the ibis, Panfer the panther and an arcade gorilla) that put on glasses and study at a desk while
+  Rocket the bulldog, Sugarcane the cartoon ibis, Panfer the panther and an arcade gorilla) that put on glasses and study at a desk while
   you do, cheer you through the quiz (happy when you're right, sad when you're not) and react in the chat. 7 clock
   fonts, 3 timer styles, Unsplash photo backgrounds, glass cards, side cards that fold away, saved timer presets, a
   full-screen focus mode and a Spotify "now playing" widget.
@@ -83,7 +85,7 @@ comes with an explanation and a memory aid, and **your score earns your break** 
 | <img src="docs/screenshots/assistant.jpg" alt="The study assistant turning an evening's to-dos into four Pomodoro sessions, with buttons to add them to the to-do list"> | <img src="docs/screenshots/focus.jpg" alt="Full-screen focus mode with a ring timer, Albert studying, and a small Spotify player in the corner"> |
 | **Study assistant.** Plans your evening in Pomodoro sessions. | **Focus mode.** Full screen, with the music player in the corner. |
 
-<img src="docs/screenshots/themes.jpg" alt="Four phones showing the Gator, Jungle, Midnight and Canes themes with Albert, the gorilla in a tie, Rocket in a cowboy hat and sunglasses, and Sugarcane in a propeller hat">
+<img src="docs/screenshots/themes.jpg" alt="Four phones showing the Gator, Jungle, Midnight and Canes themes with Albert, the gorilla in a tie, Rocket in a cowboy hat and sunglasses, and Sugarcane in the propeller cap">
 <p align="center"><b>Themes and study buddies,</b> on any screen size.</p>
 
 ## How it's built
@@ -158,7 +160,7 @@ It runs with no keys at all, saving everything in the browser. To switch on acco
 
 ```bash
 npm run typecheck
-npm test            # 120 unit tests: break rules, AI reply validation, stats (time zones, 4 AM rollover, streak freezes), check-in streaks, study points, cosmetics, weekly reports, sync merging, saved timers
+npm test            # 122 unit tests: break rules, AI reply validation, stats (time zones, 4 AM rollover, streak freezes), check-in streaks, study points, cosmetics, weekly reports, sync merging, saved timers
 npm run test:e2e    # 36 browser tests: study → quiz → break, document goals, screen tracking, tab audio, appearance, stats, streaks, the buddy shop, weekly report, focus mode, the tour, data export/delete, accessibility (axe)
 npm run test:ai     # 10 browser tests of the AI, Unsplash and Spotify features against local stand-ins
 npm run test:sync   # two devices and two accounts through real Postgres + PostgREST running the actual migrations: sync, streaks, friends, studying together, account deletion

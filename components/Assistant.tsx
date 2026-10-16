@@ -15,12 +15,13 @@ export const TODO_PROMPT = 'Make me a to-do list and plan it around my study tim
 /** The round "Ask PomoGator" button in the corner. */
 export function AssistantButton() {
   const open = useChat((s) => s.open);
+  const buddy = useStudy((s) => (s.settings.mascot === 'off' ? null : s.settings.mascotKind));
   return (
     <motion.button className="assistant-fab" type="button" aria-label="Ask the study assistant (A)" title="Ask the study assistant (A)"
       aria-expanded={open} onClick={() => (open ? closeAssistant() : openAssistant())}
       initial={false} animate={{ scale: open ? 0.86 : 1, opacity: open ? 0 : 1 }} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.94 }} transition={SPRING}
       style={{ pointerEvents: open ? 'none' : 'auto' }}>
-      <Icon name="sparkle" /><span>Ask PomoGator</span>
+      {buddy ? <span className="fab-buddy" aria-hidden="true"><MyBuddy mood="happy" kind={buddy} /></span> : <Icon name="sparkle" />}<span>Ask PomoGator</span>
     </motion.button>
   );
 }

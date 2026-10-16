@@ -1,3 +1,4 @@
+import type { Outfit } from './cosmetics';
 export type Phase = 'study' | 'quiz' | 'break';
 export type RunStatus = 'idle' | 'running' | 'paused';
 export type BreakKind = 'short' | 'long';
@@ -88,6 +89,8 @@ export interface Settings {
   mascotKind: MascotKind;
   /** Cosmetics the buddy is wearing (ids from lib/cosmetics.ts, bought in the shop), one per slot. */
   wear: string[];
+  /** Saved buddy outfits (a buddy + what it wears), switched with one click in the shop. */
+  outfits: Outfit[];
   /** The Unsplash photo used when background is 'unsplash'. */
   bgPhoto: UnsplashPhoto | null;
   /** A mood (search words) for a new Unsplash photo every day; '' = keep the chosen photo. */
@@ -452,7 +455,7 @@ export interface WeeklyAi { headline: string; summary: string; focus: string[] }
 export interface WeeklySaved extends WeeklyAi { sig: string; at: number }
 
 /** Studying together: a room of up to 4 friends with one shared timer (times are on the server's clock). */
-export interface CollabMember { id: string; name: string; buddy: MascotKind; status: 'joined' | 'invited' }
+export interface CollabMember { id: string; name: string; buddy: MascotKind; wear: string[]; status: 'joined' | 'invited' }
 export interface CollabTimer {
   phase: 'study' | 'break';
   status: 'idle' | 'running' | 'paused';

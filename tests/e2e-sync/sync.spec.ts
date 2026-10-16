@@ -142,6 +142,19 @@ test('the streak celebration shows once a day per account, and both devices shar
   await expect(b.locator('.task-list')).toContainText('Make flashcards');
   await b.waitForTimeout(1500);
   await expect(b.locator('.celebrate-dlg')).toBeHidden();
+
+  // A cosmetic given on the server (the SQL the site owner runs) shows up as a free gift, and stays after both devices sync.
+  const given = await (await fetch(`${FAKE}/test/gift?email=bo@test.dev&item=propeller`)).json();
+  expect(given.updated).toBe(1);
+  await b.reload();
+  await b.locator('#pointsBtn').click();
+  const gift = b.locator('#shopDlg .shop-item[data-id="propeller"]');
+  await expect(gift).toContainText('A gift, free to wear.', { timeout: 15_000 });
+  await gift.getByRole('button', { name: 'Wear' }).click();
+  await expect(b.locator('#stage .mascot-wrap .mascot')).toHaveAttribute('data-wear', 'propeller');
+  await b.waitForTimeout(2500); // the outfit is pushed with the settings
+  await a.reload();
+  await expect(a.locator('#stage .mascot-wrap .mascot')).toHaveAttribute('data-wear', 'propeller', { timeout: 15_000 });
 });
 
 test('deleting an account removes its rows and starts this device over as a guest', async ({ browser }) => {
@@ -192,6 +205,20 @@ async function friends(browser: Browser, a: string, b: string) {
 test('friends: add by code, see each other studying and their stats, and send support once a day', async ({ browser }) => {
   const { pa, pb } = await friends(browser, 'Ana', 'Bo');
 
+  // Bo unlocks sunglasses in the shop; friends see them on his buddy everywhere (list, messages).
+  await pb.addInitScript(() => {
+    if (sessionStorage.getItem('seeded')) return; // once, on the next load only
+    sessionStorage.setItem('seeded', '1');
+    const v = JSON.parse(localStorage.getItem('studybuddy.v1')!);
+    v.state.pointsBank = 500;
+    localStorage.setItem('studybuddy.v1', JSON.stringify(v));
+  });
+  await pb.reload();
+  await pb.locator('#pointsBtn').click();
+  await pb.locator('#shopDlg .shop-item[data-id="sunglasses"]').getByRole('button', { name: /Unlock/ }).click();
+  await pb.locator('#shopDlg').getByRole('button', { name: 'Done' }).click();
+  await pb.waitForTimeout(1500);
+
   // Ana starts studying; Bo sees it (Ana shares being online by default).
   await pa.getByRole('button', { name: /Start studying/ }).click();
   await pa.waitForTimeout(6000); // the next heartbeat carries the change
@@ -214,6 +241,8 @@ test('friends: add by code, see each other studying and their stats, and send su
   const pop = pa.locator('.support-pop');
   await expect(pop).toContainText('You\'ve got this!', { timeout: 15_000 });
   await expect(pop).toContainText('brought this from Bo');
+  await expect(pop.locator('.mascot')).toHaveAttribute('data-wear', 'sunglasses');
+  await expect(pa.locator('#friendsCard .friend', { hasText: 'Bo' }).locator('.friend-ava .mascot')).toHaveAttribute('data-wear', 'sunglasses');
   // Ana replies in her own words, and her buddy carries it back to Bo.
   await pop.getByRole('button', { name: 'Reply' }).click();
   await pop.locator('#supportReply').fill('Thanks Bo, you too!');
