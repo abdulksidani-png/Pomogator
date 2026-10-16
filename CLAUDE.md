@@ -171,10 +171,11 @@ React #185 bit again here: never `.filter()` inside a Zustand selector.
 
 **2026-10-16 changes (his requests):** default look for new visitors (DEFAULT_SETTINGS + the early-theme script in
 `app/layout.tsx`): `skin: 'gator'`, Albert, classic timer, `clockFont: 'hand'`, `background: 'dots'`, `cardStyle: 'glass'`,
-`corners: 'soft'`, comfortable. The gator theme is now UF blue (`--bg #0021A5`, navy cards) with orange (`--margin #FA4616`
-decorations, `--accent #FF8A5C` so orange text passes 4.5:1 on blue; `--on-accent` navy), orange dots. **Rocket** the
-bulldog (`bulldog` sprite in Mascot.tsx: original 2-bit pixel art he asked for from a bulldog logo photo — spiked collar,
-underbite, navy sweater with a small original shield-and-tree emblem; writes with a pencil while studying). The robot
+`corners: 'soft'`, comfortable. The gator theme (his second ask) is a soft off-white (`--bg #EEEDE7`, cards `#F8F7F3`) with UF blue
+(`--accent #0021A5`: buttons, links) and UF orange (`--margin #FA4616` stripe, orange dots, `.brand-gator #E8420F`). **Rocket**
+the bulldog (`bulldog` sprite in Mascot.tsx: original 2-bit pixel art from a bulldog logo photo — fawn coat with a white
+blaze and muzzle, dark rose ears, spiked collar, underbite, navy sweater with a small original shield-and-tree emblem
+(palette letter `v`, not `d`, which the desk prop uses); writes with a pencil while studying). The robot
 buddy is gone (`normalizeData` maps a saved `robot` to `gator`, also in saved timers; Robot lab theme has no buddy).
 `FoldCard` in Panels.tsx: every side card (study panel `ctx`, To-do `tasks`, Friends `friends`, Music `music`) folds like the
 plan card (`settings.folded`), with a `summary` beside the heading while folded; in focus mode the music card's fold is

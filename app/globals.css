@@ -846,27 +846,28 @@ html:root[data-skin="jungle"] body {
     radial-gradient(1000px 560px at 105% -10%, rgba(123,200,108,.18), transparent 60%);
   background-size: 190px 150px, 190px 150px, 190px 150px, auto;
 }
-/* Gator: UF blue with orange. The orange text color is a touch lighter than UF orange so it reads on blue. */
+/* Gator: a soft off-white with UF blue (buttons, links) and UF orange (stripes, dots, the "Gator" in the name). */
 html:root[data-skin="gator"] {
-  --bg: #0021A5; --card: #0B1F70; --sunk: #18338F;
-  --fg: #FFFFFF; --fg-2: #DCE3FA; --fg-3: #B3C1F0;
-  --rule: #3550C0; --margin: #FA4616;
-  --accent: #FF8A5C; --accent-soft: #47295A; --on-accent: #0B1440;
-  --good: #8FE6B0; --good-bg: #123E4A; --bad: #FFB3A1; --bad-bg: #4A1E45;
-  --hl: #5A2C3A; --hl-ink: #FFE8DD;
-  --shadow: 0 2px 0 rgba(250,70,22,.55), 0 16px 34px -16px rgba(0,0,0,.55);
-  color-scheme: dark;
+  --bg: #EEEDE7; --card: #F8F7F3; --sunk: #E8E6DE;
+  --fg: #0B1F4D; --fg-2: #34446E; --fg-3: #55617F;
+  --rule: #D8D5CA; --margin: #FA4616;
+  --accent: #0021A5; --accent-soft: #DDE3F6; --on-accent: #FFFFFF;
+  --good: #1B7A52; --good-bg: #E0F2E9; --bad: #C2331A; --bad-bg: #FDE6DF;
+  --hl: #FFE3D6; --hl-ink: #4A1A00;
+  --shadow: 0 2px 0 #D8D5CA, 0 12px 26px -16px rgba(0,33,165,.3);
+  color-scheme: light;
 }
 html:root[data-skin="gator"] body {
   background-image:
-    radial-gradient(900px 520px at 100% -10%, rgba(250,70,22,.22), transparent 60%),
-    repeating-linear-gradient(135deg, transparent 0 26px, rgba(250,70,22,.08) 26px 29px);
+    linear-gradient(180deg, rgba(0,33,165,.06), transparent 320px),
+    repeating-linear-gradient(135deg, transparent 0 26px, rgba(250,70,22,.06) 26px 29px);
 }
 /* Dots on the gator theme are UF orange. */
 html:root[data-skin="gator"][data-bg="dots"] body {
-  background-image: radial-gradient(rgba(250,70,22,.55) 1.4px, transparent 1.6px), radial-gradient(900px 520px at 100% -10%, rgba(250,70,22,.2), transparent 60%);
+  background-image: radial-gradient(rgba(250,70,22,.42) 1.4px, transparent 1.6px), linear-gradient(180deg, rgba(0,33,165,.06), transparent 320px);
   background-size: 24px 24px, auto;
 }
+html:root[data-skin="gator"] .brand-gator { color: #E8420F; }
 html:root[data-skin="gator"] .stage { border-top: 5px solid var(--margin); }
 html:root[data-skin="panther"] {
   --bg: #081E3F; --card: #0F2A55; --sunk: #163464;
