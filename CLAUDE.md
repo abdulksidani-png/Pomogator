@@ -82,7 +82,7 @@ button). Removing a domain in Vercel → Domains only removes that address; re-a
 shared FIU's loading sprite only as a style reference) and the gator is now named Albert. While studying (`focus` mood)
 every buddy wears glasses at a desk: gorilla and Panfer write (pencil layer, class `pencil`), Albert and the robot type
 on a laptop (`type-a`/`type-b`), the tomato writes. Pixel props are `study` layers in the sprite data. Buddy themes:
-`jungle` (gorilla), `gator` (UF orange/blue), `panther` (FIU navy/gold), `robotlab` (robot, Orbitron clock); picking a
+`jungle` (gorilla, named Dulie since 2026-10-16), `gator` (UF orange/blue), `panther` (FIU navy/gold), `robotlab` (robot, Orbitron clock); picking a
 theme with a `buddy` also picks that buddy.
 
 Then (he confirmed these work on the live site, 2026-10-15):

@@ -66,7 +66,7 @@ comes with an explanation and a memory aid, and **your score earns your break** 
 - **Stats.** Today's sessions and an AI day summary, study time, check-in and study streaks, minutes per day, a 12-week
   heatmap, quiz accuracy by concept, your badges, and slide-by-slide coverage of each document.
 - **Make it yours.** It starts in UF blue and orange with Albert, a pixel-art gator. 12 themes, 5 study buddies (Albert,
-  Rocket the bulldog, Sugarcane the cartoon ibis, Panfer the panther and an arcade gorilla) that put on glasses and study at a desk while
+  Rocket the bulldog, Sugarcane the cartoon ibis, Panfer the panther and Dulie the gorilla) that put on glasses and study at a desk while
   you do, cheer you through the quiz (happy when you're right, sad when you're not) and react in the chat. 7 clock
   fonts, 3 timer styles, Unsplash photo backgrounds, glass cards, side cards that fold away, saved timer presets, a
   full-screen focus mode and a Spotify "now playing" widget.
@@ -85,7 +85,7 @@ comes with an explanation and a memory aid, and **your score earns your break** 
 | <img src="docs/screenshots/assistant.jpg" alt="The study assistant turning an evening's to-dos into four Pomodoro sessions, with buttons to add them to the to-do list"> | <img src="docs/screenshots/focus.jpg" alt="Full-screen focus mode with a ring timer, Albert studying, and a small Spotify player in the corner"> |
 | **Study assistant.** Plans your evening in Pomodoro sessions. | **Focus mode.** Full screen, with the music player in the corner. |
 
-<img src="docs/screenshots/themes.jpg" alt="Four phones showing the Gator, Jungle, Midnight and Canes themes with Albert, the gorilla in a tie, Rocket in a cowboy hat and sunglasses, and Sugarcane in the propeller cap">
+<img src="docs/screenshots/themes.jpg" alt="Four phones showing the Gator, Jungle, Midnight and Canes themes with Albert, Dulie the gorilla in a tie, Rocket in a cowboy hat and sunglasses, and Sugarcane in the propeller cap">
 <p align="center"><b>Themes and study buddies,</b> on any screen size.</p>
 
 ## How it's built

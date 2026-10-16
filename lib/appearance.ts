@@ -63,7 +63,7 @@ export const PHOTO_MOODS: { name: string; query: string }[] = [
 ];
 
 export const MASCOTS: { id: MascotKind; name: string }[] = [
-  { id: 'gorilla', name: 'Arcade gorilla' },
+  { id: 'gorilla', name: 'Dulie' },
   { id: 'gator', name: 'Albert' },
   { id: 'panther', name: 'Panfer' },
   { id: 'bulldog', name: 'Rocket' },
