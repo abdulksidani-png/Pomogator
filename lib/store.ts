@@ -65,6 +65,8 @@ export interface Data {
   pointsBank: number;
   /** Cosmetics given rather than bought (added on the server, e.g. by the site owner); they cost no points. */
   gifts: string[];
+  /** The username friends see has been chosen (asked once after signing in). Synced, so other devices don't ask again. */
+  pickedName: boolean;
 }
 interface Flash { msg: string; id: number }
 interface Ui {
@@ -262,6 +264,7 @@ function initialData(): Data {
     owned: [],
     pointsBank: 0,
     gifts: [],
+    pickedName: false,
   };
 }
 
@@ -317,6 +320,7 @@ export function normalizeData(p: Partial<Data> | undefined): Data {
     tour: typeof p.tour === 'string' ? p.tour : '',
     owned: cleanOwned(p.owned),
     gifts: cleanOwned(p.gifts),
+    pickedName: p.pickedName === true,
     pointsBank: Math.max(0, Math.round(Number(p.pointsBank) || 0)),
     sync: p.sync
       ? { ...fs, ...p.sync, v: { ...fs.v, ...p.sync.v }, acked: { ...fs.acked, ...p.sync.acked }, pushed: { ...(p.sync.pushed || {}) } }
@@ -1025,7 +1029,7 @@ export const useStudy = create<Store>()(
         settings: s.settings, context: s.context, timer: s.timer, quiz: s.quiz, plan: s.plan, day: s.day,
         tasks: s.tasks, history: s.history, stats: s.stats, asked: s.asked, sync: s.sync, docs: s.docs,
         weekly: s.weekly, weeklySeen: s.weeklySeen, checkins: s.checkins, celebrated: s.celebrated, badges: s.badges, tour: s.tour,
-        owned: s.owned, pointsBank: s.pointsBank, gifts: s.gifts,
+        owned: s.owned, pointsBank: s.pointsBank, gifts: s.gifts, pickedName: s.pickedName,
       }),
       merge: (persisted, cur) => ({ ...cur, ...normalizeData(persisted as Partial<Data> | undefined) }),
     },

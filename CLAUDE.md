@@ -49,6 +49,7 @@ optional screen tracking, sign-in with cloud sync, and appearance customization.
 | + | Study points + buddy shop, Sugarcane + Canes theme (tomato retired), "How far did you get?" removed | Built, waiting on his test (no migration) |
 | + | Propeller cap, gear everywhere (assistant button too), friends see outfits, saved outfits, cartoon Sugarcane, gifts | Built, waiting on his test (no migration; gift SQL run by him) |
 | + | Last.fm music for everyone (gets around Spotify's 5-user cap) | Built, waiting on his test (needs `LASTFM_API_KEY` in Vercel; no migration) |
+| + | Pick a username after signing in (what friends see instead of "Study buddy") | Built, waiting on his test (no migration) |
 
 Phase 3 also added the **study assistant** he asked for (`components/Assistant.tsx`, `lib/assistant.ts`): a corner
 "Ask PomoGator" button / `A` key opens a chat panel that sees the study panel, timer, to-do list, the selected
@@ -228,6 +229,14 @@ back to Last.fm, so friends see it through the same heartbeat. Spotify 403/sign-
 on. Stand-in in `tests/fake-gemini/server.mjs` (`/2.0/`: nowplayer / quietone / nobody); test in
 `tests/e2e-ai/extras.spec.ts`. SETUP.md section 6 has the click-by-click key steps.
 
+**Username prompt (2026-10-16, his request):** `UsernamePrompt` in Friends.tsx (`#usernameDlg`, `#usernameIn`): once per
+account, after sign-in, once that account's data has been pulled (`sync.lastPull`/`ownerId`) and a fresh `pullNow()`,
+if the synced app-slice flag `pickedName` is false (sync pull ORs it). Saves with `updateMe({ name })` into
+`social_profiles.name` (so it needs the friends profile, i.e. migration 4); "Skip for now" asks again next visit;
+`#myName` in the friends dialog also sets `pickedName`. Not unique (friends add by code). Rule `cleanUsername` in
+`lib/username.ts` (2–20 letters/numbers/space . _ ' -, no @). Sync tests: `emailSignIn` answers it for new accounts
+and checks a second device isn't asked.
+
 **Quizzes from the shared screen (2026-10-15, his report: a Python session got a quiz on yesterday's philosophy deck):**
 screen tracking used OCR only to match slides, so off-document work was ignored. Now `capture()` in `lib/docs/screen.ts`
 puts every read frame's text on the live session (`addScreenText` → `session.screen`, ≤24k chars, dropped from history like
@@ -342,7 +351,7 @@ Earlier requests, all done and confirmed:
 ```bash
 npm run dev          # http://localhost:3000 (copies vendor files first)
 npm run typecheck
-npm test             # Vitest unit tests (126)
+npm test             # Vitest unit tests (128)
 npm run test:e2e     # Playwright: loop, documents, goals, screen tracking, tab sound, sounds, appearance, buddies, stats,
                      # saved timers, full screen, plan fold, weekly report, loading screen
 npm run test:ai      # Playwright: AI, Unsplash and Spotify against stand-ins (tests/fake-gemini; Spotify faked in-test)

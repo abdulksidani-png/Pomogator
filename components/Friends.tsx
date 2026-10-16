@@ -8,7 +8,7 @@ import { motion } from 'motion/react';
 import { useStudy } from '@/lib/store';
 import {
   REPLY_LINES, SUPPORT_LINES, addFriend, replySupport, type Support, heartbeat, inviteLink, markSeen, publishStats, refreshFriends, refreshInbox, respondFriend,
-  sendSupport, startSocial, syncBuddy, updateMe, useSocial, type Friend, type SharedStats,
+  cleanUsername, sendSupport, startSocial, syncBuddy, updateMe, useSocial, type Friend, type SharedStats,
 } from '@/lib/social';
 import { MASCOTS } from '@/lib/appearance';
 import { badgeName } from '@/lib/checkins';
@@ -19,9 +19,69 @@ import { Medal } from './Streaks';
 import { FoldCard } from './Panels';
 import { SOFT, SPRING } from './motion';
 import { encodeBuddy } from '@/lib/cosmetics';
+import { pullNow } from '@/lib/sync';
 
 const hm = (min: number) => (min >= 60 ? `${Math.floor(min / 60)} h${min % 60 ? ` ${min % 60} min` : ''}` : `${min} min`);
 const days = (n: number) => `${n} day${n === 1 ? '' : 's'}`;
+
+/**
+ * Right after signing in (once per account): pick the username friends see when they add you, instead of the
+ * placeholder "Study buddy". It can be changed later in the friends dialog.
+ */
+export function UsernamePrompt() {
+  // Only once this account's data has arrived, so a device signing in to an already-named account doesn't ask.
+  const signedIn = useStudy((s) => s.account.status === 'user' && s.sync.lastPull > 0 && s.sync.ownerId === s.account.userId);
+  const picked = useStudy((s) => s.pickedName);
+  const me = useSocial((s) => (s.status === 'ready' ? s.me : null));
+  const [skipped, setSkipped] = useState(false);
+  const [name, setName] = useState('');
+  const [busy, setBusy] = useState(false);
+  const ref = useRef<HTMLDialogElement>(null);
+  const due = signedIn && !!me && !picked && !skipped;
+
+  useEffect(() => {
+    if (!due || !me) { if (ref.current?.open) ref.current.close(); return; }
+    let live = true;
+    // Fetch this account's latest data first: another device may already have picked a name.
+    void Promise.race([pullNow(), new Promise((r) => setTimeout(r, 4000))]).then(() => {
+      if (!live || useStudy.getState().pickedName) return;
+      setName(me.name === 'Study buddy' ? '' : me.name);
+      if (!ref.current?.open) ref.current?.showModal();
+    });
+    return () => { live = false; };
+  }, [due, me]);
+
+  const valid = cleanUsername(name);
+  const save = async () => {
+    if (!valid) return;
+    setBusy(true);
+    await updateMe({ name: valid });
+    setBusy(false);
+    useStudy.getState().mutate((d) => { d.pickedName = true; });
+    useStudy.getState().showToast(`Hi, ${valid}! Friends will see you by that name.`);
+    ref.current?.close();
+  };
+
+  return (
+    <dialog ref={ref} id="usernameDlg" aria-labelledby="usernameTitle" onCancel={() => setSkipped(true)}>
+      {due && (
+        <form className="username-form" onSubmit={(e) => { e.preventDefault(); void save(); }}>
+          <div className="dlg-head"><h2 id="usernameTitle">Pick a username</h2></div>
+          <div className="dlg-body">
+            <p className="username-lead">This is the name friends see when they add you, on support messages and in study rooms.</p>
+            <label className="field-label" htmlFor="usernameIn">Username<span className="sub">2–20 letters or numbers. You can change it later in Friends.</span></label>
+            <input id="usernameIn" type="text" autoFocus autoComplete="nickname" maxLength={20} value={name} placeholder="e.g. Abdul" onChange={(e) => setName(e.target.value)} />
+            {name.trim() && !valid && <p className="hint warn" role="status">Use 2–20 letters, numbers or spaces (no @).</p>}
+          </div>
+          <div className="dlg-foot spread">
+            <button className="btn-quiet" type="button" onClick={() => { setSkipped(true); ref.current?.close(); }}>Skip for now</button>
+            <button className="btn btn-primary" type="submit" disabled={!valid || busy}>Save username</button>
+          </div>
+        </form>
+      )}
+    </dialog>
+  );
+}
 
 /** Starts friends for the signed-in account and keeps what I share up to date. Renders nothing. */
 export function SocialHost({ onOpenFriends }: { onOpenFriends: (code: string) => void }) {
@@ -279,9 +339,12 @@ export function FriendsDialog({ dialogRef, code: prefill }: { dialogRef: RefObje
             <fieldset>
               <legend>What friends can see</legend>
               <div className="set-row">
-                <label htmlFor="myName">Your name<span className="sub">How friends see you</span></label>
-                <input id="myName" type="text" maxLength={40} value={name} onChange={(e) => setName(e.target.value)}
-                  onBlur={() => { if (name.trim() && name.trim() !== me.name) void updateMe({ name }); }} />
+                <label htmlFor="myName">Your username<span className="sub">How friends see you</span></label>
+                <input id="myName" type="text" maxLength={20} value={name} onChange={(e) => setName(e.target.value)}
+                  onBlur={() => {
+                    const n = cleanUsername(name);
+                    if (n && n !== me.name) { void updateMe({ name: n }); useStudy.getState().mutate((d) => { d.pickedName = true; }); }
+                  }} />
               </div>
               <div className="set-row">
                 <label htmlFor="shareOnline">When I&apos;m online<span className="sub">And whether I&apos;m studying, on a break or taking a quiz, and for how long</span></label>

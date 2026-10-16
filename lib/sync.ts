@@ -187,7 +187,7 @@ function watchLocalChanges() {
     if (s.context !== prev.context) bump.context = next('context');
     if (s.timer !== prev.timer || s.quiz !== prev.quiz || s.plan !== prev.plan || s.day !== prev.day || s.asked !== prev.asked || s.weekly !== prev.weekly || s.weeklySeen !== prev.weeklySeen
       || s.checkins !== prev.checkins || s.celebrated !== prev.celebrated || s.badges !== prev.badges || s.tour !== prev.tour
-      || s.owned !== prev.owned || s.pointsBank !== prev.pointsBank || s.gifts !== prev.gifts) bump.app = next('app');
+      || s.owned !== prev.owned || s.pointsBank !== prev.pointsBank || s.gifts !== prev.gifts || s.pickedName !== prev.pickedName) bump.app = next('app');
     if (s.tasks !== prev.tasks) bump.tasks = next('tasks');
     const historyChanged = s.history !== prev.history || s.sync.clearPending !== prev.sync.clearPending;
     if (Object.keys(bump).length) {
@@ -211,7 +211,7 @@ export async function flush() {
 
 const appStateOf = (s: Data) => ({
   timer: s.timer, quiz: s.quiz, plan: s.plan, day: s.day, asked: s.asked, weekly: s.weekly, weeklySeen: s.weeklySeen,
-  checkins: s.checkins, celebrated: s.celebrated, badges: s.badges, tour: s.tour, owned: s.owned, pointsBank: s.pointsBank, gifts: s.gifts,
+  checkins: s.checkins, celebrated: s.celebrated, badges: s.badges, tour: s.tour, owned: s.owned, pointsBank: s.pointsBank, gifts: s.gifts, pickedName: s.pickedName,
 });
 
 async function push(): Promise<void> {
@@ -401,6 +401,7 @@ async function pull({ adopt = false }: { adopt?: boolean } = {}) {
           if (Object.keys(badges).some((k) => badges[k] !== d.badges[k])) d.badges = badges;
           if (celebrated !== d.celebrated) d.celebrated = celebrated;
           if (!d.tour && typeof prof.app_state.tour === 'string' && prof.app_state.tour) d.tour = prof.app_state.tour; // seen on another device
+          if (!d.pickedName && prof.app_state.pickedName === true) d.pickedName = true; // chosen on another device
           if (localExtra) { d.sync.v.app = Math.max(Date.now(), sv.app + 1, d.sync.v.app); pushAfter = true; }
         }
         const serverTasks = rowsToTasks((t.data ?? []) as TaskRow[]);

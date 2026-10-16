@@ -21,7 +21,8 @@ async function addTask(page: Page, text: string) {
   await expect(page.locator('.task-list')).toContainText(text);
 }
 
-async function emailSignIn(page: Page, email: string, expectNote: RegExp) {
+/** Sign in by email link. A new account is asked for a username (`name`, or the email's first part); an existing one isn't. */
+async function emailSignIn(page: Page, email: string, expectNote: RegExp, name?: string) {
   await page.getByRole('button', { name: /Sign in to save your progress/ }).click();
   await page.fill('#signinEmail', email);
   await page.getByRole('button', { name: 'Email me a link' }).click();
@@ -30,6 +31,17 @@ async function emailSignIn(page: Page, email: string, expectNote: RegExp) {
   expect(link).toBeTruthy();
   await page.goto(link); // what clicking the link in the email does
   await expect(footer(page)).toContainText(`Synced to ${email}`, { timeout: 15_000 });
+  const prompt = page.locator('#usernameDlg');
+  if (/click the link to finish/.test(expectNote.source)) {
+    await expect(prompt).toBeVisible({ timeout: 15_000 });
+    await expect(prompt.getByRole('button', { name: 'Save username' })).toBeDisabled();
+    await prompt.locator('#usernameIn').fill(name ?? email.split('@')[0].split('.')[0].replace(/^./, (c) => c.toUpperCase()));
+    await prompt.getByRole('button', { name: 'Save username' }).click();
+    await expect(prompt).toBeHidden();
+  } else {
+    await page.waitForTimeout(2500); // this account already has a username: no prompt on another device
+    await expect(prompt).toBeHidden();
+  }
 }
 
 test('guest progress survives sign-in, follows you to a second device, and stays private on sign-out', async ({ browser }) => {
@@ -183,10 +195,9 @@ async function friends(browser: Browser, a: string, b: string) {
   for (const [p, email, name] of [[pa, `${a.toLowerCase()}.pal@test.dev`, a], [pb, `${b.toLowerCase()}.pal@test.dev`, b]] as const) {
     await p.goto('/');
     await expect(footer(p)).toContainText('studying as a guest', { timeout: 15_000 });
-    await emailSignIn(p, email, /click the link to finish/);
+    await emailSignIn(p, email, /click the link to finish/, name); // the username they pick is what friends see
     await p.locator('#friendsCard').getByRole('button', { name: /Add friends/ }).click();
-    await p.fill('#myName', name);
-    await p.locator('#myName').blur();
+    await expect(p.locator('#myName')).toHaveValue(name);
   }
   const code = (await pa.locator('#myFriendCode').textContent())!.trim();
   await pa.locator('#friendsDlg').getByRole('button', { name: 'Done' }).click();

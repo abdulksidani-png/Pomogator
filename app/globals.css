@@ -1537,3 +1537,8 @@ html[data-ready] .splash { animation: splash-out .6s cubic-bezier(.22,1,.36,1) v
 .music-lastfm-form input { flex: 1; min-width: 0; }
 .music-lastfm { display: flex; align-items: center; gap: 8px; }
 .music-lastfm .music-open { margin-left: auto; }
+/* Username prompt after signing in */
+#usernameDlg { width: min(440px, calc(100vw - 24px)); }
+.username-form .dlg-body { gap: 10px; }
+.username-lead { margin: 0; color: var(--fg-2); }
+#usernameIn { width: 100%; font-size: 17px; }

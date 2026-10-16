@@ -22,7 +22,7 @@ import { PhotoCredit } from './PhotoPicker';
 import { BrandMark, BrandName } from './Brand';
 import { CelebrationHost, StreakPills } from './Streaks';
 import { PointsChip, ShopDialog } from './Shop';
-import { FriendsCard, FriendsDialog, SocialHost, SupportPopup } from './Friends';
+import { FriendsCard, FriendsDialog, SocialHost, SupportPopup, UsernamePrompt } from './Friends';
 import { InviteBanner, RoomPanel, TogetherDialog } from './Together';
 import { SITE } from '@/lib/site';
 import { openAssistant } from '@/lib/assistant';
@@ -271,6 +271,7 @@ export default function PomoGatorApp({ initialView = 'timer' }: { initialView?: 
       <SignInDialog dialogRef={signInRef} />
       <FriendsDialog dialogRef={friendsRef} code={friendCode} />
       <SocialHost onOpenFriends={(c) => openFriends(c)} />
+      <UsernamePrompt />
       <SupportPopup />
       <TogetherDialog friendId={togetherWith} onClose={() => setTogetherWith(null)} />
       <ProfileDialog dialogRef={profileRef} />

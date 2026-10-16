@@ -21,6 +21,7 @@ import type { MascotKind } from './types';
 import { refreshInvites, resetCollab, resumeRoom } from './collab';
 import { decodeBuddy, encodeBuddy } from './cosmetics';
 import { useLastfm } from './lastfm';
+export { cleanUsername } from './username';
 
 export type Doing = 'studying' | 'paused' | 'quiz' | 'break' | 'idle';
 export interface Activity { state: Doing; sessionMin?: number; todayMin: number; together?: boolean }
