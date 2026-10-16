@@ -560,6 +560,11 @@ html:root[data-cards="glass"] .card {
   border-color: color-mix(in srgb, #FFFFFF 22%, transparent);
   box-shadow: 0 1px 0 color-mix(in srgb, #FFFFFF 25%, transparent) inset, 0 18px 40px -24px rgba(0,0,0,.45);
 }
+/* Phones and tablets: a live blur behind every card is too heavy to scroll smoothly, so the glass is frosted
+   with a little more color instead of blurring what's behind it. */
+@media (hover: none), (max-width: 760px) {
+  html:root[data-cards="glass"] .card { -webkit-backdrop-filter: none; backdrop-filter: none; background: color-mix(in srgb, var(--card) 88%, transparent); }
+}
 html:root[data-cards="glass"] .card :is(input[type="text"], input[type="number"], select, textarea) { background: color-mix(in srgb, var(--card) 55%, transparent); }
 html:root[data-cards="glass"] .card .modes, html:root[data-cards="glass"] .card .doc-plan { background: color-mix(in srgb, var(--sunk) 60%, transparent); }
 
@@ -912,16 +917,22 @@ html:root[data-bg="grid"] body {
 html:root[data-bg="lined"] body {
   background-image: linear-gradient(90deg, transparent 52px, var(--margin) 52px 54px, transparent 54px), repeating-linear-gradient(to bottom, transparent 0 31px, var(--rule) 31px 32px);
 }
-html:root[data-bg="gradient"] body {
+/* Backgrounds that stay put while the page scrolls sit on their own fixed layer, which the browser keeps on the GPU.
+   (`background-attachment: fixed` would repaint the whole page on every scroll frame, the main cause of choppy
+   scrolling on phones.) */
+html:root:is([data-bg="gradient"], [data-bg="image"]) body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; will-change: transform;
+}
+html:root[data-bg="gradient"] body::before {
   background-image:
     radial-gradient(1100px 620px at 8% -12%, color-mix(in srgb, var(--accent) 24%, transparent), transparent 62%),
     radial-gradient(900px 520px at 108% 8%, color-mix(in srgb, var(--margin) 20%, transparent), transparent 60%);
-  background-attachment: fixed;
 }
-html:root[data-bg="image"] body {
+html:root[data-bg="image"] body { background-color: var(--bg-photo-color, var(--bg)); }
+html:root[data-bg="image"] body::before {
   background-color: var(--bg-photo-color, var(--bg));
   background-image: linear-gradient(rgba(0,0,0,var(--bg-dim, .35)), rgba(0,0,0,var(--bg-dim, .35))), var(--bg-image);
-  background-size: cover; background-position: center; background-attachment: fixed;
+  background-size: cover; background-position: center;
 }
 html:root[data-bg="image"] .foot, html:root[data-bg="image"] .brand-name, html:root[data-bg="image"] .brand-tag { text-shadow: 0 1px 8px rgba(0,0,0,.35); }
 

@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   // The sync tests build a second copy with different settings.
   distDir: process.env.NEXT_DIST_DIR || '.next',
   poweredByHeader: false,
+  // The stylesheet goes inside the page instead of a separate request that holds up the first paint (PageSpeed).
+  experimental: { inlineCss: true },
   // Shown in the footer so it's easy to tell which version a browser has loaded.
   env: { NEXT_PUBLIC_BUILD: (process.env.VERCEL_GIT_COMMIT_SHA || 'dev').slice(0, 7) },
   // Basic hardening: no framing by other sites, no MIME sniffing, and the camera, microphone and location stay off.

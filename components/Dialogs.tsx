@@ -13,6 +13,7 @@ import { celebrationsOn, setCelebrationsOn } from './Streaks';
 import { useArmed } from './Panels';
 import { siteConfig } from '@/lib/config';
 import { connectSpotify, disconnectSpotify, useSpotify } from '@/lib/spotify';
+import { useDialogOpen } from '@/lib/use-dialog-open';
 
 function DialogHead({ id, title, close }: { id: string; title: string; close: () => void }) {
   return (
@@ -28,6 +29,7 @@ const closeOnBackdrop = (e: React.MouseEvent<HTMLDialogElement>) => { if (e.targ
 export function SettingsDialog({ dialogRef, onSignIn, onAppearance }: {
   dialogRef: RefObject<HTMLDialogElement | null>; onSignIn: () => void; onAppearance: () => void;
 }) {
+  const open = useDialogOpen(dialogRef);
   const s = useStudy((st) => st.settings);
   const account = useStudy((st) => st.account);
   const ctx = useStudy((st) => st.context);
@@ -52,6 +54,7 @@ export function SettingsDialog({ dialogRef, onSignIn, onAppearance }: {
 
   return (
     <dialog ref={dialogRef} id="settingsDlg" aria-labelledby="setTitle" onClick={closeOnBackdrop}>
+      {open && (<>
       <DialogHead id="setTitle" title="Settings" close={close} />
       <div className="dlg-body">
         {!supabaseConfigured() && (
@@ -272,6 +275,7 @@ export function SettingsDialog({ dialogRef, onSignIn, onAppearance }: {
         </fieldset>
       </div>
       <div className="dlg-foot"><button className="btn btn-primary" type="button" onClick={close}>Done</button></div>
+      </>)}
     </dialog>
   );
 }

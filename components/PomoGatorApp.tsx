@@ -17,19 +17,23 @@ import { signInWithGoogle } from '@/lib/auth';
 import { SPRING } from './motion';
 import { AssistantButton, AssistantPanel } from './Assistant';
 import { MusicCard } from './Music';
-import { StatsView } from './Stats';
-import { WeekReviewBanner, WeeklyView } from './Weekly';
 import { fmt } from '@/lib/util';
 import { PhotoCredit } from './PhotoPicker';
 import { BrandMark, BrandName } from './Brand';
 import { CelebrationHost, StreakPills } from './Streaks';
 import { PointsChip, ShopDialog } from './Shop';
-import { Tour } from './Tour';
 import { FriendsCard, FriendsDialog, SocialHost, SupportPopup } from './Friends';
 import { InviteBanner, RoomPanel, TogetherDialog } from './Together';
 import { SITE } from '@/lib/site';
 import { openAssistant } from '@/lib/assistant';
 import { exitFocus, toggleFocus, useFocusMode, watchFullscreen } from '@/lib/focus';
+import dynamic from 'next/dynamic';
+
+// Loaded after the timer page, so the first visit starts faster: the Stats and Weekly pages and the first-time tour.
+const StatsView = dynamic(() => import('./Stats').then((m) => m.StatsView), { ssr: false });
+const WeeklyView = dynamic(() => import('./Weekly').then((m) => m.WeeklyView), { ssr: false });
+const WeekReviewBanner = dynamic(() => import('./Weekly').then((m) => m.WeekReviewBanner), { ssr: false });
+const Tour = dynamic(() => import('./Tour').then((m) => m.Tour), { ssr: false });
 
 /** The ambience that should be playing for the current timer state. */
 const desiredAmbience = (s: Store) =>

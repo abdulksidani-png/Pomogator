@@ -11,6 +11,7 @@ import { idb } from '@/lib/docs/idb';
 import type { Settings } from '@/lib/types';
 import { Icon } from './Icon';
 import { openShop } from './Shop';
+import { useDialogOpen } from '@/lib/use-dialog-open';
 
 const BG_KEY = 'look:bg-image';
 
@@ -68,6 +69,7 @@ function Seg<T extends string>({ label, value, options, onPick, fontFor }: {
 }
 
 export function AppearanceDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialogElement | null> }) {
+  const open = useDialogOpen(dialogRef);
   const s = useStudy((st) => st.settings);
   const update = useStudy.getState().updateSettings;
   const { showToast } = useStudy.getState();
@@ -95,6 +97,7 @@ export function AppearanceDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialo
 
   return (
     <dialog ref={dialogRef} id="lookDlg" aria-labelledby="lookTitle" onClick={(e) => { if (e.target === e.currentTarget) close(); }}>
+      {open && (<>
       <div className="dlg-head"><h2 id="lookTitle">Appearance</h2>
         <button className="icon-btn" type="button" aria-label="Close appearance" onClick={close}><Icon name="x" /></button></div>
       <div className="dlg-body">
@@ -186,6 +189,7 @@ export function AppearanceDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialo
         <button className="btn-quiet" type="button" onClick={reset}>Reset to default look</button>
         <button className="btn btn-primary" type="button" onClick={close}>Done</button>
       </div>
+      </>)}
     </dialog>
   );
 }

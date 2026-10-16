@@ -7,6 +7,7 @@ import { MASCOTS } from '@/lib/appearance';
 import { Mascot, type Mood } from './Mascot';
 import type { MascotKind } from '@/lib/types';
 import { Icon } from './Icon';
+import { useDialogOpen } from '@/lib/use-dialog-open';
 
 const OPEN = 'pomogator:shop';
 /** Open the buddy shop from anywhere (header chip, Appearance, Stats). */
@@ -38,6 +39,7 @@ export function PointsChip() {
  */
 export function ShopDialog() {
   const ref = useRef<HTMLDialogElement>(null);
+  const open = useDialogOpen(ref);
   const kind = useStudy((s) => s.settings.mascotKind);
   const wear = useStudy((s) => s.settings.wear);
   const owned = useStudy((s) => s.owned);
@@ -64,6 +66,7 @@ export function ShopDialog() {
 
   return (
     <dialog ref={ref} id="shopDlg" aria-labelledby="shopTitle" onClick={(e) => { if (e.target === e.currentTarget) close(); }}>
+      {open && (<>
       <div className="dlg-head"><h2 id="shopTitle">Buddy shop</h2>
         <button className="icon-btn" type="button" aria-label="Close the shop" onClick={close}><Icon name="x" /></button></div>
       <div className="dlg-body">
@@ -144,6 +147,7 @@ export function ShopDialog() {
         <p className="hint">One hat, one pair of glasses and one tie at a time. Points come from your own days and sessions, so they're the same on every device you sign in on.</p>
       </div>
       <div className="dlg-foot"><button className="btn btn-primary" type="button" onClick={close}>Done</button></div>
+      </>)}
     </dialog>
   );
 }

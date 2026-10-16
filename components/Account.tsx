@@ -6,6 +6,7 @@ import { signOut } from '@/lib/sync';
 import { supabaseConfigured } from '@/lib/supabase/env';
 import { detectTimeZone, timeZoneList } from '@/lib/dates';
 import { Icon } from './Icon';
+import { useDialogOpen } from '@/lib/use-dialog-open';
 
 const initials = (name?: string) =>
   (name || '?').replace(/@.*/, '').split(/[\s._-]+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join('') || '?';
@@ -106,6 +107,7 @@ export function SignInDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialogEle
 /* ---------------- profile dialog ---------------- */
 
 export function ProfileDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialogElement | null> }) {
+  const open = useDialogOpen(dialogRef);
   const s = useStudy((st) => st.settings);
   const a = useStudy((st) => st.account);
   const update = useStudy.getState().updateSettings;
@@ -116,6 +118,7 @@ export function ProfileDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialogEl
 
   return (
     <dialog ref={dialogRef} id="profileDlg" aria-labelledby="profileTitle" onClick={(e) => { if (e.target === e.currentTarget) close(); }}>
+      {open && (<>
       <div className="dlg-head">
         <h2 id="profileTitle">Profile &amp; settings</h2>
         <button className="icon-btn" type="button" aria-label="Close profile" onClick={close}><Icon name="x" /></button>
@@ -161,6 +164,7 @@ export function ProfileDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialogEl
         </fieldset>
       </div>
       <div className="dlg-foot"><button className="btn btn-primary" type="button" onClick={close}>Done</button></div>
+      </>)}
     </dialog>
   );
 }

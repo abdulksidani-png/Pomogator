@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { MascotKind } from '@/lib/types';
 import { COSMETIC_PAL, cosmeticLayers, slotOf } from '@/lib/cosmetics';
+import { pathsByColor, type PixelRun } from '@/lib/pixel-paths';
 
 export type Mood = 'idle' | 'focus' | 'quiz' | 'happy' | 'rest' | 'cheer' | 'sad';
 
@@ -24,9 +25,12 @@ interface Sprite {
 /** Colors for the study props (desk, paper, pencil, laptop, typing hands). */
 const PROPS: Record<string, string> = { D: '#8A5A3B', d: '#6B4329', P: '#FBF7EE', L: '#BFC6D6', Y: '#F2C14E', R: '#E07A7A', G: '#3A3A3A', S: '#9AD1FF', g: '#3F9B4A' };
 
-/** Rows of pixel letters → one <rect> per horizontal run of the same color. */
+/** One path per color (see lib/pixel-paths.ts). */
+export const Paths = ({ parts }: { parts: { c: string; d: string }[] }) => <>{parts.map((p) => <path key={p.c} d={p.d} fill={p.c} />)}</>;
+
+/** Rows of pixel letters → horizontal runs of the same color. */
 function toRuns(rows: string[][] | string[], pal: Record<string, string>, ox = 0, oy = 0) {
-  const out: { x: number; y: number; w: number; c: string }[] = [];
+  const out: PixelRun[] = [];
   rows.forEach((r, y) => {
     const row = typeof r === 'string' ? r.split('') : r;
     for (let x = 0; x < row.length;) {
@@ -287,22 +291,22 @@ function Pixel({ mood, sprite, name, wear }: { mood: Mood; sprite: Sprite; name:
     for (const [y, [x, s]] of Object.entries(sprite.moods[mood] ?? {})) {
       [...s].forEach((c, i) => { if (c !== '.') rows[Number(y)][x + i] = c; });
     }
-    return toRuns(rows, sprite.pal);
+    return pathsByColor(toRuns(rows, sprite.pal));
   }, [mood, sprite, hatOn]);
   // While studying: a desk, paper or a laptop, and a pencil or typing hands that move.
-  const props = useMemo(() => (mood === 'focus' ? sprite.study.map((l) => ({ cls: l.cls ?? '', runs: toRuns(l.rows, { ...PROPS, ...sprite.pal }, l.x, l.y) })) : []), [mood, sprite]);
+  const props = useMemo(() => (mood === 'focus' ? sprite.study.map((l) => ({ cls: l.cls ?? '', runs: pathsByColor(toRuns(l.rows, { ...PROPS, ...sprite.pal }, l.x, l.y)) })) : []), [mood, sprite]);
   // Shop cosmetics, on top of the buddy (and moving with it). A tall hat makes the picture taller, not the buddy smaller.
-  const extras = useMemo(() => cosmeticLayers(name, wear).map((l) => ({ cls: l.cls ?? '', top: l.y, runs: toRuns(l.rows, COSMETIC_PAL, l.x, l.y) })), [name, wear]);
+  const extras = useMemo(() => cosmeticLayers(name, wear).map((l) => ({ cls: l.cls ?? '', top: l.y, runs: pathsByColor(toRuns(l.rows, COSMETIC_PAL, l.x, l.y)) })), [name, wear]);
   const top = Math.min(0, ...extras.map((l) => l.top));
   const h = sprite.base.length;
   return (
     <svg className={`mascot pixel ${name}`} viewBox={`-2 ${top - 2} ${sprite.w + 4} ${h + 5 - top}`} data-mood={mood} data-wear={wear.join(' ') || undefined} shapeRendering="crispEdges">
       <rect x={sprite.w / 2 - 8} y={h + 1} width="16" height="1" fill="var(--sunk)" />
       <g className="m-bob">
-        {runs.map((r, i) => <rect key={i} x={r.x} y={r.y} width={r.w} height="1" fill={r.c} />)}
-        {extras.map((l, j) => <g key={`c${j}`} className={l.cls || undefined}>{l.runs.map((r, i) => <rect key={i} x={r.x} y={r.y} width={r.w} height="1" fill={r.c} />)}</g>)}
+        <Paths parts={runs} />
+        {extras.map((l, j) => <g key={`c${j}`} className={l.cls || undefined}><Paths parts={l.runs} /></g>)}
       </g>
-      {props.map((l, j) => <g key={j} className={l.cls || undefined}>{l.runs.map((r, i) => <rect key={i} x={r.x} y={r.y} width={r.w} height="1" fill={r.c} />)}</g>)}
+      {props.map((l, j) => <g key={j} className={l.cls || undefined}><Paths parts={l.runs} /></g>)}
     </svg>
   );
 }
