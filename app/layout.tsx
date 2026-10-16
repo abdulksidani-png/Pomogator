@@ -24,7 +24,8 @@ export const metadata: Metadata = {
   twitter: { card: 'summary_large_image', title: 'PomoGator', description },
 };
 
-const EARLY_THEME = `try{var s=JSON.parse(localStorage.getItem('studybuddy.v1')||'{}').state;s=s&&s.settings;if(s){var e=document.documentElement;if(s.skin&&s.skin!=='auto')e.dataset.skin=s.skin;if(/^#[0-9a-f]{6}$/i.test(s.accent||''))e.style.setProperty('--accent',s.accent)}}catch(_){}`;
+// New visitors start on the gator theme (the default look), so the loading screen is blue and orange for them too.
+const EARLY_THEME = `try{var e=document.documentElement;var s=JSON.parse(localStorage.getItem('studybuddy.v1')||'{}').state;s=s&&s.settings;var k=s&&s.skin?s.skin:'gator';if(k!=='auto')e.dataset.skin=k;if(!s)e.dataset.bg='dots';if(s&&/^#[0-9a-f]{6}$/i.test(s.accent||''))e.style.setProperty('--accent',s.accent)}catch(_){}`;
 
 export const viewport: Viewport = {
   width: 'device-width',

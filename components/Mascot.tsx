@@ -7,8 +7,7 @@ const INK = '#3A1D22';
 
 /** The study buddy beside the timer. Its face follows the timer: focused, quizzing, happy, resting. */
 export function Mascot({ mood, kind = 'tomato' }: { mood: Mood; kind?: MascotKind }) {
-  if (kind === 'robot') return <Robot mood={mood} />;
-  if (kind === 'gorilla' || kind === 'gator' || kind === 'panther') return <Pixel mood={mood} sprite={SPRITES[kind]} name={kind} />;
+  if (kind === 'gorilla' || kind === 'gator' || kind === 'panther' || kind === 'bulldog') return <Pixel mood={mood} sprite={SPRITES[kind]} name={kind} />;
   return <Tomato mood={mood} />;
 }
 
@@ -60,52 +59,6 @@ function Tomato({ mood }: { mood: Mood }) {
   );
 }
 
-/** A friendly robot whose face is a little screen. Its body takes the accent color. */
-function Robot({ mood }: { mood: Mood }) {
-  const glow = '#5CF2C9', metal = '#D7DDE7', shade = '#A9B3C4', screen = '#18202F';
-  return (
-    <svg className="mascot robot" viewBox="0 0 120 124" data-mood={mood}>
-      <ellipse cx="60" cy="117" rx="30" ry="5" fill="var(--sunk)" />
-      <g className="m-bob">
-        <path d="M60 24V11" stroke={shade} strokeWidth="4" strokeLinecap="round" />
-        <circle className="r-bulb" cx="60" cy="9" r="6" fill="var(--accent)" />
-        <rect x="14" y="42" width="10" height="20" rx="4" fill={shade} />
-        <rect x="96" y="42" width="10" height="20" rx="4" fill={shade} />
-        <rect x="21" y="23" width="78" height="60" rx="18" fill={metal} />
-        <rect x="21" y="23" width="78" height="60" rx="18" fill="none" stroke={shade} strokeWidth="3" />
-        <rect x="31" y="33" width="58" height="40" rx="11" fill={screen} />
-        <g fill={glow} stroke={glow} strokeLinecap="round" strokeLinejoin="round">
-          <g className="v v-idle v-cheer" stroke="none"><rect x="43" y="43" width="9" height="13" rx="4.5" /><rect x="68" y="43" width="9" height="13" rx="4.5" /></g>
-          <g className="v v-focus" stroke="none"><rect x="41" y="48" width="14" height="5" rx="2.5" /><rect x="65" y="48" width="14" height="5" rx="2.5" /></g>
-          <g className="v v-quiz" stroke="none"><circle cx="48" cy="50" r="6" /><rect x="67" y="47" width="11" height="6" rx="3" /></g>
-          <g className="v v-happy" fill="none" strokeWidth="4"><path d="M42 53l5.5-6 5.5 6M67 53l5.5-6 5.5 6" /></g>
-          <g className="v v-rest" fill="none" strokeWidth="4"><path d="M42 50h11M67 50h11" /></g>
-          <path className="v v-idle v-focus" d="M53 64q7 4 14 0" fill="none" strokeWidth="3" />
-          <path className="v v-happy v-cheer" d="M51 61q9 8 18 0z" strokeWidth="2" />
-          <circle className="v v-quiz" cx="60" cy="64" r="3" stroke="none" />
-          <path className="v v-rest" d="M56 64h8" fill="none" strokeWidth="3" />
-          <g className="v v-sad" fill="none" strokeWidth="4"><path d="M42 49l10-4M78 49l-10-4" /><path d="M44 54h7M69 54h7" /><path d="M52 66q8-6 16 0" strokeWidth="3" /></g>
-        </g>
-        <rect x="36" y="86" width="48" height="24" rx="9" fill={metal} stroke={shade} strokeWidth="3" />
-        <circle className="r-chest" cx="60" cy="98" r="5" fill="var(--accent)" />
-        <rect x="26" y="88" width="9" height="16" rx="4.5" fill={shade} />
-        <rect x="85" y="88" width="9" height="16" rx="4.5" fill={shade} />
-        <g className="v v-rest" fill="var(--fg-3)"><text x="98" y="26" fontSize="14">z</text><text x="108" y="14" fontSize="10">z</text></g>
-        <g className="v v-focus" fill="none" stroke={glow} strokeWidth="2" opacity=".85"><circle cx="47.5" cy="50.5" r="9" /><circle cx="72.5" cy="50.5" r="9" /><path d="M56.5 50h7" /></g>
-      </g>
-      <g className="v v-focus">
-        <rect x="4" y="112" width="112" height="6" rx="2" fill="#8A5A3B" />
-        <rect x="30" y="82" width="60" height="28" rx="4" fill="#3E4756" /><rect x="30" y="82" width="60" height="28" rx="4" fill="none" stroke="#2A313D" strokeWidth="2" />
-        <path d="M34 86h52" stroke="#5A6577" strokeWidth="2" strokeLinecap="round" />
-        <circle cx="60" cy="96" r="4" fill="var(--accent)" />
-        <rect x="20" y="108" width="80" height="5" rx="2" fill="#2A313D" />
-        <g className="type-a" fill={metal} stroke={shade} strokeWidth="1.5"><rect x="22" y="100" width="12" height="8" rx="4" /><rect x="86" y="103" width="12" height="8" rx="4" /></g>
-        <g className="type-b" fill={metal} stroke={shade} strokeWidth="1.5"><rect x="22" y="103" width="12" height="8" rx="4" /><rect x="86" y="100" width="12" height="8" rx="4" /></g>
-      </g>
-    </svg>
-  );
-}
-
 /* ---------------- pixel buddies ---------------- */
 
 interface Layer { x: number; y: number; rows: string[]; cls?: string }
@@ -131,7 +84,7 @@ function toRuns(rows: string[][] | string[], pal: Record<string, string>, ox = 0
 }
 
 /** 2-bit-style arcade sprites: the base picture plus the pixels that change for each mood. */
-const SPRITES: Record<'gorilla' | 'gator' | 'panther', Sprite> = {
+const SPRITES: Record<'gorilla' | 'gator' | 'panther' | 'bulldog', Sprite> = {
   gorilla: {
     w: 24,
     pal: {"k": "#1E1410", "b": "#5B3A29", "f": "#C9946A", "w": "#F4E9DC", "t": "#7FC4FF"},
@@ -263,6 +216,50 @@ const SPRITES: Record<'gorilla' | 'gator' | 'panther', Sprite> = {
       { x: 0, y: 19, rows: ["DDDDDDDDDDDDDDDDDDDDDDDD", "dddddddddddddddddddddddd", "d......................d", "d......................d", "d......................d"] },
       { x: 6, y: 17, rows: ["PPPPPPPPPPPP", "PLLLLLLLLPPP"] },
       { x: 15, y: 14, rows: ["..R", "..Y", ".Y.", "Y..", "G.."], cls: "pencil" },
+    ],
+  },
+  bulldog: {
+    w: 24,
+    pal: {"k": "#1F1A1C", "f": "#F3E9DA", "s": "#CDB9A0", "p": "#E27A8C", "w": "#FFFFFF", "c": "#2E2A30", "m": "#C9CED6", "u": "#123E6B", "b": "#5C8DC4", "d": "#0A2C4F", "n": "#3A2E2E", "t": "#7FC4FF"},
+    base: [
+      '........................',
+      '.kkk...kkkkkkkkkk...kkk.',
+      'kssk.kkffffffffffkk.kssk',
+      'kssfkffffffffffffffkfssk',
+      '.kkffffffffffffffffffkk.',
+      '..kkkffffffffffffffkkk..',
+      '.kffkkkffffffffffkkkffk.',
+      '.kffffffffffffffffffffk.',
+      '.kffffffffffffffffffffk.',
+      'kffffffffffffffffffffffk',
+      'kfsfffffkkkkkkkkfffffsfk',
+      'kfssffffknknnknkffffssfk',
+      'kfssfkfffffkkfffffkfssfk',
+      'kfssfkwkkkkkkkkkkwkfssfk',
+      'kfsssfkwwwwwwwwwwkfsssfk',
+      '.kfsssfkkkkkkkkkkfsssfk.',
+      '..kkkkkkkkkkkkkkkkkkkk..',
+      '.mkcmcmcmcmccmcmcmcmckm.',
+      '..kkuuuuubbbbbbuuuuukk..',
+      '.kfkuuuuubwddwbuuuuukfk.',
+      'kffkuuuuubdwwdbuuuuukffk',
+      '.kkkuuuuuubwwbuuuuuukkk.',
+      '...kffffk..bb..kffffk...',
+      '...kkkkkk......kkkkkk...',
+    ],
+    moods: {
+      idle: { 7: [6, "ww........ww"], 8: [6, "wk........kw"] },
+      focus: { 6: [5, "kkkk......kkkk"], 7: [5, "kwwkkkkkkkkwwk"], 8: [5, "kwkk......kkwk"], 9: [5, "kkkk......kkkk"] },
+      quiz: { 7: [6, "wk........kw"], 8: [6, "ww........ww"] },
+      happy: { 7: [6, "k..........k"], 8: [5, "k.k........k.k"], 13: [8, "kppppppk"] },
+      rest: { 8: [6, "kk........kk"], 13: [8, "kkkppkkk"] },
+      cheer: { 7: [6, "ww........ww"], 8: [6, "kw........wk"], 13: [8, "kppppppk"] },
+      sad: { 5: [3, "ffkkk........kkkff"], 6: [3, "kkff..........ffkk"], 7: [6, "kk........kk"], 8: [6, "wk........kw"], 9: [6, "t"], 10: [6, "t"], 13: [6, "kkkkkkkkkkkk"], 14: [7, "ffffffffff"] },
+    },
+    study: [
+      { x: 0, y: 19, rows: ["DDDDDDDDDDDDDDDDDDDDDDDD", "dddddddddddddddddddddddd", "d......................d", "d......................d", "d......................d"] },
+      { x: 7, y: 17, rows: ["PPPPPPPPPP", "PLLLLLPPPP"] },
+      { x: 16, y: 13, rows: ["..R", "..Y", ".Y.", "Y..", "G.."], cls: "pencil" },
     ],
   },
 };

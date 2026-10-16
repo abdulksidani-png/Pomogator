@@ -45,6 +45,7 @@ optional screen tracking, sign-in with cloud sync, and appearance customization.
 | 9 | Polish, export / delete account, full guide, first-time tour | Built, waiting on his test |
 | 10 | Friends: codes, widget (online, studying time, music, stats), support messages | Built, waiting on his test (needs migration 4) |
 | 11 | Study together: synced timers, groups of 4, agreed break | Built, waiting on his test (needs migration 4) |
+| + | UF default look, Rocket (robot retired), fold-away cards, Today → Stats, replies to support messages | Built, waiting on his test (replies need migration 5) |
 
 Phase 3 also added the **study assistant** he asked for (`components/Assistant.tsx`, `lib/assistant.ts`): a corner
 "Ask PomoGator" button / `A` key opens a chat panel that sees the study panel, timer, to-do list, the selected
@@ -168,6 +169,19 @@ mode switching is disabled; "+5" isn't offered in the group quiz. `TogetherDialo
 break 5/10/15, note), `InviteBanner` (Join is disabled while your own timer is busy), `RoomPanel` (members, terms, Leave).
 React #185 bit again here: never `.filter()` inside a Zustand selector.
 
+**2026-10-16 changes (his requests):** default look for new visitors (DEFAULT_SETTINGS + the early-theme script in
+`app/layout.tsx`): `skin: 'gator'`, Albert, classic timer, `clockFont: 'hand'`, `background: 'dots'`, `cardStyle: 'glass'`,
+`corners: 'soft'`, comfortable. The gator theme is now UF blue (`--bg #0021A5`, navy cards) with orange (`--margin #FA4616`
+decorations, `--accent #FF8A5C` so orange text passes 4.5:1 on blue; `--on-accent` navy), orange dots. **Rocket** the
+bulldog (`bulldog` sprite in Mascot.tsx: original 2-bit pixel art he asked for from a bulldog logo photo — spiked collar,
+underbite, navy sweater with a small original shield-and-tree emblem; writes with a pencil while studying). The robot
+buddy is gone (`normalizeData` maps a saved `robot` to `gator`, also in saved timers; Robot lab theme has no buddy).
+`FoldCard` in Panels.tsx: every side card (study panel `ctx`, To-do `tasks`, Friends `friends`, Music `music`) folds like the
+plan card (`settings.folded`), with a `summary` beside the heading while folded; in focus mode the music card's fold is
+`display: contents`. The Today card moved to the Stats page (above the tiles). Replies: migration 5
+(`20261017000000_support_replies.sql`: `reply_to`, partial unique indexes, `reply_support()`, `support_inbox()` gains
+`is_reply`); the popup has Reply → quick replies (`REPLY_LINES`) or your own words; replies can't be replied to.
+
 **Quizzes from the shared screen (2026-10-15, his report: a Python session got a quiz on yesterday's philosophy deck):**
 screen tracking used OCR only to match slides, so off-document work was ignored. Now `capture()` in `lib/docs/screen.ts`
 puts every read frame's text on the live session (`addScreenText` → `session.screen`, ≤24k chars, dropped from history like
@@ -272,7 +286,7 @@ Earlier requests, all done and confirmed:
   - `Music.tsx` (Spotify widget), `PhotoPicker.tsx` (Unsplash), `Mascot.tsx` (all buddies), `Stats.tsx` (Stats page)
   - `TimerMenu.tsx` (saved timers menu), `Weekly.tsx` (weekly report, review banner), `Splash.tsx` (loading screen)
 - `supabase/migrations/`: `…000000_core.sql`, `…010000_documents.sql`, `20261015000000_ai_usage.sql`,
-  `20261016000000_friends.sql` (delete account, friends, presence, support messages, study rooms; other people's data only
+  `20261016000000_friends.sql`, `20261017000000_support_replies.sql` (delete account, friends, presence, support messages, study rooms; other people's data only
   through security-definer functions that check the friendship and sharing switches). RLS restricts every table to
   `user_id = (select auth.uid())`. The owner pastes migrations into the SQL Editor by hand.
 

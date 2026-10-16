@@ -7,6 +7,7 @@ import { DEFINITIONS, WEEKDAYS, addDays, computeStats, weekStartOf, type DayStat
 import { Icon } from './Icon';
 import { SOFT } from './motion';
 import { BadgeShelf, useStreaks } from './Streaks';
+import { TodayCard } from './Panels';
 
 type Range = 'week' | 'month' | 'all';
 const RANGES: { id: Range; name: string }[] = [{ id: 'week', name: 'This week' }, { id: 'month', name: 'Last 30 days' }, { id: 'all', name: 'All time' }];
@@ -55,6 +56,7 @@ export function StatsView({ onBack, onWeekly }: { onBack: () => void; onWeekly: 
         </section>
       ) : (
         <>
+          <TodayCard />
           <div className="tiles">
             <Tile label="Study time" def={DEFINITIONS.studyTime} value={hm(s.studyMin)} note={`${s.sessions} session${s.sessions === 1 ? '' : 's'}`} i={0} />
             <Tile label="Average session" def={DEFINITIONS.sessions} value={s.avgSessionMin === null ? '–' : `${s.avgSessionMin} min`} note={s.sessions ? 'per counted session' : 'no sessions yet'} i={1} />

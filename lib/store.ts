@@ -256,6 +256,10 @@ export function normalizeData(p: Partial<Data> | undefined): Data {
   const base = initialData();
   if (!p) return base;
   const settings = mergeDeep(DEFAULT_SETTINGS, p.settings);
+  // The robot buddy was retired: anyone who had picked it gets Albert.
+  const buddies = ['tomato', 'gorilla', 'gator', 'panther', 'bulldog'];
+  if (!buddies.includes(settings.mascotKind)) settings.mascotKind = 'gator';
+  for (const t of settings.savedTimers) if (t.values.mascotKind && !buddies.includes(t.values.mascotKind)) t.values.mascotKind = 'gator';
   const quiz: QuizState = { ...freshQuiz(), ...(p.quiz || {}) };
   if (quiz.gen === 'loading') quiz.gen = 'none'; // a reload dropped the request in flight
   const plan: PlanState = { status: 'none', ...(p.plan || {}) };

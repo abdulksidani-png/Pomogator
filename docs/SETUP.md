@@ -38,6 +38,7 @@ Every push to the main branch redeploys the site. After adding or changing an en
    2. [`supabase/migrations/20261014010000_documents.sql`](../supabase/migrations/20261014010000_documents.sql): documents, pages, progress, private file storage
    3. [`supabase/migrations/20261015000000_ai_usage.sql`](../supabase/migrations/20261015000000_ai_usage.sql): the daily AI allowance (strongly recommended on a public site)
    4. [`supabase/migrations/20261016000000_friends.sql`](../supabase/migrations/20261016000000_friends.sql): "Delete my account", friends, support messages and studying together
+   5. [`supabase/migrations/20261017000000_support_replies.sql`](../supabase/migrations/20261017000000_support_replies.sql): replies to friends' support messages
 
    Each file is safe to run again. If a feature says it "isn't switched on for this site yet", the file it needs
    hasn't been run.
@@ -136,6 +137,7 @@ npm run dev                  # http://localhost:3000
 | "Quizzes aren't switched on yet" | `GEMINI_API_KEY` is missing, or the site wasn't redeployed after adding it. |
 | The footer mentions documents not syncing | Run migration 2 (`…010000_documents.sql`). |
 | "Deleting accounts isn't switched on" or Friends says it isn't set up | Run migration 4 (`20261016000000_friends.sql`). |
+| "Replies aren't switched on" | Run migration 5 (`20261017000000_support_replies.sql`). |
 | Sign-in links stop arriving | Supabase's built-in email sends only a few an hour. Wait, or add your own SMTP under Authentication → Emails. |
 | The site loads but nothing saves to the account after a quiet week | The free Supabase project was paused. Supabase dashboard → your project → **Restore**. |
 | The footer shows a different version than expected | The footer's `v1234abc` is the deployed commit; refresh the tab if it's old. |

@@ -196,7 +196,7 @@ test('tab sound: a shared lecture tab\'s speech becomes notes for the session', 
   await expect(page.locator('.heard-text')).not.toContainText('[Music]');
 });
 
-test('study buddies: pick Albert or the robot, and they study at a desk while the timer runs', async ({ page }) => {
+test('study buddies: pick Albert or Rocket, and they study at a desk while the timer runs', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('.mascot-wrap .mascot.gator')).toBeVisible(); // PomoGator starts with Albert
   await page.getByRole('button', { name: 'Appearance', exact: true }).click();
@@ -211,7 +211,10 @@ test('study buddies: pick Albert or the robot, and they study at a desk while th
   await expect(page.locator('.mascot-wrap .mascot')).toHaveAttribute('data-mood', 'focus');
   await expect(page.locator('.mascot-wrap .type-a')).toHaveCount(1); // typing on a laptop
   await page.getByRole('button', { name: 'Appearance', exact: true }).click();
-  await page.locator('#lookDlg').getByRole('button', { name: 'Robot', exact: true }).click();
+  await page.locator('#lookDlg').getByRole('button', { name: /Rocket/ }).click();
+  await expect(page.locator('.mascot-wrap .mascot.bulldog')).toBeVisible();
+  await expect(page.locator('.mascot-wrap .pencil')).toHaveCount(1); // Rocket takes notes
+  await expect(page.locator('#lookDlg').getByRole('button', { name: 'Robot', exact: true })).toHaveCount(0); // retired
   await page.locator('#lookDlg').getByRole('button', { name: 'Hidden' }).click();
   await page.locator('#lookDlg').getByRole('button', { name: 'Done' }).click();
   await expect(page.locator('.mascot-wrap')).toBeHidden();

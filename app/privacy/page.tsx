@@ -25,7 +25,7 @@ export default function Privacy() {
       <h2>Friends</h2>
       <p>Friends are only for signed-in accounts. A friend sees your name and study buddy, and only what you switch on in the
         friends settings: whether you&apos;re online and what you&apos;re doing (studying, on a break, taking a quiz, and for how
-        long), the song playing in your Spotify widget, and your stats and streaks. Support messages and study-together
+        long), the song playing in your Spotify widget, and your stats and streaks. Support messages (and replies to them) and study-together
         sessions are stored so they can be delivered, and are deleted with your account. Your email is never shown to
         friends.</p>
 

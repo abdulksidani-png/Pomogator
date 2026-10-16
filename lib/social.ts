@@ -33,7 +33,7 @@ export interface Friend {
   online: boolean; activity: Activity | null; music: Music | null; stats: SharedStats | null; supportedToday: boolean;
 }
 export interface MyProfile { code: string; name: string; buddy: MascotKind; shareOnline: boolean; shareMusic: boolean; shareStats: boolean }
-export interface Support { id: string; fromName: string; buddy: MascotKind; text: string; at: string }
+export interface Support { id: string; fromName: string; buddy: MascotKind; text: string; at: string; isReply: boolean }
 
 export type SocialStatus = 'off' | 'guest' | 'loading' | 'ready' | 'not_ready' | 'error';
 interface SocialState {
@@ -61,7 +61,7 @@ export const SUPPORT_LINES = [
   'Study hard, then treat yourself 🍦',
 ];
 
-const BUDDIES: MascotKind[] = ['tomato', 'robot', 'gorilla', 'gator', 'panther'];
+const BUDDIES: MascotKind[] = ['tomato', 'gorilla', 'gator', 'panther', 'bulldog'];
 const buddyOf = (v: unknown): MascotKind => (BUDDIES.includes(v as MascotKind) ? (v as MascotKind) : 'gator');
 const notReady = (e: { code?: string; message?: string } | null) => !!e && /PGRST202|42883|42P01|social_me|friends_overview/.test(`${e.code} ${e.message}`);
 
@@ -179,7 +179,7 @@ export async function refreshInbox() {
   if (error) return;
   const seen = new Set(useSocial.getState().inbox.map((m) => m.id));
   const fresh = ((data ?? []) as Record<string, unknown>[])
-    .map((r) => ({ id: String(r.id), fromName: String(r.from_name), buddy: buddyOf(r.buddy), text: String(r.text), at: String(r.created_at) }))
+    .map((r) => ({ id: String(r.id), fromName: String(r.from_name), buddy: buddyOf(r.buddy), text: String(r.text), at: String(r.created_at), isReply: !!r.is_reply }))
     .filter((m) => !seen.has(m.id));
   if (fresh.length) set({ inbox: [...useSocial.getState().inbox, ...fresh] });
 }
@@ -232,6 +232,19 @@ export async function sendSupport(to: string, text: string): Promise<string> {
   const { data, error } = await c.sb.rpc('send_support', { p_to: to, p_day: todayFor(s.settings), p_text: text.trim().slice(0, 140), p_buddy: s.settings.mascotKind });
   if (error) return 'error';
   await refreshFriends();
+  return String(data);
+}
+
+/** Quick replies to a friend's message; a custom one can be written too. */
+export const REPLY_LINES = ['Thank you! 💛', 'You too! 💪', 'Study together soon?', 'You made my day 😊'];
+
+/** Reply to a friend's message (once). Returns 'sent', 'already_replied', 'not_ready' or 'error'. */
+export async function replySupport(id: string, text: string): Promise<string> {
+  const c = syncClient();
+  if (!c) return 'error';
+  const { data, error } = await c.sb.rpc('reply_support', { p_message: id, p_text: text.trim().slice(0, 140), p_buddy: useStudy.getState().settings.mascotKind });
+  if (error) return /PGRST202|42883|reply_support/.test(`${error.code} ${error.message}`) ? 'not_ready' : 'error';
+  if (data === 'sent' || data === 'already_replied') set({ inbox: useSocial.getState().inbox.filter((m) => m.id !== id) });
   return String(data);
 }
 

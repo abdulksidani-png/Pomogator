@@ -14,9 +14,9 @@ export const THEMES: ThemeInfo[] = [
   { id: 'sunset', name: 'Lofi sunset', dark: true, colors: ['#1E1424', '#2A1C30', '#FF9E6B', '#7FD6C2'] },
   // A theme for each study buddy; picking one brings its buddy along.
   { id: 'jungle', name: 'Jungle', dark: true, colors: ['#0F2418', '#173322', '#F2C14E', '#7BC86C'], buddy: 'gorilla' },
-  { id: 'gator', name: 'Gator', dark: false, colors: ['#F2F5FC', '#FFFFFF', '#FA4616', '#0021A5'], buddy: 'gator' },
+  { id: 'gator', name: 'Gator', dark: true, colors: ['#0021A5', '#0B1F70', '#FA4616', '#FFFFFF'], buddy: 'gator' },
   { id: 'panther', name: 'Panther', dark: true, colors: ['#081E3F', '#0F2A55', '#D9A53A', '#7FA6E8'], buddy: 'panther' },
-  { id: 'robotlab', name: 'Robot lab', dark: true, colors: ['#0D1418', '#151F25', '#5CF2C9', '#FF7AB6'], buddy: 'robot' },
+  { id: 'robotlab', name: 'Robot lab', dark: true, colors: ['#0D1418', '#151F25', '#5CF2C9', '#FF7AB6'] },
 ];
 
 export const ACCENTS = ['#2F4BC8', '#7C4DDB', '#B83C7A', '#D63A43', '#C2662D', '#A67C00', '#3F7D3A', '#0E7C86', '#3A82F7', '#5C6378'];
@@ -64,10 +64,10 @@ export const PHOTO_MOODS: { name: string; query: string }[] = [
 
 export const MASCOTS: { id: MascotKind; name: string }[] = [
   { id: 'tomato', name: 'Tomato' },
-  { id: 'robot', name: 'Robot' },
   { id: 'gorilla', name: 'Arcade gorilla' },
   { id: 'gator', name: 'Albert' },
   { id: 'panther', name: 'Panfer' },
+  { id: 'bulldog', name: 'Rocket' },
 ];
 
 export const CORNERS: { id: Corners; name: string }[] = [

@@ -61,7 +61,17 @@ select 'marked as sent today', (select supported_today from public.friends_overv
 select 'not to strangers', public.send_support('aaaaaaaa-0000-0000-0000-000000000003', current_date, 'Hi', 'gator') = 'not_friends' as ok;
 set request.jwt.claims = '{"sub": "aaaaaaaa-0000-0000-0000-000000000002", "role": "authenticated", "is_anonymous": false}';
 select 'bo gets it from Ana', (select from_name = 'Ana' and text = 'You got this!' and buddy = 'gator' from public.support_inbox()) as ok;
+-- Bo replies (once); a reply doesn't use up Bo's own message for today, and can't be replied to.
+select set_config('test.msg', (select id::text from public.support_inbox()), false);
+select 'reply sent', public.reply_support(current_setting('test.msg')::uuid, 'Thank you! 💛', 'panther') = 'sent' as ok;
+select 'one reply per message', public.reply_support(current_setting('test.msg')::uuid, 'Again', 'panther') = 'already_replied' as ok;
+select 'bo can still send his own message today', public.send_support('aaaaaaaa-0000-0000-0000-000000000001', current_date, 'Go Ana!', 'panther') = 'sent' as ok;
+set request.jwt.claims = '{"sub": "aaaaaaaa-0000-0000-0000-000000000001", "role": "authenticated", "is_anonymous": false}';
+select 'ana gets the reply and the message', (select count(*) = 2 and bool_or(is_reply and text = 'Thank you! 💛') from public.support_inbox()) as ok;
+select 'replies cannot be replied to', public.reply_support((select id from public.support_inbox() where is_reply), 'x', 'gator') = 'is_reply' as ok;
+select 'not my message to reply to', public.reply_support(current_setting('test.msg')::uuid, 'x', 'gator') = 'not_yours' as ok;
 update public.support_messages set seen_at = now() where to_id = auth.uid();
+set request.jwt.claims = '{"sub": "aaaaaaaa-0000-0000-0000-000000000002", "role": "authenticated", "is_anonymous": false}';
 select 'seen messages leave the inbox', (select count(*) = 0 from public.support_inbox()) as ok;
 do $$ begin
   update public.support_messages set text = 'edited' where to_id = auth.uid();

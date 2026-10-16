@@ -54,14 +54,17 @@ comes with an explanation and a memory aid, and **your score earns your break** 
   a missed day. It shows once a day per account, across all your devices.
 - **Friends.** Add friends with a friend code or invite link. A small widget shows who's online, what they're doing
   ("Studying · 23 min in"), what they're listening to, and their streaks and stats, each only if they choose to share
-  it. Once a day you can send a friend a message of support, which your study buddy walks onto their screen to deliver.
+  it. Once a day you can send a friend a message of support, which your study buddy walks onto their screen to deliver;
+  they can reply with a quick note or their own words.
 - **Study together.** Invite up to 3 friends to a shared session. Everyone's timer stays in sync (anyone can start or
   pause), everyone still gets a quiz, and the break is the length agreed in the invite, the same for the whole group.
-- **Stats.** Study time, check-in and study streaks, minutes per day, a 12-week heatmap, quiz accuracy by concept,
-  your badges, and slide-by-slide coverage of each document.
-- **Make it yours.** 12 themes, 5 study buddies that put on glasses and study at a desk while you do (including Albert,
-  a pixel-art gator), cheer you through the quiz (happy when you're right, sad when you're not) and react in the chat, 7 clock fonts, 3 timer styles, Unsplash photo backgrounds, glass cards, saved timer presets,
-  a full-screen focus mode and a Spotify "now playing" widget.
+- **Stats.** Today's sessions and an AI day summary, study time, check-in and study streaks, minutes per day, a 12-week
+  heatmap, quiz accuracy by concept, your badges, and slide-by-slide coverage of each document.
+- **Make it yours.** It starts in UF blue and orange with Albert, a pixel-art gator. 12 themes, 5 study buddies (Albert,
+  Rocket the bulldog, Panfer the panther, an arcade gorilla and a tomato) that put on glasses and study at a desk while
+  you do, cheer you through the quiz (happy when you're right, sad when you're not) and react in the chat. 7 clock
+  fonts, 3 timer styles, Unsplash photo backgrounds, glass cards, side cards that fold away, saved timer presets, a
+  full-screen focus mode and a Spotify "now playing" widget.
 - **Accounts without friction.** Start instantly as a guest, with a one-minute tour from your study buddy (skippable);
   sign in with Google or an email link later and keep everything. Progress syncs across devices. Download all your
   data as one file, or delete your account and everything in it, from Settings.
@@ -77,7 +80,7 @@ comes with an explanation and a memory aid, and **your score earns your break** 
 | <img src="docs/screenshots/assistant.jpg" alt="The study assistant turning an evening's to-dos into four Pomodoro sessions, with buttons to add them to the to-do list"> | <img src="docs/screenshots/focus.jpg" alt="Full-screen focus mode with a ring timer, Albert studying, and a small Spotify player in the corner"> |
 | **Study assistant.** Plans your evening in Pomodoro sessions. | **Focus mode.** Full screen, with the music player in the corner. |
 
-<img src="docs/screenshots/themes.jpg" alt="Four phones showing the Gator, Jungle, Robot lab and Sakura themes with different study buddies">
+<img src="docs/screenshots/themes.jpg" alt="Four phones showing the Gator, Jungle, Midnight and Sakura themes with Albert, the gorilla, Rocket and the tomato">
 <p align="center"><b>Themes and study buddies,</b> on any screen size.</p>
 
 ## How it's built

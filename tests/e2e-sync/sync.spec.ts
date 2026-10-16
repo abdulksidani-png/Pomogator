@@ -45,7 +45,9 @@ test('guest progress survives sign-in, follows you to a second device, and stays
   await a.clock.fastForward('13:00');
   await a.getByRole('button', { name: /Finish session now/ }).click();
   await a.getByRole('button', { name: /Take a 5-min break/ }).click();
+  await a.getByRole('button', { name: 'Stats', exact: true }).click();
   await expect(a.locator('#todayCard .log')).toContainText('Philosophy · Plato and Aristotle');
+  await a.getByRole('button', { name: /Back to the timer/ }).click();
 
   // It reaches the database as the guest's own rows.
   await expect.poll(async () => (await rows('tasks')).map((r) => r.text), { timeout: 15_000 }).toContain('Read lecture 3');
@@ -76,7 +78,9 @@ test('guest progress survives sign-in, follows you to a second device, and stays
   await expect(b.locator('.task-list')).toContainText('Read lecture 3');
   await expect(b.locator('.task-list')).toContainText('Make flashcards');
   await expect(b.locator('#ctxTopic')).toHaveValue('Philosophy · Plato and Aristotle');
+  await b.getByRole('button', { name: 'Stats', exact: true }).click();
   await expect(b.locator('#todayCard .log')).toContainText('Philosophy · Plato and Aristotle');
+  await b.getByRole('button', { name: /Back to the timer/ }).click();
   // The lecture is here too; its page text comes from the account, so a goal from a slide's body works.
   await expect(b.locator('#docSelect')).toContainText('lecture.pptx');
   await b.selectOption('#docSelect', { label: 'lecture.pptx · 7 slides' });
@@ -210,11 +214,21 @@ test('friends: add by code, see each other studying and their stats, and send su
   const pop = pa.locator('.support-pop');
   await expect(pop).toContainText('You\'ve got this!', { timeout: 15_000 });
   await expect(pop).toContainText('brought this from Bo');
-  await pop.getByRole('button', { name: /Thanks/ }).click();
+  // Ana replies in her own words, and her buddy carries it back to Bo.
+  await pop.getByRole('button', { name: 'Reply' }).click();
+  await pop.locator('#supportReply').fill('Thanks Bo, you too!');
+  await pop.getByRole('button', { name: 'Send' }).click();
   await expect(pop).toHaveCount(0);
   await pa.reload();
   await pa.waitForTimeout(2000);
   await expect(pa.locator('.support-pop')).toHaveCount(0);
+  await pb.reload();
+  const back = pb.locator('.support-pop');
+  await expect(back).toContainText('Thanks Bo, you too!', { timeout: 15_000 });
+  await expect(back).toContainText('brought a reply from Ana');
+  await expect(back.getByRole('button', { name: 'Reply' })).toHaveCount(0); // no replies to replies
+  await back.getByRole('button', { name: /Thanks/ }).click();
+  await expect(back).toHaveCount(0);
 
   // Ana hides being online: Bo sees her as offline.
   await pa.locator('#friendsCard').getByRole('button', { name: /Add friends/ }).click();

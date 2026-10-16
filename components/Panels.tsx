@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useStudy } from '@/lib/store';
 import { topicKey, topicLabel, weakConcepts } from '@/lib/context';
@@ -145,6 +145,31 @@ export function PlanCard() {
   );
 }
 
+/* ---------------- fold-away side cards ---------------- */
+
+/**
+ * A side card whose heading folds it shut (and open again) with a smooth slide; remembered in `settings.folded`.
+ * `summary` shows next to the heading only while it's folded, so a shut card still says what's in it.
+ */
+export function FoldCard({ id, fold, title, meta, summary, actions, className = '', label, children }: {
+  id: string; fold: string; title: ReactNode; meta?: ReactNode; summary?: ReactNode; actions?: ReactNode; className?: string; label?: string; children: ReactNode;
+}) {
+  const open = useStudy((s) => !s.settings.folded.includes(fold));
+  const tid = `${id}Title`;
+  const side = !open && summary ? summary : meta;
+  return (
+    <section className={`card side-card foldable${open ? '' : ' folded'}${className ? ` ${className}` : ''}`} id={id} {...(label ? { 'aria-label': label } : { 'aria-labelledby': tid })}>
+      <div className="card-h fold-h">
+        <h2 id={tid}><button className="fold-btn" type="button" aria-expanded={open} aria-controls={`${id}Body`} onClick={() => useStudy.getState().toggleFold(fold)}>
+          {title}<Icon name="chevron" /></button></h2>
+        {side ? <span className="meta">{side}</span> : null}
+        {actions}
+      </div>
+      <div className="fold" id={`${id}Body`} inert={!open}><div className="fold-inner">{children}</div></div>
+    </section>
+  );
+}
+
 /* ---------------- what you're studying ---------------- */
 
 export function ContextCard({ onManageDocs }: { onManageDocs: () => void }) {
@@ -158,8 +183,7 @@ export function ContextCard({ onManageDocs }: { onManageDocs: () => void }) {
   }, [c.subject, c.topic, setContext]);
 
   return (
-    <section className="card side-card" id="ctxCard" aria-labelledby="ctxTitle">
-      <div className="card-h"><h2 id="ctxTitle">What you&apos;re studying</h2></div>
+    <FoldCard id="ctxCard" fold="ctx" title={<>What you&apos;re studying</>} summary={c.topic.trim() ? c.topic.trim().slice(0, 40) : undefined}>
       <form className="form" autoComplete="off" onSubmit={(e) => e.preventDefault()}>
         <label className="sr-only" htmlFor="ctxTopic">Topic</label>
         <input type="text" id="ctxTopic" placeholder="Topic, e.g. Krebs cycle" maxLength={140} value={c.topic} onChange={(e) => setContext({ topic: e.target.value })} />
@@ -172,7 +196,7 @@ export function ContextCard({ onManageDocs }: { onManageDocs: () => void }) {
           <p className="hint">Notes you pasted earlier are still used in quizzes. <button className="btn-link" type="button" onClick={() => setContext({ notes: '' })}>Remove them</button></p>
         )}
       </form>
-    </section>
+    </FoldCard>
   );
 }
 
@@ -185,11 +209,8 @@ export function TasksCard() {
   const [armed, press] = useArmed();
   const done = tasks.filter((t) => t.done).length;
   return (
-    <section className="card side-card" id="tasksCard" aria-labelledby="tasksTitle">
-      <div className="card-h"><h2 id="tasksTitle">To-do</h2>
-        <span className="meta">{tasks.length ? `${done} of ${tasks.length} done` : ''}</span>
-        <button className="btn-quiet plan-ai" type="button" onClick={() => openAssistant(TODO_PROMPT)}><Icon name="sparkle" />Plan with AI</button>
-      </div>
+    <FoldCard id="tasksCard" fold="tasks" title="To-do" meta={tasks.length ? `${done} of ${tasks.length} done` : ''}
+      actions={<button className="btn-quiet plan-ai" type="button" onClick={() => openAssistant(TODO_PROMPT)}><Icon name="sparkle" />Plan with AI</button>}>
       <form className="task-add" onSubmit={(e) => { e.preventDefault(); addTask(text); setText(''); }}>
         <label className="sr-only" htmlFor="taskInput">New task</label>
         <input type="text" id="taskInput" placeholder="Add a task (N)" maxLength={160} value={text} onChange={(e) => setText(e.target.value)} />
@@ -212,7 +233,7 @@ export function TasksCard() {
         <button className="btn-quiet" type="button" onClick={clearDone}>Clear completed</button>
         <button className="btn-quiet" type="button" onClick={() => tasks.length && press(resetTasks)}>{armed ? 'Click again to reset' : 'Reset list'}</button>
       </div>
-    </section>
+    </FoldCard>
   );
 }
 

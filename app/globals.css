@@ -120,7 +120,7 @@ svg.i { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor;
   /* One column: timer, result, what you're studying, plan, tasks, today. */
   .desk { grid-template-columns: minmax(0, 1fr); }
   .col-main, .col-side { display: contents; }
-  #stage { order: 1; } #resultBanner { order: 2; } #musicCard { order: 3; } #ctxCard { order: 4; } #planCard { order: 5; } #tasksCard { order: 6; } #todayCard { order: 7; }
+  #stage { order: 1; } #resultBanner { order: 2; } #musicCard { order: 3; } #ctxCard { order: 4; } #planCard { order: 5; } #tasksCard { order: 6; } #friendsCard { order: 7; }
 }
 
 .card { background: var(--card); border: 1px solid var(--rule); border-radius: var(--r-lg); }
@@ -190,16 +190,13 @@ html:root[data-skin="tomato"] .mascot-wrap { display: block; }
 .mascot .m-bob { transform-origin: 60px 110px; }
 .mascot[data-mood="focus"] .m-bob { animation: breathe 3.6s ease-in-out infinite; }
 .mascot[data-mood="happy"] .m-bob { animation: hop 1.2s ease-in-out 2; }
-/* Pixel buddies move in whole pixels, like an arcade game; the robot's antenna light pulses. */
+/* Pixel buddies move in whole pixels, like an arcade game. */
 .mascot.pixel .m-bob { transform-box: fill-box; transform-origin: 50% 100%; }
 .mascot.pixel[data-mood="idle"] .m-bob, .mascot.pixel[data-mood="cheer"] .m-bob { animation: px-bob 1.2s steps(1) infinite; }
 .mascot.pixel[data-mood="focus"] .m-bob { animation: px-bob 2.4s steps(1) infinite; }
 .mascot.pixel[data-mood="happy"] .m-bob { animation: px-hop .8s steps(1) 3; }
 @keyframes px-bob { 50% { transform: translateY(-1px); } }
 @keyframes px-hop { 33% { transform: translateY(-3px); } 66% { transform: translateY(-1px); } }
-.mascot.robot .r-bulb { animation: bulb 2.2s ease-in-out infinite; }
-.mascot.robot[data-mood="focus"] .r-bulb { animation-duration: 1.1s; }
-@keyframes bulb { 50% { opacity: .35; } }
 /* Studying: the pencil writes back and forth; typing hands take turns. */
 .mascot .pencil { animation: write 1.4s ease-in-out infinite; }
 .mascot.pixel .pencil { animation: px-write 1.2s steps(1) infinite; }
@@ -849,20 +846,26 @@ html:root[data-skin="jungle"] body {
     radial-gradient(1000px 560px at 105% -10%, rgba(123,200,108,.18), transparent 60%);
   background-size: 190px 150px, 190px 150px, 190px 150px, auto;
 }
+/* Gator: UF blue with orange. The orange text color is a touch lighter than UF orange so it reads on blue. */
 html:root[data-skin="gator"] {
-  --bg: #F2F5FC; --card: #FFFFFF; --sunk: #E6ECF8;
-  --fg: #0B1F4D; --fg-2: #3D4F7A; --fg-3: #586990;
-  --rule: #D3DCEE; --margin: #FA4616;
-  --accent: #0021A5; --accent-soft: #DFE5FA; --on-accent: #FFFFFF;
-  --good: #1B7A52; --good-bg: #E0F2E9; --bad: #C2331A; --bad-bg: #FDE6DF;
-  --hl: #FFE3D6; --hl-ink: #4A1A00;
-  --shadow: 0 2px 0 #D3DCEE, 0 12px 26px -16px rgba(0,33,165,.35);
-  color-scheme: light;
+  --bg: #0021A5; --card: #0B1F70; --sunk: #18338F;
+  --fg: #FFFFFF; --fg-2: #DCE3FA; --fg-3: #B3C1F0;
+  --rule: #3550C0; --margin: #FA4616;
+  --accent: #FF8A5C; --accent-soft: #47295A; --on-accent: #0B1440;
+  --good: #8FE6B0; --good-bg: #123E4A; --bad: #FFB3A1; --bad-bg: #4A1E45;
+  --hl: #5A2C3A; --hl-ink: #FFE8DD;
+  --shadow: 0 2px 0 rgba(250,70,22,.55), 0 16px 34px -16px rgba(0,0,0,.55);
+  color-scheme: dark;
 }
 html:root[data-skin="gator"] body {
   background-image:
-    linear-gradient(180deg, rgba(0,33,165,.07), transparent 320px),
-    repeating-linear-gradient(135deg, transparent 0 26px, rgba(250,70,22,.06) 26px 29px);
+    radial-gradient(900px 520px at 100% -10%, rgba(250,70,22,.22), transparent 60%),
+    repeating-linear-gradient(135deg, transparent 0 26px, rgba(250,70,22,.08) 26px 29px);
+}
+/* Dots on the gator theme are UF orange. */
+html:root[data-skin="gator"][data-bg="dots"] body {
+  background-image: radial-gradient(rgba(250,70,22,.55) 1.4px, transparent 1.6px), radial-gradient(900px 520px at 100% -10%, rgba(250,70,22,.2), transparent 60%);
+  background-size: 24px 24px, auto;
 }
 html:root[data-skin="gator"] .stage { border-top: 5px solid var(--margin); }
 html:root[data-skin="panther"] {
@@ -1111,6 +1114,12 @@ p.share-row { display: flex; gap: 6px; }
 .fold-h:hover .fold-btn svg.i { color: var(--fg); }
 .foldable.folded .fold-btn svg.i { transform: rotate(-90deg); }
 .fold-h .meta { position: relative; pointer-events: none; }
+.fold-h > :not(h2):not(.meta) { position: relative; z-index: 1; } /* buttons in the heading stay clickable */
+.foldable.folded .fold-h .meta { max-width: 55%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* The music card in full-screen focus: no heading, laid out as before; folded means hidden. */
+html:root[data-focus="on"] #musicCard .fold-h { display: none; }
+html:root[data-focus="on"] #musicCard :is(.fold, .fold-inner) { display: contents; }
+html:root[data-focus="on"] #musicCard.folded { display: none; }
 @media (prefers-reduced-motion: reduce) { .fold, .fold-h, .fold-btn svg.i { transition: none; } }
 
 /* ---------- full-screen timer (focus mode) ---------- */
@@ -1463,3 +1472,7 @@ html[data-ready] .splash { animation: splash-out .6s cubic-bezier(.22,1,.36,1) v
 .room-name small { font-weight: 500; color: var(--fg-2); }
 .room-text { flex: 1; min-width: 200px; display: grid; gap: 2px; }
 .room-text > span:first-of-type { font-size: 13.5px; color: var(--fg-2); }
+.support-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.support-reply { display: grid; gap: 8px; width: 100%; }
+.support-reply .row-inline input { min-width: 0; }
+.support-reply .btn-quiet { justify-self: start; padding-left: 0; }

@@ -6,7 +6,7 @@ import { useNow } from '@/lib/now';
 import { Sound } from '@/lib/sound';
 import { Icon, IconSprite } from './Icon';
 import { Stage, TitleSync } from './Stage';
-import { ContextCard, PlanCard, ResultBanner, TasksCard, TodayCard } from './Panels';
+import { ContextCard, PlanCard, ResultBanner, TasksCard } from './Panels';
 import { HelpDialog, SettingsDialog } from './Dialogs';
 import { AccountButton, ProfileDialog, SignInDialog, SyncStatus } from './Account';
 import { recheckAccount, startSync } from '@/lib/sync';
@@ -247,7 +247,6 @@ export default function PomoGatorApp({ initialView = 'timer' }: { initialView?: 
             <ContextCard onManageDocs={() => docsRef.current?.showModal()} />
             <TasksCard />
             <FriendsCard onSignIn={() => signInRef.current?.showModal()} onOpen={() => openFriends()} onTogether={(id) => setTogetherWith(id)} />
-            <TodayCard />
           </aside>
         </main>
         )}

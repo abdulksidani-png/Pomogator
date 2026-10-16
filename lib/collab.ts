@@ -24,7 +24,7 @@ let poll: ReturnType<typeof setTimeout> | undefined;
 let writing = 0;
 const serverNow = () => Date.now() + skew;
 const toLocal = (serverMs: number) => serverMs - skew;
-const BUDDIES: MascotKind[] = ['tomato', 'robot', 'gorilla', 'gator', 'panther'];
+const BUDDIES: MascotKind[] = ['tomato', 'gorilla', 'gator', 'panther', 'bulldog'];
 
 function toRoom(j: Record<string, unknown>): CollabRoom & { ended: boolean } {
   return {

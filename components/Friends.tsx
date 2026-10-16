@@ -7,7 +7,7 @@ import { useEffect, useRef, useState, type RefObject } from 'react';
 import { motion } from 'motion/react';
 import { useStudy } from '@/lib/store';
 import {
-  SUPPORT_LINES, addFriend, heartbeat, inviteLink, markSeen, publishStats, refreshFriends, refreshInbox, respondFriend,
+  REPLY_LINES, SUPPORT_LINES, addFriend, replySupport, type Support, heartbeat, inviteLink, markSeen, publishStats, refreshFriends, refreshInbox, respondFriend,
   sendSupport, startSocial, syncBuddy, updateMe, useSocial, type Friend, type SharedStats,
 } from '@/lib/social';
 import { MASCOTS } from '@/lib/appearance';
@@ -16,6 +16,7 @@ import { todayFor } from '@/lib/dates';
 import { Icon } from './Icon';
 import { Mascot, type Mood } from './Mascot';
 import { Medal } from './Streaks';
+import { FoldCard } from './Panels';
 import { SOFT, SPRING } from './motion';
 
 const hm = (min: number) => (min >= 60 ? `${Math.floor(min / 60)} h${min % 60 ? ` ${min % 60} min` : ''}` : `${min} min`);
@@ -85,16 +86,9 @@ export function FriendsCard({ onSignIn, onOpen, onTogether }: { onSignIn: () => 
   const requests = friends.filter((f) => f.relation === 'received');
 
   return (
-    <section className="card side-card" id="friendsCard" aria-labelledby="friendsTitle">
-      <div className="card-h">
-        <h2 id="friendsTitle">Friends</h2>
-        {status === 'ready' && (
-          <>
-            <span className="meta">{mates.length ? `${online} online` : ''}</span>
-            <button className="icon-btn small-icon" type="button" aria-label="Add friends and sharing settings" title="Add friends" onClick={onOpen}><Icon name="plus" /></button>
-          </>
-        )}
-      </div>
+    <FoldCard id="friendsCard" fold="friends" title="Friends" meta={status === 'ready' && mates.length ? `${online} online` : ''}
+      summary={requests.length ? `${requests.length} request${requests.length === 1 ? '' : 's'}` : undefined}
+      actions={status === 'ready' ? <button className="icon-btn small-icon" type="button" aria-label="Add friends and sharing settings" title="Add friends" onClick={onOpen}><Icon name="plus" /></button> : null}>
       {status === 'guest' || account === 'guest' ? (
         <div className="friends-empty">
           <p>Study with friends: see who&apos;s studying, cheer each other on and start sessions together.</p>
@@ -131,7 +125,7 @@ export function FriendsCard({ onSignIn, onOpen, onTogether }: { onSignIn: () => 
           </ul>
         </>
       )}
-    </section>
+    </FoldCard>
   );
 }
 
@@ -318,7 +312,20 @@ export function SupportPopup() {
     if (st.controlSounds) void import('@/lib/sound').then((m) => m.Sound.cue('resume', st.chimeVol)).catch(() => undefined);
   }, [msg]);
   if (!msg) return null;
+  return <SupportBubble key={msg.id} msg={msg} />;
+}
+
+function SupportBubble({ msg }: { msg: Support }) {
+  const [replying, setReplying] = useState(false);
+  const [text, setText] = useState(REPLY_LINES[0]);
+  const [state, setState] = useState('');
   const buddy = MASCOTS.find((m) => m.id === msg.buddy)?.name ?? 'A buddy';
+  const send = async () => {
+    setState('sending');
+    const r = await replySupport(msg.id, text);
+    if (r === 'sent' || r === 'already_replied') useStudy.getState().showToast(`Your reply is on its way to ${msg.fromName}`);
+    else setState(r === 'not_ready' ? 'Replies aren\'t switched on for this site yet.' : 'Couldn\'t send it. Try again.');
+  };
   return (
     <motion.div key={msg.id} className="support-pop" role="status" aria-live="polite"
       initial={{ x: -260, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ ...SPRING, stiffness: 160 }}>
@@ -327,8 +334,26 @@ export function SupportPopup() {
       </motion.span>
       <motion.div className="support-bubble" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ ...SPRING, delay: 0.5 }}>
         <p className="support-text">{msg.text}</p>
-        <p className="support-from">{buddy} brought this from <strong>{msg.fromName}</strong></p>
-        <button className="btn btn-primary" type="button" onClick={() => void markSeen(msg.id)}>Thanks! 💛</button>
+        <p className="support-from">{buddy} brought {msg.isReply ? 'a reply' : 'this'} from <strong>{msg.fromName}</strong></p>
+        {replying ? (
+          <div className="support-reply">
+            <div className="support-chips" role="group" aria-label="Quick replies">
+              {REPLY_LINES.map((l) => <button key={l} className="chip" type="button" aria-pressed={text === l} onClick={() => setText(l)}>{l}</button>)}
+            </div>
+            <form className="row-inline" onSubmit={(e) => { e.preventDefault(); void send(); }}>
+              <label className="sr-only" htmlFor="supportReply">Your reply</label>
+              <input id="supportReply" type="text" maxLength={140} value={text} onChange={(e) => setText(e.target.value)} autoFocus />
+              <button className="btn btn-primary" type="submit" disabled={!text.trim() || state === 'sending'}><Icon name="send" />Send</button>
+            </form>
+            {state && state !== 'sending' && <p className="hint warn" role="alert">{state}</p>}
+            <button className="btn-quiet" type="button" onClick={() => void markSeen(msg.id)}>Close</button>
+          </div>
+        ) : (
+          <div className="support-actions">
+            <button className="btn btn-primary" type="button" onClick={() => void markSeen(msg.id)}>Thanks! 💛</button>
+            {!msg.isReply && <button className="btn" type="button" onClick={() => setReplying(true)}>Reply</button>}
+          </div>
+        )}
       </motion.div>
     </motion.div>
   );

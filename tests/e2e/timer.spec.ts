@@ -101,6 +101,24 @@ test('the next-session plan folds shut and stays that way', async ({ page }) => 
   await expect.poll(async () => (await page.locator('#planBody').boundingBox())?.height ?? 0).toBeGreaterThan(40);
 });
 
+test('side cards fold away too, and a folded card still says what it holds', async ({ page }) => {
+  await page.goto('/');
+  await page.fill('#ctxTopic', 'Krebs cycle');
+  const ctx = page.locator('#ctxCard').getByRole('button', { name: /What you're studying/ });
+  await ctx.click();
+  await expect(ctx).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.locator('#ctxCard')).toContainText('Krebs cycle'); // shown next to the heading
+  await expect.poll(async () => (await page.locator('#ctxCardBody').boundingBox())?.height ?? 0).toBeLessThan(2);
+  const todo = page.locator('#tasksCard').getByRole('button', { name: 'To-do', exact: true });
+  await todo.click();
+  await expect(todo).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.locator('#tasksCard').getByRole('button', { name: /Plan with AI/ })).toBeVisible(); // still reachable
+  await page.reload();
+  await expect(ctx).toHaveAttribute('aria-expanded', 'false');
+  await ctx.click();
+  await expect(page.locator('#ctxTopic')).toBeVisible();
+});
+
 test('PomoGator: the footer links to a plain-words privacy page and the source', async ({ page }) => {
   await page.goto('/');
   await expect(page).toHaveTitle('PomoGator');

@@ -5,6 +5,7 @@ import { useStudy } from '@/lib/store';
 import { siteConfig } from '@/lib/config';
 import { connectSpotify, control, refreshPlayback, useSpotify, type Playback } from '@/lib/spotify';
 import { Icon } from './Icon';
+import { FoldCard } from './Panels';
 import { SOFT, SPRING } from './motion';
 
 const mmss = (ms: number) => { const s = Math.max(0, Math.floor(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
@@ -57,7 +58,8 @@ export function MusicCard() {
   }
 
   return (
-    <section className="card side-card music" id="musicCard" aria-label="Now playing">
+    <FoldCard id="musicCard" fold="music" className="music" title="Music" label="Now playing"
+      summary={playback ? `${playback.title.slice(0, 28)}${playback.title.length > 28 ? '…' : ''}` : undefined}>
       {playback?.art && <div className="music-glow" style={{ backgroundImage: `url("${playback.art}")` }} aria-hidden="true" />}
       <div className="music-row">
         <Disc p={playback} />
@@ -85,7 +87,7 @@ export function MusicCard() {
       </div>
       {error && <p className="hint warn music-error" role="status">{error}</p>}
       {playback?.device && <p className="music-device">Playing on {playback.device} · via Spotify</p>}
-    </section>
+    </FoldCard>
   );
 }
 

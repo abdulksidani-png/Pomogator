@@ -8,7 +8,7 @@ export type Skin = 'auto' | 'notebook' | 'chalkboard' | 'tomato' | 'midnight' | 
 export type ClockFont = 'theme' | 'mono' | 'rounded' | 'serif' | 'condensed' | 'digital' | 'hand';
 export type TimerStyle = 'classic' | 'ring' | 'minimal';
 export type Background = 'theme' | 'plain' | 'dots' | 'grid' | 'lined' | 'gradient' | 'image' | 'unsplash';
-export type MascotKind = 'tomato' | 'robot' | 'gorilla' | 'gator' | 'panther';
+export type MascotKind = 'tomato' | 'gorilla' | 'gator' | 'panther' | 'bulldog';
 
 /** A photo from Unsplash, as the site keeps it. Images are always loaded from Unsplash's own servers. */
 export interface UnsplashPhoto {

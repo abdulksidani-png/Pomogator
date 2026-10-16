@@ -191,7 +191,7 @@ if (!only || only === 'stats') {
 }
 
 if (!only || only === 'assistant') {
-  const page = await newPage({ settings: { skin: 'midnight', mascotKind: 'robot', mascot: 'on' }, tasks: TASKS.slice(0, 1) });
+  const page = await newPage({ settings: { skin: 'midnight', mascotKind: 'bulldog', mascot: 'on' }, tasks: TASKS.slice(0, 1) });
   await page.goto(BASE);
   await page.locator('.splash').waitFor({ state: 'hidden' }).catch(() => {});
   await page.locator('#stage').waitFor();
@@ -224,7 +224,7 @@ if (!only || only === 'phones') {
   const looks = [
     { skin: 'gator', mascotKind: 'gator', timerStyle: 'classic' },
     { skin: 'jungle', mascotKind: 'gorilla', timerStyle: 'ring' },
-    { skin: 'robotlab', mascotKind: 'robot', timerStyle: 'minimal' },
+    { skin: 'midnight', mascotKind: 'bulldog', timerStyle: 'minimal' },
     { skin: 'sakura', mascotKind: 'tomato', timerStyle: 'ring', clockFont: 'serif' },
   ];
   for (const [i, look] of looks.entries()) {

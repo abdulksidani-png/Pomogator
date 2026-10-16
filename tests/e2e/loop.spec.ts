@@ -61,7 +61,10 @@ test('a guest studies, takes the quiz and earns a break that matches the score',
   await expect(page.locator('#resultBanner')).toContainText('2/3');
   await expect(page.locator('#resultBanner')).toContainText('10-minute break earned');
   await expect(page.locator('#planCard')).toContainText('Apply plan · 30-min session');
+  await expect(page.locator('#todayCard')).toHaveCount(0); // "Today" lives on the Stats page now
+  await page.getByRole('button', { name: 'Stats', exact: true }).click();
   await expect(page.locator('#todayCard')).toContainText('2/3');
+  await page.getByRole('button', { name: /Back to the timer/ }).click();
 
   // A refresh in the middle of the break keeps the right time.
   await page.getByRole('button', { name: /Start break/ }).click();
