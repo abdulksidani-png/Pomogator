@@ -137,8 +137,16 @@ as `data-*` attributes and CSS variables on `<html>` (`lib/appearance.ts`), with
 clock is sized with container query units so "00:00" always fits its card, its ring or the full-screen view, whatever
 the font. Saved timers (`lib/presets.ts`) snapshot a chosen set of these settings plus the session lengths.
 
-The study buddies (`components/Mascot.tsx`) have one picture per mood (idle, focus, quiz, happy, sad, rest, cheer): the
-tomato and robot are SVG groups shown by CSS, the pixel buddies are a base sprite plus the pixels that change per mood.
+The study buddies (`components/Mascot.tsx`) are 2-bit pixel sprites with one picture per mood (idle, focus, quiz, happy,
+sad, rest, cheer): a base sprite plus the pixels that change per mood, and desk props while studying.
+
+Cosmetics (`lib/cosmetics.ts`) are drawn the same way, as rows of letters in their own palette. Each buddy has anchor
+points for a hat, its eyes and its neck, so one hat or tie fits all five; hats grow the picture upward, and the
+propeller's two frames reuse the typing animation. Study points (`lib/points.ts`, pure and unit-tested) are worked out
+from what's already saved: check-in days (10 each, +10% per day of streak up to +50%), sessions of 20+ minutes that ran
+at least 90% of their planned length (1 per 5 minutes, +5 at 45), and a bank for sessions old enough to leave the
+local history, minus the price of what was bought. Because nothing is counted twice, two devices always agree. Bought
+items (`owned`) are combined across devices when syncing; what's worn is a setting (`settings.wear`).
 The picked buddy also sits beside each quiz question (happy when you're right, sad when you're not) and in the assistant.
 
 The logo is pixel art in the same 2-bit style as the study buddies, stored as rows of letters in `lib/logo.ts`

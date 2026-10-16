@@ -9,7 +9,9 @@ import { create } from 'zustand';
 import { motion } from 'motion/react';
 import { useStudy } from '@/lib/store';
 import { MASCOTS } from '@/lib/appearance';
-import { Mascot, type Mood } from './Mascot';
+import type { Mood } from './Mascot';
+import type { MascotKind } from '@/lib/types';
+import { MyBuddy } from './Shop';
 import { SOFT, SPRING } from './motion';
 
 /** This device has seen (or skipped) the tour. */
@@ -32,6 +34,7 @@ function steps(buddy: string, signedIn: boolean): Step[] {
     { id: 'friends', target: '#friendsCard', title: 'Study with friends', text: 'Add friends with your friend code, see who\'s studying, send a little encouragement, or start a session together.', mood: 'happy' },
     { id: 'assistant', target: '.assistant-fab', title: 'Ask me anything', text: 'The study assistant explains things, summarizes your slides, reads photos of your notes and quizzes you.', mood: 'happy' },
     { id: 'streak', target: '#streakPills', title: 'Keep your streak going', text: 'Check in each day to grow your streak and earn badges. Click it to see your stats and weekly report.', mood: 'cheer' },
+    { id: 'points', target: '#pointsBtn', title: 'Earn study points', text: 'Check-ins and long sessions without skipping earn points. Spend them in the buddy shop on hats, sunglasses and more.', mood: 'happy' },
     { id: 'look', target: '[aria-label="Appearance"]', title: 'Make it yours', text: 'Themes, clock fonts, photo backgrounds, and which buddy studies with you.', mood: 'happy' },
     ...(signedIn ? [] : [{ id: 'account', target: '#accountBtn', title: 'Save your progress', text: 'You\'re studying as a guest. Sign in with Google or email to keep everything on every device and add friends.', mood: 'idle' as Mood }]),
     { id: 'end', title: 'You\'re all set!', text: 'Pick a topic and press Start. I\'ll be right here.', mood: 'cheer' },
@@ -56,7 +59,7 @@ export function Tour() {
   }, [open, tour, fresh, idle, status]);
 
   const all = steps(MASCOTS.find((m) => m.id === kind)?.name ?? 'your buddy', status === 'user')
-    .filter((s) => !s.target || typeof document === 'undefined' || document.querySelector(s.target));
+    .filter((s) => !s.target || typeof document === 'undefined' || !!document.querySelector(s.target)?.getClientRects().length); // hidden on phones = skipped
   const step = all[Math.min(i, all.length - 1)];
 
   const finish = useCallback((how: 'done' | 'skipped') => {
@@ -88,7 +91,7 @@ export function Tour() {
 interface Box { top: number; left: number; width: number; height: number }
 
 function TourStep({ step, n, total, last, kind, buddyOn, onNext, onBack, onSkip }: {
-  step: Step; n: number; total: number; last: boolean; kind: Parameters<typeof Mascot>[0]['kind']; buddyOn: boolean;
+  step: Step; n: number; total: number; last: boolean; kind: MascotKind; buddyOn: boolean;
   onNext: () => void; onBack: () => void; onSkip: () => void;
 }) {
   const [box, setBox] = useState<Box | null>(null);
@@ -140,7 +143,7 @@ function TourStep({ step, n, total, last, kind, buddyOn, onNext, onBack, onSkip 
         <div className="tour-head">
           {buddyOn && (
             <motion.span className="tour-buddy" aria-hidden="true" initial={{ scale: 0.8, rotate: -6 }} animate={{ scale: 1, rotate: 0 }} transition={SPRING}>
-              <Mascot mood={step.mood} kind={kind} />
+              <MyBuddy mood={step.mood} kind={kind} />
             </motion.span>
           )}
           <div>

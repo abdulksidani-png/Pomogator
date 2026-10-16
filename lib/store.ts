@@ -22,6 +22,8 @@ import { MIN, clamp, mergeDeep, round1, timeOf, uid } from './util';
 import { applyPreset, cleanName, savePreset } from './presets';
 import { dayOf, detectTimeZone, todayFor } from './dates';
 import { celebrationFor, cleanBadges, cleanDates, type Celebration } from './checkins';
+import { COSMETICS, cleanOwned, cleanWear, wearing } from './cosmetics';
+import { pointsSummary, sessionPoints } from './points';
 import type { Press } from './collab-core';
 
 /**
@@ -57,6 +59,9 @@ export interface Data {
   badges: Record<string, string>;
   /** The first-time tour: '' not yet, 'done' or 'skipped'. Synced, so it shows once per account. */
   tour: string;
+  /** Cosmetics bought in the buddy shop, and study points from sessions too old to keep in history (see lib/points.ts). */
+  owned: string[];
+  pointsBank: number;
 }
 interface Flash { msg: string; id: number }
 interface Ui {
@@ -126,6 +131,10 @@ interface Actions {
   checkIn: () => void;
   /** Today's celebration, once: awards new badges and marks the day celebrated. Null if it was already shown (on any device). */
   celebrate: () => Celebration | null;
+  /** Buy a cosmetic with study points (and put it on). False if it costs more than the balance. */
+  buyCosmetic: (id: string) => boolean;
+  /** Put on or take off a bought cosmetic (one per slot). */
+  setWear: (id: string, on: boolean) => void;
   /** Add several tasks at once, optionally replacing the list (used by the assistant). */
   addTasks: (texts: string[], replace?: boolean) => void;
   /** Keep a weekly summary (only the newest 26 weeks), and remember that a week's review was seen. */
@@ -215,6 +224,9 @@ export function sourcesKey(d: Data): string {
 const quizReusable = (d: Data) =>
   d.quiz.gen === 'ready' && d.quiz.ctxKey === ctxKey(d.context, d.settings) && (d.quiz.sources ?? '') === sourcesKey(d) && !d.quiz.used && d.quiz.madeOn === todayFor(d.settings);
 export const quizMatches = (d: Data) => d.quiz.gen === 'ready' && d.quiz.ctxKey === ctxKey(d.context, d.settings) && (d.quiz.sources ?? '') === sourcesKey(d) && !d.quiz.used;
+/** Study points: earned from check-ins and sessions, minus what the shop cost (lib/points.ts). */
+export const pointsOf = (d: Pick<Data, 'checkins' | 'history' | 'owned' | 'pointsBank'> & { settings: Pick<Settings, 'streakFreeze'> }) =>
+  pointsSummary({ checkins: d.checkins, history: d.history, owned: d.owned, bank: d.pointsBank, freezes: d.settings.streakFreeze });
 export const quizReadyForTaking = (q: QuizState) => q.gen === 'ready' && !q.used && q.questions.length > 0;
 
 function initialData(): Data {
@@ -237,6 +249,8 @@ function initialData(): Data {
     celebrated: '',
     badges: {},
     tour: '',
+    owned: [],
+    pointsBank: 0,
   };
 }
 
@@ -256,10 +270,15 @@ export function normalizeData(p: Partial<Data> | undefined): Data {
   const base = initialData();
   if (!p) return base;
   const settings = mergeDeep(DEFAULT_SETTINGS, p.settings);
-  // The robot buddy was retired: anyone who had picked it gets Albert.
-  const buddies = ['tomato', 'gorilla', 'gator', 'panther', 'bulldog'];
+  // Retired buddies (the robot, the tomato) and the Tomato theme become Albert and the Gator theme.
+  const buddies = ['gorilla', 'gator', 'panther', 'bulldog', 'ibis'];
   if (!buddies.includes(settings.mascotKind)) settings.mascotKind = 'gator';
-  for (const t of settings.savedTimers) if (t.values.mascotKind && !buddies.includes(t.values.mascotKind)) t.values.mascotKind = 'gator';
+  if ((settings.skin as string) === 'tomato') settings.skin = 'gator';
+  for (const t of settings.savedTimers) {
+    if (t.values.mascotKind && !buddies.includes(t.values.mascotKind)) t.values.mascotKind = 'gator';
+    if ((t.values.skin as string) === 'tomato') t.values.skin = 'gator';
+  }
+  settings.wear = cleanWear(settings.wear);
   const quiz: QuizState = { ...freshQuiz(), ...(p.quiz || {}) };
   if (quiz.gen === 'loading') quiz.gen = 'none'; // a reload dropped the request in flight
   const plan: PlanState = { status: 'none', ...(p.plan || {}) };
@@ -283,6 +302,8 @@ export function normalizeData(p: Partial<Data> | undefined): Data {
     celebrated: typeof p.celebrated === 'string' ? p.celebrated : '',
     badges: cleanBadges(p.badges),
     tour: typeof p.tour === 'string' ? p.tour : '',
+    owned: cleanOwned(p.owned),
+    pointsBank: Math.max(0, Math.round(Number(p.pointsBank) || 0)),
     sync: p.sync
       ? { ...fs, ...p.sync, v: { ...fs.v, ...p.sync.v }, acked: { ...fs.acked, ...p.sync.acked }, pushed: { ...(p.sync.pushed || {}) } }
       : fs,
@@ -580,7 +601,8 @@ export const useStudy = create<Store>()(
               applyReached(d, doc, rec);
             }
             d.history.push(rec);
-            if (d.history.length > 400) d.history.splice(0, d.history.length - 400);
+            // Points from the oldest sessions are kept in the bank, so dropping them doesn't lower the balance.
+            if (d.history.length > 400) for (const old of d.history.splice(0, d.history.length - 400)) d.pointsBank += sessionPoints(old);
             d.timer.lastSessionId = rec.id;
             d.timer.session = null;
           });
@@ -821,6 +843,18 @@ export const useStudy = create<Store>()(
           set((d) => { d.celebrated = today; d.checkinDue = ''; for (const m of c.newBadges) d.badges[m] = today; });
           return c;
         },
+        buyCosmetic(id) {
+          const s = get();
+          const item = COSMETICS.find((c) => c.id === id);
+          if (!item || s.owned.includes(id)) return false;
+          if (pointsOf(s).balance < item.price) return false;
+          set((d) => { d.owned = cleanOwned([...d.owned, id]); d.settings.wear = wearing(d.settings.wear, id, true); });
+          return true;
+        },
+        setWear(id, on) {
+          if (on && !get().owned.includes(id)) return;
+          set((d) => { d.settings.wear = wearing(d.settings.wear, id, on); });
+        },
         saveWeekly(week, data) {
           set((d) => {
             d.weekly[week] = data;
@@ -965,6 +999,7 @@ export const useStudy = create<Store>()(
         settings: s.settings, context: s.context, timer: s.timer, quiz: s.quiz, plan: s.plan, day: s.day,
         tasks: s.tasks, history: s.history, stats: s.stats, asked: s.asked, sync: s.sync, docs: s.docs,
         weekly: s.weekly, weeklySeen: s.weeklySeen, checkins: s.checkins, celebrated: s.celebrated, badges: s.badges, tour: s.tour,
+        owned: s.owned, pointsBank: s.pointsBank,
       }),
       merge: (persisted, cur) => ({ ...cur, ...normalizeData(persisted as Partial<Data> | undefined) }),
     },

@@ -9,7 +9,8 @@ import { nextBreakKind, tierRows, tierSentence } from '@/lib/breaks';
 import { ctxKey, hasTopic, topicLabel } from '@/lib/context';
 import { MIN, clamp, fmt } from '@/lib/util';
 import { Icon } from './Icon';
-import { Mascot, type Mood } from './Mascot';
+import type { Mood } from './Mascot';
+import { MyBuddy } from './Shop';
 import { DocProgress, ScreenTracker } from './Documents';
 import { EASE, SOFT, SPRING } from './motion';
 import { TimerMenu } from './TimerMenu';
@@ -101,7 +102,7 @@ function TimerFace({ onToggle, onScreenConsent }: { onToggle: () => void; onScre
         <button className="icon-btn full-btn" type="button" id="fullBtn" aria-label="Full screen timer" title="Full screen (F)" onClick={() => void enterFocus()}><Icon name="expand" /></button>
       </div>
       <div className="clock-row">
-        <div className="mascot-wrap" aria-hidden="true"><Mascot mood={mood} kind={settings.mascotKind} /></div>
+        <div className="mascot-wrap" aria-hidden="true"><MyBuddy mood={mood} kind={settings.mascotKind} /></div>
         {style === 'ring' ? (
           <div className="timer-ring">
             <RingProgress />
@@ -350,7 +351,7 @@ function QuizBuddy({ mood, say }: { mood: Mood; say?: string }) {
   return (
     <div className="quiz-buddy" data-mood={mood} aria-hidden="true">
       <motion.div key={mood} className="quiz-buddy-art" initial={{ scale: 0.84, y: 6 }} animate={{ scale: 1, y: 0 }} transition={SPRING}>
-        <Mascot mood={mood} kind={kind} />
+        <MyBuddy mood={mood} kind={kind} />
       </motion.div>
       {say && <motion.p key={say} className="buddy-say" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={SOFT}>{say}</motion.p>}
     </div>

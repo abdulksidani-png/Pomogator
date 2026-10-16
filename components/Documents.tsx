@@ -334,31 +334,6 @@ export function ScreenConsentDialog({ dialogRef }: { dialogRef: RefObject<HTMLDi
   );
 }
 
-/* ---------------- after a session ---------------- */
-
-export function ReachPicker() {
-  const id = useStudy((s) => s.timer.lastSessionId);
-  const rec = useStudy((s) => s.history.find((h) => h.id === id));
-  const docs = useStudy((s) => s.docs);
-  const doc = rec?.docId ? docs.find((d) => d.id === rec.docId) : undefined;
-  if (!rec || !doc) return null;
-  const unit = unitWord(doc, 1);
-  const from = rec.startPage ?? 1;
-  return (
-    <div className="reach">
-      <label htmlFor="reached">How far did you get?</label>
-      <select id="reached" value={rec.endPage ?? from} onChange={(e) => useStudy.getState().setReached(rec.id, Number(e.target.value))}>
-        {doc.titles.map((t, i) => i + 1).filter((n) => n >= from).map((n) => <option key={n} value={n}>{cap(unit)} {n} · {doc.titles[n - 1]}</option>)}
-      </select>
-      <span className="muted small">
-        of {doc.pageCount}
-        {rec.goalPage ? (rec.goalMet ? ' · Goal met' : ` · Goal was ${unit} ${rec.goalPage}`) : ''}
-        {rec.progressSource === 'screen' ? ' · from screen tracking' : ''}
-      </span>
-    </div>
-  );
-}
-
 /* ---------------- library ---------------- */
 
 export function DocumentsDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialogElement | null> }) {

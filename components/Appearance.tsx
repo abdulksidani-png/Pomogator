@@ -10,6 +10,7 @@ import { DEFAULT_SETTINGS } from '@/lib/defaults';
 import { idb } from '@/lib/docs/idb';
 import type { Settings } from '@/lib/types';
 import { Icon } from './Icon';
+import { openShop } from './Shop';
 
 const BG_KEY = 'look:bg-image';
 
@@ -140,13 +141,17 @@ export function AppearanceDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialo
             {MASCOTS.map((m) => (
               <button key={m.id} type="button" className="buddy-card" aria-pressed={s.mascotKind === m.id}
                 onClick={() => update((x) => { x.mascotKind = m.id; x.mascot = 'on'; })}>
-                <span className="buddy-prev"><Mascot mood={s.mascotKind === m.id ? 'happy' : 'idle'} kind={m.id} /></span>
+                <span className="buddy-prev"><Mascot mood={s.mascotKind === m.id ? 'happy' : 'idle'} kind={m.id} wear={s.wear} /></span>
                 {m.name}
               </button>
             ))}
           </div>
-          <Seg label="Show it" value={s.mascot} options={[{ id: 'auto', name: 'Automatic' }, { id: 'on', name: 'Always' }, { id: 'off', name: 'Hidden' }]} onPick={(v) => set('mascot', v)} />
-          <p className="hint">Picking a buddy keeps it next to the timer in every theme. Automatic: the tomato only appears in the Tomato theme.</p>
+          <Seg label="Show it" value={s.mascot === 'off' ? 'off' : 'on'} options={[{ id: 'on', name: 'Shown' }, { id: 'off', name: 'Hidden' }]} onPick={(v) => set('mascot', v)} />
+          <div className="set-row">
+            <span className="field-label">Buddy shop<span className="sub">Hats, sunglasses and a tie, unlocked with study points. They fit every buddy.</span></span>
+            <button className="btn" type="button" id="shopBtn" onClick={openShop}><Icon name="coin" />Open the shop</button>
+          </div>
+          <p className="hint">Your buddy sits next to the timer in every theme, studies with you and reacts to your quizzes.</p>
         </fieldset>
 
         <fieldset>

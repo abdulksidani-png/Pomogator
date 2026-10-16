@@ -27,6 +27,9 @@ for (const skin of ['notebook', 'midnight', 'gator']) {
     await page.getByRole('button', { name: 'Appearance' }).click();
     await check(page, 'appearance');
     await page.keyboard.press('Escape');
+    await page.locator('#pointsBtn').click();
+    await check(page, 'shop');
+    await page.keyboard.press('Escape');
     await page.getByRole('button', { name: /Ask the study assistant/ }).click();
     await check(page, 'assistant');
     await page.keyboard.press('Escape');

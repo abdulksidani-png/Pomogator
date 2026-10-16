@@ -223,9 +223,9 @@ if (!only || only === 'focus') {
 if (!only || only === 'phones') {
   const looks = [
     { skin: 'gator', mascotKind: 'gator', timerStyle: 'classic' },
-    { skin: 'jungle', mascotKind: 'gorilla', timerStyle: 'ring' },
-    { skin: 'midnight', mascotKind: 'bulldog', timerStyle: 'minimal' },
-    { skin: 'sakura', mascotKind: 'tomato', timerStyle: 'ring', clockFont: 'serif' },
+    { skin: 'jungle', mascotKind: 'gorilla', timerStyle: 'ring', wear: ['tie'] },
+    { skin: 'midnight', mascotKind: 'bulldog', timerStyle: 'minimal', wear: ['cowboy', 'sunglasses'] },
+    { skin: 'canes', mascotKind: 'ibis', timerStyle: 'ring', clockFont: 'serif', wear: ['propeller'] },
   ];
   for (const [i, look] of looks.entries()) {
     const page = await newPage({ w: 390, h: 844, dpr: 2, mobile: true, settings: { ...look, mascot: 'on', musicWidget: false }, withHistory: false });

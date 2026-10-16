@@ -23,6 +23,7 @@ import { fmt } from '@/lib/util';
 import { PhotoCredit } from './PhotoPicker';
 import { BrandMark, BrandName } from './Brand';
 import { CelebrationHost, StreakPills } from './Streaks';
+import { PointsChip, ShopDialog } from './Shop';
 import { Tour } from './Tour';
 import { FriendsCard, FriendsDialog, SocialHost, SupportPopup } from './Friends';
 import { InviteBanner, RoomPanel, TogetherDialog } from './Together';
@@ -219,6 +220,7 @@ export default function PomoGatorApp({ initialView = 'timer' }: { initialView?: 
           </div>
           <div className="top-actions">
             <StreakPills onClick={() => go('stats')} />
+            <PointsChip />
             {view !== 'timer' ? <TimerPill onClick={() => go('timer')} /> : (
               <button className="chip-btn stats-btn" type="button" onClick={() => go('stats')} title="Your stats"><Icon name="chart" /><span>Stats</span></button>
             )}
@@ -258,6 +260,7 @@ export default function PomoGatorApp({ initialView = 'timer' }: { initialView?: 
       </div>
       <SettingsDialog dialogRef={settingsRef} onSignIn={() => signInRef.current?.showModal()} onAppearance={() => lookRef.current?.showModal()} />
       <AppearanceDialog dialogRef={lookRef} />
+      <ShopDialog />
       <DocumentsDialog dialogRef={docsRef} />
       <ScreenConsentDialog dialogRef={screenRef} />
       <HelpDialog dialogRef={helpRef} />

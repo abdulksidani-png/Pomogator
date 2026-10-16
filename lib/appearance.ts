@@ -7,7 +7,7 @@ export const THEMES: ThemeInfo[] = [
   { id: 'auto', name: 'Match system', dark: false, colors: ['#F3F5FA', '#1B2622', '#2F4BC8', '#F0D26A'] },
   { id: 'notebook', name: 'Notebook', dark: false, colors: ['#F3F5FA', '#FFFFFF', '#2F4BC8', '#DB5368'] },
   { id: 'chalkboard', name: 'Chalkboard', dark: true, colors: ['#131C19', '#1B2622', '#F0D26A', '#F2938F'] },
-  { id: 'tomato', name: 'Tomato buddy', dark: false, colors: ['#FFF0EC', '#FFFFFF', '#D63A43', '#3E9A5E'], buddy: 'tomato' },
+  { id: 'canes', name: 'Canes', dark: false, colors: ['#F1F5F1', '#FFFFFF', '#005030', '#F47321'], buddy: 'ibis' },
   { id: 'midnight', name: 'Midnight', dark: true, colors: ['#0F1324', '#171C33', '#8EA2FF', '#FF8FB1'] },
   { id: 'sakura', name: 'Sakura', dark: false, colors: ['#FFF5F8', '#FFFFFF', '#B83C7A', '#6E9E7A'] },
   { id: 'matcha', name: 'Matcha', dark: false, colors: ['#F2F5EC', '#FFFFFF', '#3F7D3A', '#C2703D'] },
@@ -63,11 +63,11 @@ export const PHOTO_MOODS: { name: string; query: string }[] = [
 ];
 
 export const MASCOTS: { id: MascotKind; name: string }[] = [
-  { id: 'tomato', name: 'Tomato' },
   { id: 'gorilla', name: 'Arcade gorilla' },
   { id: 'gator', name: 'Albert' },
   { id: 'panther', name: 'Panfer' },
   { id: 'bulldog', name: 'Rocket' },
+  { id: 'ibis', name: 'Sugarcane' },
 ];
 
 export const CORNERS: { id: Corners; name: string }[] = [
@@ -97,8 +97,7 @@ export function applyAppearance(s: Settings, bgUrl: string | null) {
   setAttr(el, 'clockfont', s.clockFont, 'theme');
   setAttr(el, 'corners', s.corners, 'theme');
   setAttr(el, 'density', s.density, 'comfortable');
-  // "With its theme": the tomato shows in the Tomato theme; a buddy you picked yourself always shows.
-  setAttr(el, 'mascot', s.mascot === 'auto' && s.mascotKind !== 'tomato' ? 'on' : s.mascot, 'auto');
+  setAttr(el, 'mascot', s.mascot === 'off' ? 'off' : 'on', 'auto');
   setAttr(el, 'timer', s.timerStyle, 'classic');
   setAttr(el, 'cards', s.cardStyle, 'solid');
   // Your photo and Unsplash photos share one look ("image"); without a photo, fall back to the theme.

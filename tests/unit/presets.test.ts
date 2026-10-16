@@ -54,7 +54,7 @@ describe('saved timers', () => {
     const v = snapshot({ ...base(), studyMin: 45, skin: 'panther', clockFont: 'mono', timerStyle: 'ring', mascotKind: 'panther', mascot: 'on' } as Settings);
     expect(describePreset(v)).toBe('45 min · Panther · Mono · Ring · Panfer');
     expect(describePreset(snapshot(base()))).toBe('25 min · Gator · Handwritten · Albert'); // the default look
-    expect(describePreset(snapshot({ ...base(), skin: 'auto', clockFont: 'theme', mascot: 'auto', mascotKind: 'tomato' } as Settings))).toBe('25 min · Match system · No buddy');
-    expect(describePreset(snapshot({ ...base(), skin: 'tomato', clockFont: 'theme', mascotKind: 'tomato' } as Settings))).toBe('25 min · Tomato buddy · Tomato');
+    expect(describePreset(snapshot({ ...base(), skin: 'auto', clockFont: 'theme', mascot: 'off' } as Settings))).toBe('25 min · Match system · No buddy');
+    expect(describePreset(snapshot({ ...base(), skin: 'canes', clockFont: 'theme', mascotKind: 'ibis' } as Settings))).toBe('25 min · Canes · Sugarcane');
   });
 });

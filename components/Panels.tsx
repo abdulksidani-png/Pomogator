@@ -6,7 +6,9 @@ import { topicKey, topicLabel, weakConcepts } from '@/lib/context';
 import { timeOf } from '@/lib/util';
 import { todayFor } from '@/lib/dates';
 import { Icon } from './Icon';
-import { ReachPicker, StudyMaterial } from './Documents';
+import { sessionPoints } from '@/lib/points';
+import { openShop } from './Shop';
+import { StudyMaterial } from './Documents';
 import { EASE, SOFT, SPRING } from './motion';
 import { TODO_PROMPT } from './Assistant';
 import { openAssistant } from '@/lib/assistant';
@@ -28,6 +30,7 @@ export { useArmed };
 export function ResultBanner() {
   const T = useStudy((s) => s.timer);
   const longEvery = useStudy((s) => s.settings.longEvery);
+  const pts = useStudy((s) => { const h = s.history.find((x) => x.id === s.timer.lastSessionId); return h ? sessionPoints(h) : 0; });
   const r = T.lastResult;
   if (T.phase !== 'break' || !r || T.breakReason === 'manual') return null;
   const kindWord = r.kind === 'long' ? 'long break' : 'break';
@@ -49,13 +52,14 @@ export function ResultBanner() {
     <motion.section className="card result" id="resultBanner" aria-live="polite" key={r.at}
       initial={{ opacity: 0, y: 16, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.45, ease: EASE }}>
       {r.total > 0 && <motion.div className="score" initial={{ scale: 0.5, rotate: -8 }} animate={{ scale: 1, rotate: 0 }} transition={{ ...SPRING, delay: 0.12 }}>{r.score}/{r.total}</motion.div>}
-      <div className="result-text"><h2>{title}</h2><p>{msg}</p></div>
+      <div className="result-text"><h2>{title}</h2><p>{msg}</p>
+        {pts > 0 && <button className="btn-quiet pts-earned" type="button" id="sessionPoints" onClick={openShop} title="Open the buddy shop"><Icon name="coin" />+{pts} study points</button>}
+      </div>
       {r.items.length > 0 && (
         <div className="pills">
           {r.items.map((x, i) => <span key={i} className={`pill ${x.correct ? 'good' : 'bad'}`}><Icon name={x.correct ? 'check' : 'x'} />{x.concept}</span>)}
         </div>
       )}
-      <ReachPicker />
     </motion.section>
   );
 }

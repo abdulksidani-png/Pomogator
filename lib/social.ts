@@ -61,7 +61,7 @@ export const SUPPORT_LINES = [
   'Study hard, then treat yourself 🍦',
 ];
 
-const BUDDIES: MascotKind[] = ['tomato', 'gorilla', 'gator', 'panther', 'bulldog'];
+const BUDDIES: MascotKind[] = ['gorilla', 'gator', 'panther', 'bulldog', 'ibis'];
 const buddyOf = (v: unknown): MascotKind => (BUDDIES.includes(v as MascotKind) ? (v as MascotKind) : 'gator');
 const notReady = (e: { code?: string; message?: string } | null) => !!e && /PGRST202|42883|42P01|social_me|friends_overview/.test(`${e.code} ${e.message}`);
 

@@ -7,6 +7,7 @@ import { hasTopic, topicLabel } from '@/lib/context';
 import type { ChatMessage } from '@/lib/types';
 import { Icon } from './Icon';
 import { Mascot, type Mood } from './Mascot';
+import { MyBuddy } from './Shop';
 import { EASE, SOFT, SPRING } from './motion';
 
 export const TODO_PROMPT = 'Make me a to-do list and plan it around my study timer. Here\'s everything I need to do: ';
@@ -80,7 +81,7 @@ export function AssistantPanel() {
       onDrop={(e) => { if (!hasFiles(e)) return; e.preventDefault(); setDragging(false); void addPhotos(e.dataTransfer.files); }}>
       <header className="assistant-head">
         <span className={`assistant-mark${buddy ? ' has-buddy' : ''}`} aria-hidden="true" data-mood={mood}>
-          {buddy ? <motion.span key={mood} className="buddy-pop" initial={{ scale: 0.8, y: 3 }} animate={{ scale: 1, y: 0 }} transition={SPRING}><Mascot mood={mood} kind={buddy} /></motion.span> : <Icon name="sparkle" />}
+          {buddy ? <motion.span key={mood} className="buddy-pop" initial={{ scale: 0.8, y: 3 }} animate={{ scale: 1, y: 0 }} transition={SPRING}><MyBuddy mood={mood} kind={buddy} /></motion.span> : <Icon name="sparkle" />}
         </span>
         <div className="assistant-title">
           <h2>Study assistant</h2>
@@ -144,7 +145,7 @@ export function AssistantPanel() {
 function BuddyAvatar({ kind, mood }: { kind: NonNullable<Parameters<typeof Mascot>[0]['kind']>; mood: Mood }) {
   return (
     <motion.span key={mood} className="bot-avatar" data-mood={mood} aria-hidden="true" initial={{ scale: 0.8, y: 4 }} animate={{ scale: 1, y: 0 }} transition={SPRING}>
-      <Mascot mood={mood} kind={kind} />
+      <MyBuddy mood={mood} kind={kind} />
     </motion.span>
   );
 }

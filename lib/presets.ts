@@ -67,7 +67,7 @@ export function describePreset(v: PresetValues): string {
   const theme = THEMES.find((t) => t.id === v.skin)?.name ?? 'Theme';
   const font = v.clockFont === 'theme' ? '' : CLOCK_FONTS.find((f) => f.id === v.clockFont)?.name ?? '';
   const style = v.timerStyle === 'classic' ? '' : TIMER_STYLES.find((t) => t.id === v.timerStyle)?.name ?? '';
-  const hidden = v.mascot === 'off' || (v.mascot === 'auto' && v.mascotKind === 'tomato' && v.skin !== 'tomato');
+  const hidden = v.mascot === 'off';
   const buddy = hidden ? 'No buddy' : MASCOTS.find((m) => m.id === v.mascotKind)?.name ?? '';
   const photo = v.background === 'unsplash' || v.background === 'image' ? 'Photo' : '';
   return [`${v.studyMin} min`, theme, font, style, photo, buddy].filter(Boolean).join(' · ');

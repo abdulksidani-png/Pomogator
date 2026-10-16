@@ -28,8 +28,6 @@ test('PowerPoint: plain-language goal, progress, goal met, and resuming next tim
 
   await page.clock.fastForward('25:02');
   await page.getByRole('button', { name: /Take a 5-min break/ }).click();
-  await expect(page.locator('.reach')).toContainText('Goal met');
-  await expect(page.locator('#reached')).toHaveValue('5');
 
   // Next session picks up right after where this one stopped.
   await page.getByRole('button', { name: 'Skip to the next phase' }).click();
@@ -133,8 +131,10 @@ test('screen tracking reads the shared slides window and follows along', async (
   await expect(page.locator('.watch-pill')).toHaveCount(0);
   await expect(page.locator('.qcard')).toBeVisible(); // straight to the quiz, even early
   await page.getByRole('button', { name: /Take a 5-min break/ }).click();
-  await expect(page.locator('#reached')).toHaveValue('6');
   await expect(page.getByRole('button', { name: 'Share screen to track slides' })).toBeVisible();
+  // The slide reached on screen sets where the next session starts.
+  await page.getByRole('button', { name: 'Skip to the next phase' }).click();
+  await expect(page.locator('#startPage')).toHaveValue('7');
 });
 
 test('appearance: theme, accent, timer style and background stick after a reload', async ({ page }) => {
@@ -201,8 +201,9 @@ test('study buddies: pick Albert or Rocket, and they study at a desk while the t
   await expect(page.locator('.mascot-wrap .mascot.gator')).toBeVisible(); // PomoGator starts with Albert
   await page.getByRole('button', { name: 'Appearance', exact: true }).click();
   await page.locator('#lookDlg').getByRole('button', { name: 'Notebook' }).click();
-  await page.locator('#lookDlg').getByRole('button', { name: 'Tomato', exact: true }).click();
-  await expect(page.locator('.mascot-wrap .mascot.tomato')).toBeVisible();
+  await page.locator('#lookDlg').getByRole('button', { name: /Sugarcane/ }).click();
+  await expect(page.locator('.mascot-wrap .mascot.ibis')).toBeVisible();
+  await expect(page.locator('#lookDlg').getByRole('button', { name: /Tomato/ })).toHaveCount(0); // retired
   await page.locator('#lookDlg').getByRole('button', { name: /Albert/ }).click();
   await page.locator('#lookDlg').getByRole('button', { name: 'Done' }).click();
   await expect(page.locator('.mascot-wrap .mascot.gator')).toBeVisible();
@@ -220,12 +221,14 @@ test('study buddies: pick Albert or Rocket, and they study at a desk while the t
   await expect(page.locator('.mascot-wrap')).toBeHidden();
 });
 
-test('buddy themes bring their buddy: Jungle → gorilla, Panther → Panfer', async ({ page }) => {
+test('buddy themes bring their buddy: Jungle → gorilla, Canes → Sugarcane, Panther → Panfer', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Appearance', exact: true }).click();
   await page.locator('#lookDlg').getByRole('button', { name: 'Jungle' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-skin', 'jungle');
   await expect(page.locator('.mascot-wrap .mascot.gorilla')).toBeVisible();
+  await page.locator('#lookDlg').getByRole('button', { name: 'Canes', exact: true }).click();
+  await expect(page.locator('.mascot-wrap .mascot.ibis')).toBeVisible();
   await page.locator('#lookDlg').getByRole('button', { name: 'Panther', exact: true }).click();
   await expect(page.locator('.mascot-wrap .mascot.panther')).toBeVisible();
   await page.locator('#lookDlg').getByRole('button', { name: 'Done' }).click();

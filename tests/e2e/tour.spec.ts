@@ -15,7 +15,7 @@ test('a first-time visitor gets a tour from their buddy, step by step, once', as
   await card.getByRole('button', { name: 'Back' }).click();
   await expect(card).toContainText('Tell me what you\'re studying');
   // Arrow keys work too; walk to the end.
-  for (let k = 0; k < 12 && !(await card.textContent())?.includes('You\'re all set!'); k++) await page.keyboard.press('ArrowRight');
+  for (let k = 0; k < 16 && !(await card.textContent())?.includes('You\'re all set!'); k++) await page.keyboard.press('ArrowRight');
   await expect(card.getByRole('heading')).toHaveText('You\'re all set!');
   await card.getByRole('button', { name: 'Let\'s study' }).click();
   await expect(page.locator('.tour')).toHaveCount(0);

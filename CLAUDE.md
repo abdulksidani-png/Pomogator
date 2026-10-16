@@ -46,6 +46,7 @@ optional screen tracking, sign-in with cloud sync, and appearance customization.
 | 10 | Friends: codes, widget (online, studying time, music, stats), support messages | Built, waiting on his test (needs migration 4) |
 | 11 | Study together: synced timers, groups of 4, agreed break | Built, waiting on his test (needs migration 4) |
 | + | UF default look, Rocket (robot retired), fold-away cards, Today → Stats, replies to support messages | Built, waiting on his test (replies need migration 5) |
+| + | Study points + buddy shop, Sugarcane + Canes theme (tomato retired), "How far did you get?" removed | Built, waiting on his test (no migration) |
 
 Phase 3 also added the **study assistant** he asked for (`components/Assistant.tsx`, `lib/assistant.ts`): a corner
 "Ask PomoGator" button / `A` key opens a chat panel that sees the study panel, timer, to-do list, the selected
@@ -183,6 +184,23 @@ plan card (`settings.folded`), with a `summary` beside the heading while folded;
 (`20261017000000_support_replies.sql`: `reply_to`, partial unique indexes, `reply_support()`, `support_inbox()` gains
 `is_reply`); the popup has Reply → quick replies (`REPLY_LINES`) or your own words; replies can't be replied to.
 
+**Study points + buddy shop (2026-10-16, his request, waiting on his test):** `lib/points.ts` (pure, `tests/unit/points.test.ts`):
+points are derived, never stored as a running total — check-in days (`checkinPointsByDay`: 10 × `streakMultiplier`, +10%
+per streak day up to ×1.5, freezes as in streaks) + `sessionPoints` (≥20 min and ≥90% of planned: 1 per 5 min, +5 at 45)
++ `pointsBank` (points of sessions spliced off the 400-session history) − prices of `owned`. `pointsOf(state)` in store.ts.
+`lib/cosmetics.ts` (`tests/unit/cosmetics.test.ts`): sunglasses (eyes, 60), tie (neck, 80), cowboy hat (hat, 120), rainbow
+propeller hat (hat, 150); 2-bit rows in `COSMETIC_PAL` (uppercase + rainbow letters), drawn per buddy at `ANCHORS`
+(hat center/top, eye row + columns or one profile eye, neck); hats extend the SVG viewBox upward; propeller blades use
+`type-a/type-b`; `wearing()` keeps one per slot. Store: `owned` + `pointsBank` in the app slice (sync pull unions `owned`,
+max bank), `settings.wear`; actions `buyCosmetic` (auto-wears) / `setWear`. UI `components/Shop.tsx`: `ShopDialog`
+(`#shopDlg`, opened by `openShop()` event), header `#pointsBtn` (hidden on phones; Appearance → "Open the shop" `#shopBtn`),
+`MyBuddy` (own buddy + wear) used by Stage, QuizBuddy, Assistant, Celebration, Tour. "+N study points" in the celebration
+(`#checkinPoints`) and break banner (`#sessionPoints`); tour step `#pointsBtn` (tour skips hidden targets). Friends see
+buddies without cosmetics (not published). **Sugarcane** (`ibis` sprite: original white ibis in a green sweater with
+orange stripes, UM-style, not UM's logo) + **Canes** theme (`canes`, light green/orange; buddy ibis). The tomato buddy and
+Tomato theme are gone (`normalizeData` maps them to gator); `mascot` 'auto' now always shows the buddy. ReachPicker
+("How far did you get?") is removed; `setReached` stays unused.
+
 **Quizzes from the shared screen (2026-10-15, his report: a Python session got a quiz on yesterday's philosophy deck):**
 screen tracking used OCR only to match slides, so off-document work was ignored. Now `capture()` in `lib/docs/screen.ts`
 puts every read frame's text on the live session (`addScreenText` → `session.screen`, ≤24k chars, dropped from history like
@@ -272,6 +290,7 @@ Earlier requests, all done and confirmed:
   - `library.ts`: import, pages cache (memory → IndexedDB → server), delete
   - `match.ts`: goals, screen matching, change detection
   - `ocr.ts`, `screen.ts`, `listen.ts` (tab sound → text)
+- `lib/points.ts` (study points), `lib/cosmetics.ts` (shop items, pixel art, anchors).
 - `lib/weekly.ts` (weekly report engine), `lib/share-card.ts` (weekly image), `lib/logo.ts` (pixel logo data).
 - `lib/ai/`: `prompts.ts`, `gemini.ts` and `quota.ts` (server), `material.ts` (document excerpts, browser).
 - `lib/appearance.ts` + `components/Appearance.tsx`: look settings, applied as data attributes on `<html>`.
@@ -286,6 +305,7 @@ Earlier requests, all done and confirmed:
   - `Assistant.tsx`: chat panel, corner button, reply formatting
   - `Music.tsx` (Spotify widget), `PhotoPicker.tsx` (Unsplash), `Mascot.tsx` (all buddies), `Stats.tsx` (Stats page)
   - `TimerMenu.tsx` (saved timers menu), `Weekly.tsx` (weekly report, review banner), `Splash.tsx` (loading screen)
+  - `Shop.tsx` (buddy shop, points chip, `MyBuddy`)
 - `supabase/migrations/`: `…000000_core.sql`, `…010000_documents.sql`, `20261015000000_ai_usage.sql`,
   `20261016000000_friends.sql`, `20261017000000_support_replies.sql` (delete account, friends, presence, support messages, study rooms; other people's data only
   through security-definer functions that check the friendship and sharing switches). RLS restricts every table to
@@ -295,7 +315,7 @@ Earlier requests, all done and confirmed:
 ```bash
 npm run dev          # http://localhost:3000 (copies vendor files first)
 npm run typecheck
-npm test             # Vitest unit tests (110)
+npm test             # Vitest unit tests (120)
 npm run test:e2e     # Playwright: loop, documents, goals, screen tracking, tab sound, sounds, appearance, buddies, stats,
                      # saved timers, full screen, plan fold, weekly report, loading screen
 npm run test:ai      # Playwright: AI, Unsplash and Spotify against stand-ins (tests/fake-gemini; Spotify faked in-test)

@@ -4,11 +4,11 @@ export type BreakKind = 'short' | 'long';
 export type BreakReason = '' | 'quiz' | 'quiz-skipped' | 'short-session' | 'skipped' | 'manual';
 export type Level = 'hs' | 'intro' | 'advanced' | 'exam';
 export type Difficulty = 'gentle' | 'standard' | 'challenging';
-export type Skin = 'auto' | 'notebook' | 'chalkboard' | 'tomato' | 'midnight' | 'sakura' | 'matcha' | 'sunset' | 'jungle' | 'gator' | 'panther' | 'robotlab';
+export type Skin = 'auto' | 'notebook' | 'chalkboard' | 'canes' | 'midnight' | 'sakura' | 'matcha' | 'sunset' | 'jungle' | 'gator' | 'panther' | 'robotlab';
 export type ClockFont = 'theme' | 'mono' | 'rounded' | 'serif' | 'condensed' | 'digital' | 'hand';
 export type TimerStyle = 'classic' | 'ring' | 'minimal';
 export type Background = 'theme' | 'plain' | 'dots' | 'grid' | 'lined' | 'gradient' | 'image' | 'unsplash';
-export type MascotKind = 'tomato' | 'gorilla' | 'gator' | 'panther' | 'bulldog';
+export type MascotKind = 'gorilla' | 'gator' | 'panther' | 'bulldog' | 'ibis';
 
 /** A photo from Unsplash, as the site keeps it. Images are always loaded from Unsplash's own servers. */
 export interface UnsplashPhoto {
@@ -86,6 +86,8 @@ export interface Settings {
   bgDim: number;
   mascot: 'auto' | 'on' | 'off';
   mascotKind: MascotKind;
+  /** Cosmetics the buddy is wearing (ids from lib/cosmetics.ts, bought in the shop), one per slot. */
+  wear: string[];
   /** The Unsplash photo used when background is 'unsplash'. */
   bgPhoto: UnsplashPhoto | null;
   /** A mood (search words) for a new Unsplash photo every day; '' = keep the chosen photo. */

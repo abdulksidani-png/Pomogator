@@ -13,7 +13,8 @@ import { isCounted } from '@/lib/sync-map';
 import { streakOf } from '@/lib/stats';
 import { MILESTONES, badgeName, checkinStreak, headlineOf, type Celebration } from '@/lib/checkins';
 import { Icon } from './Icon';
-import { Mascot } from './Mascot';
+import { MyBuddy, openShop } from './Shop';
+import { checkinPointsByDay } from '@/lib/points';
 import { SOFT, SPRING } from './motion';
 
 /** This device's choice to skip the celebration card (badges are still earned). */
@@ -94,6 +95,10 @@ export function CelebrationHost({ onBadges }: { onBadges: () => void }) {
   const close = () => { ref.current?.close(); setC(null); };
   const kind = useStudy((s) => s.settings.mascotKind);
   const buddyOn = useStudy((s) => s.settings.mascot !== 'off');
+  const checkins = useStudy((s) => s.checkins);
+  const freezes = useStudy((s) => s.settings.streakFreeze);
+  const today = c?.days.find((d) => d.today)?.date;
+  const pts = useMemo(() => (today ? checkinPointsByDay(checkins, freezes).get(today) ?? 0 : 0), [checkins, freezes, today]);
 
   return (
     <dialog ref={ref} className="celebrate-dlg" aria-labelledby="celebrateTitle" onClose={() => setC(null)}
@@ -102,7 +107,7 @@ export function CelebrationHost({ onBadges }: { onBadges: () => void }) {
         <>
           {c.milestone && <Confetti />}
           <motion.div className="celebrate" initial={{ opacity: 0, scale: 0.92, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={SPRING}>
-            {buddyOn && <div className="celebrate-buddy" aria-hidden="true"><Mascot mood={c.broken || c.first ? 'happy' : 'cheer'} kind={kind} /></div>}
+            {buddyOn && <div className="celebrate-buddy" aria-hidden="true"><MyBuddy mood={c.broken || c.first ? 'happy' : 'cheer'} kind={kind} /></div>}
             <motion.div className="celebrate-count" aria-hidden="true" initial={{ scale: 0.6 }} animate={{ scale: 1 }} transition={{ ...SPRING, delay: 0.12 }}>
               <span className="flame">🔥</span><strong>{c.streak}</strong>
             </motion.div>
@@ -118,6 +123,11 @@ export function CelebrationHost({ onBadges }: { onBadges: () => void }) {
               ))}
             </ol>
             <p className="celebrate-line">{c.line}</p>
+            {pts > 0 && (
+              <button className="btn-quiet pts-earned" type="button" id="checkinPoints" onClick={() => { close(); openShop(); }} title="Open the buddy shop">
+                <Icon name="coin" />+{pts} study points{pts > 10 ? ' (streak bonus)' : ''}
+              </button>
+            )}
             {c.milestone && (
               <motion.div className="badge-earned" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ ...SPRING, delay: 0.35 }}>
                 <Medal m={c.milestone} earned />
