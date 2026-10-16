@@ -45,7 +45,10 @@ export default function Privacy() {
 
       <h2>Photos and music</h2>
       <p>Background photos load directly from <a href="https://unsplash.com">Unsplash</a>. If you connect
-        Spotify, your Spotify sign-in stays in this browser and the page talks to Spotify directly; {SITE.name}&apos;s server never sees it.</p>
+        Spotify, your Spotify sign-in stays in this browser and the page talks to Spotify directly; {SITE.name}&apos;s server never sees it.
+        If you use <a href="https://www.last.fm">Last.fm</a> instead, the Last.fm username you type is saved with your settings
+        and passed through {SITE.name}&apos;s server to Last.fm to see what you&apos;re playing; that profile&apos;s recent listening is
+        public on Last.fm anyway.</p>
 
       <h2>Hosting</h2>
       <p>The site runs on <a href="https://vercel.com">Vercel</a>, which keeps standard server logs.

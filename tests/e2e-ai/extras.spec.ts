@@ -121,3 +121,45 @@ test('Spotify: connect, see what is playing, pause and skip', async ({ page }) =
   await page.locator('#settingsDlg').getByRole('button', { name: 'Done' }).click();
   await expect(card.getByRole('button', { name: 'Connect Spotify' })).toBeVisible();
 });
+
+test('Last.fm: anyone can show what they play by username, with no Spotify sign-in', async ({ page }) => {
+  await page.goto('/');
+  const card = page.locator('#musicCard');
+  await card.getByRole('button', { name: 'Use Last.fm instead' }).click();
+  const field = card.getByLabel(/Your Last.fm username/);
+  await field.fill('has space');
+  await expect(card.getByRole('button', { name: 'Use Last.fm' })).toBeDisabled();
+  await field.fill('nowplayer');
+  await card.getByRole('button', { name: 'Use Last.fm' }).click();
+
+  // The song and art come through the site's /api/lastfm route; Last.fm can't control playback, so no buttons.
+  await expect(card.locator('.music-title')).toHaveText('Gator Groove');
+  await expect(card.locator('.music-artist')).toHaveText('The Swamp Band');
+  await expect(card).toContainText('Now playing');
+  await expect(card).toContainText('via Last.fm · nowplayer');
+  await expect(card.getByRole('button', { name: 'Next song' })).toHaveCount(0);
+  await expect(card.getByRole('link', { name: 'Open on Last.fm' })).toHaveAttribute('href', /last\.fm\/music/);
+  expect(await (await page.request.get(`${FAKE}/__lastfm`)).json()).toContain('nowplayer');
+
+  // Settings → Music: change the username. A missing user says so plainly; a past play shows as "Last played".
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  const dlg = page.locator('#settingsDlg');
+  await expect(dlg.locator('#lastfmUser')).toHaveValue('nowplayer');
+  await dlg.locator('#lastfmUser').fill('nobody');
+  await dlg.getByRole('button', { name: 'Save', exact: true }).click();
+  await dlg.getByRole('button', { name: 'Done' }).click();
+  await expect(card).toContainText('Last.fm has no user called "nobody"');
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await dlg.locator('#lastfmUser').fill('quietone');
+  await dlg.getByRole('button', { name: 'Save', exact: true }).click();
+  await dlg.getByRole('button', { name: 'Done' }).click();
+  await expect(card.locator('.music-title')).toHaveText('Yesterday Tune');
+  await expect(card).toContainText('Last played');
+
+  // The route only accepts real usernames; Remove goes back to the connect card.
+  expect((await page.request.get('/api/lastfm?user=../etc')).status()).toBe(400);
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await dlg.getByRole('button', { name: 'Remove' }).click();
+  await dlg.getByRole('button', { name: 'Done' }).click();
+  await expect(card.getByRole('button', { name: 'Connect Spotify' })).toBeVisible();
+});

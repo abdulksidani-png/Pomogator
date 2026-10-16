@@ -104,7 +104,9 @@ export async function finishSpotifyLogin(params: URLSearchParams): Promise<strin
     useSpotify.setState({ linked: true, error: '', errorKind: '' });
     return '';
   } catch {
-    return 'Spotify sign-in didn\'t work. If you aren\'t on the app\'s user list, ask the site owner to add you.';
+    return (await siteConfig()).lastfm
+      ? 'Spotify sign-in didn\'t work. Spotify only lets a few accounts use this site, so try Last.fm instead: Settings → Music.'
+      : 'Spotify sign-in didn\'t work. If you aren\'t on the app\'s user list, ask the site owner to add you.';
   }
 }
 
@@ -170,7 +172,13 @@ export async function refreshPlayback() {
     if (!r) return;
     if (r.status === 204) { useSpotify.setState({ playback: null, checked: true }); return; }
     if (r.status === 429) return; // busy: try again on the next check
-    if (r.status === 403) { useSpotify.setState({ checked: true, errorKind: 'status', error: 'This Spotify account isn\'t on the app\'s user list yet. The site owner can add it in the Spotify developer dashboard.' }); return; }
+    if (r.status === 403) {
+      const error = (await siteConfig()).lastfm
+        ? 'Spotify only lets a few accounts use this site, and this one isn\'t on the list. Disconnect it and use Last.fm instead (Settings → Music).'
+        : 'This Spotify account isn\'t on the app\'s user list yet. The site owner can add it in the Spotify developer dashboard.';
+      useSpotify.setState({ checked: true, errorKind: 'status', error });
+      return;
+    }
     if (!r.ok) return;
     const playback = toPlayback(await r.json());
     useSpotify.setState((st) => ({ playback, checked: true, ...(st.errorKind === 'status' ? { error: '', errorKind: '' as const } : {}) }));

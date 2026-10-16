@@ -24,6 +24,7 @@ import { dayOf, detectTimeZone, todayFor } from './dates';
 import { celebrationFor, cleanBadges, cleanDates, type Celebration } from './checkins';
 import { COSMETICS, cleanOutfits, cleanOwned, cleanWear, saveOutfit, wearing } from './cosmetics';
 import { pointsSummary, sessionPoints } from './points';
+import { cleanLastfmUser } from './lastfm-core';
 import type { Press } from './collab-core';
 
 /**
@@ -290,6 +291,7 @@ export function normalizeData(p: Partial<Data> | undefined): Data {
   }
   settings.wear = cleanWear(settings.wear);
   settings.outfits = cleanOutfits(settings.outfits);
+  settings.lastfmUser = cleanLastfmUser(settings.lastfmUser);
   const quiz: QuizState = { ...freshQuiz(), ...(p.quiz || {}) };
   if (quiz.gen === 'loading') quiz.gen = 'none'; // a reload dropped the request in flight
   const plan: PlanState = { status: 'none', ...(p.plan || {}) };

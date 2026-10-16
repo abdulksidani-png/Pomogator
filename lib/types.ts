@@ -89,6 +89,8 @@ export interface Settings {
   mascotKind: MascotKind;
   /** Cosmetics the buddy is wearing (ids from lib/cosmetics.ts, bought in the shop), one per slot. */
   wear: string[];
+  /** Last.fm username for the music card and friends (no Spotify user limit); '' = not used. */
+  lastfmUser: string;
   /** Saved buddy outfits (a buddy + what it wears), switched with one click in the shop. */
   outfits: Outfit[];
   /** The Unsplash photo used when background is 'unsplash'. */

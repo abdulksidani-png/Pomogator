@@ -14,6 +14,7 @@ import { useArmed } from './Panels';
 import { siteConfig } from '@/lib/config';
 import { connectSpotify, disconnectSpotify, useSpotify } from '@/lib/spotify';
 import { useDialogOpen } from '@/lib/use-dialog-open';
+import { cleanLastfmUser } from '@/lib/lastfm-core';
 
 function DialogHead({ id, title, close }: { id: string; title: string; close: () => void }) {
   return (
@@ -321,24 +322,49 @@ export function HelpDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialogEleme
 function MusicSettings() {
   const show = useStudy((s) => s.settings.musicWidget);
   const linked = useSpotify((s) => s.linked);
-  const [on, setOn] = useState(false);
-  useEffect(() => { void siteConfig().then((c) => setOn(!!c.spotifyClientId)); }, []);
-  if (!on) return null;
+  const [svc, setSvc] = useState({ spotify: false, lastfm: false });
+  useEffect(() => { void siteConfig().then((c) => setSvc({ spotify: !!c.spotifyClientId, lastfm: c.lastfm })); }, []);
+  if (!svc.spotify && !svc.lastfm) return null;
   return (
     <fieldset>
       <legend>Music</legend>
       <div className="set-row">
-        <label htmlFor="musicToggle">Spotify widget<span className="sub">Shows what&apos;s playing, with back, play-pause and next</span></label>
+        <label htmlFor="musicToggle">Music widget<span className="sub">Shows what&apos;s playing{svc.spotify ? ', with back, play-pause and next for Spotify' : ''}</span></label>
         <input type="checkbox" className="switch" id="musicToggle" checked={show} onChange={(e) => { const v = e.target.checked; useStudy.getState().updateSettings((x) => { x.musicWidget = v; }); }} />
       </div>
-      <div className="set-row">
-        <span className="field-label">Spotify account<span className="sub">{linked ? 'Connected on this device' : 'Not connected. Controls need Spotify Premium.'}</span></span>
-        {linked
-          ? <button className="btn" type="button" onClick={disconnectSpotify}>Disconnect</button>
-          : <button className="btn" type="button" onClick={() => { void connectSpotify(); }}>Connect Spotify</button>}
-      </div>
-      {!linked && <RedirectUri />}
+      {svc.spotify && (
+        <div className="set-row">
+          <span className="field-label">Spotify account<span className="sub">{linked ? 'Connected on this device' : 'Not connected. Controls need Spotify Premium.'}</span></span>
+          {linked
+            ? <button className="btn" type="button" onClick={disconnectSpotify}>Disconnect</button>
+            : <button className="btn" type="button" onClick={() => { void connectSpotify(); }}>Connect Spotify</button>}
+        </div>
+      )}
+      {svc.lastfm && <LastfmSetting spotifyLinked={linked} />}
+      {svc.spotify && !linked && <RedirectUri />}
     </fieldset>
+  );
+}
+
+/** Last.fm username: works for everyone (Spotify only allows 5 accounts per app), no playback controls. */
+function LastfmSetting({ spotifyLinked }: { spotifyLinked: boolean }) {
+  const saved = useStudy((s) => s.settings.lastfmUser);
+  const [name, setName] = useState(saved);
+  useEffect(() => setName(saved), [saved]);
+  const valid = !!cleanLastfmUser(name);
+  const save = (v: string) => useStudy.getState().updateSettings((x) => { x.lastfmUser = v; });
+  return (
+    <div className="set-row stack">
+      <label className="field-label" htmlFor="lastfmUser">Last.fm username<span className="sub">
+        Anyone can use this. Link your music app to Last.fm once at <a href="https://www.last.fm/settings/applications" target="_blank" rel="noreferrer">last.fm → Settings → Applications</a>,
+        and what you play shows here and to friends who can see your music.{spotifyLinked ? ' Spotify on this device is used first while it\'s connected.' : ''}
+      </span></label>
+      <span className="inline copy-row">
+        <input id="lastfmUser" type="text" autoComplete="off" spellCheck={false} maxLength={15} value={name} placeholder="username" onChange={(e) => setName(e.target.value)} />
+        <button className="btn" type="button" disabled={!valid || name.trim() === saved} onClick={() => save(name.trim())}>Save</button>
+        {saved && <button className="btn-quiet" type="button" onClick={() => { save(''); setName(''); }}>Remove</button>}
+      </span>
+    </div>
   );
 }
 

@@ -81,11 +81,29 @@ function unsplash(req, res) {
   return reply(res, 404, { errors: ['Not found'] });
 }
 
+// Last.fm's user.getRecentTracks: "nowplayer" is listening, "quietone" played something earlier, "nobody" doesn't exist.
+const lastfmCalls = [];
+function lastfm(req, res) {
+  const url = new URL(req.url, `http://localhost:${PORT}`);
+  const user = url.searchParams.get('user');
+  lastfmCalls.push(user);
+  if (url.searchParams.get('api_key') !== 'test-lastfm') return reply(res, 403, { error: 10, message: 'Invalid API key' });
+  if (user === 'nobody') return reply(res, 404, { error: 6, message: 'User not found' });
+  const track = (name, artist, playing) => ({
+    name, artist: { '#text': artist }, album: { '#text': 'Swamp Sessions' }, url: `https://www.last.fm/music/${encodeURIComponent(artist)}/_/${encodeURIComponent(name)}`,
+    image: [{ size: 'large', '#text': `http://localhost:${PORT}/img/art-1.svg` }], ...(playing ? { '@attr': { nowplaying: 'true' } } : { date: { uts: '1760000000' } }),
+  });
+  if (user === 'nowplayer') return reply(res, 200, { recenttracks: { track: [track('Gator Groove', 'The Swamp Band', true), track('Older Song', 'Someone', false)] } });
+  return reply(res, 200, { recenttracks: { track: track('Yesterday Tune', 'Quiet Artist', false) } });
+}
+
 http.createServer((req, res) => {
   if (req.method === 'GET' && req.url === '/__requests') return reply(res, 200, requests);
   if (req.method === 'GET' && req.url === '/__unsplash') return reply(res, 200, unsplashCalls);
   if (req.method === 'GET' && /^\/(img|search|photos)\//.test(req.url)) return unsplash(req, res);
-  if (req.method === 'POST' && req.url === '/__reset') { requests.length = 0; unsplashCalls.length = 0; return reply(res, 200, {}); }
+  if (req.method === 'GET' && req.url.startsWith('/2.0/')) return lastfm(req, res);
+  if (req.method === 'GET' && req.url === '/__lastfm') return reply(res, 200, lastfmCalls);
+  if (req.method === 'POST' && req.url === '/__reset') { requests.length = 0; unsplashCalls.length = 0; lastfmCalls.length = 0; return reply(res, 200, {}); }
   let raw = '';
   req.on('data', (c) => { raw += c; });
   req.on('end', () => {

@@ -99,6 +99,23 @@ Unsplash requires.
 Spotify's development mode allows only accounts added under **User Management** (up to 5), and the app owner needs
 Premium. Play, pause and skip also need Premium; showing what's playing works on any plan.
 
+## 6. Last.fm, so everyone can share their music
+
+Spotify only lets 5 accounts use a hobby app, so anyone else can show what they're playing through Last.fm instead.
+They link Spotify (or Apple Music, YouTube Music and others) to Last.fm once, then type their Last.fm username in
+**Settings → Music**. There's no user limit, but no play/pause buttons either (Last.fm can't control playback).
+
+1. Sign in (or sign up, free) at **last.fm**, then open **last.fm/api/account/create**.
+2. Fill in **Application name** (`PomoGator`) and a short **Application description**. Leave **Callback URL** and
+   **Application homepage** empty, and click **Submit**.
+3. Copy the **API key** (not the "Shared secret"; that isn't needed).
+4. In Vercel, open your project → **Settings → Environment Variables**, add `LASTFM_API_KEY` with that key for all
+   environments, click **Save**, then **Deployments → ⋯ → Redeploy**.
+
+The key stays on the server. Each person's "now playing" is fetched at most every 15 seconds and shared between
+everyone looking at them, well within Last.fm's limits. If someone's songs don't appear, their Last.fm profile may
+hide its listening: last.fm → Settings → Privacy → turn off **Hide recent listening**.
+
 ## Give someone a cosmetic
 
 Buddy shop items are normally bought with study points. To give one to an account for free (a prize, or to try it

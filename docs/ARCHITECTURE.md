@@ -17,13 +17,24 @@ flowchart TB
     AIRoute["/api/ai/[action]<br/>quiz · plan · digest · day-summary · assistant"]
     Photos["/api/unsplash/[action]"]
     Config["/api/config"]
+    Music["/api/lastfm"]
   end
   Sync <--> Supabase[("Supabase<br/>Auth · Postgres + RLS · Storage")]
   Store --> AIRoute --> Gemini["Gemini API"]
   AIRoute -->|"use_ai() allowance"| Supabase
   UI --> Photos --> Unsplash["Unsplash API"]
   UI -->|"PKCE"| Spotify["Spotify Web API"]
+  UI --> Music --> LastFM["Last.fm API"]
 ```
+
+## Music
+
+Spotify (`lib/spotify.ts`) signs in from the browser with PKCE and shows controls, but a development-mode Spotify app
+only allows 5 accounts. Everyone else can use Last.fm: a username in Settings → Music (`settings.lastfmUser`, synced),
+looked up by `/api/lastfm` (`lib/lastfm-server.ts`, key `LASTFM_API_KEY` on the server; `user.getRecentTracks`, parsed
+by `lib/lastfm-core.ts`, cached 15 s per username). Spotify on the device wins when both are set. Either way, friends
+see only a title and artist, sent with the presence heartbeat (`myMusic()` in `lib/social.ts`), so friends need no
+music account of their own.
 
 ## The timer and the study loop
 
@@ -164,5 +175,5 @@ script in `app/layout.tsx` applies the saved theme before the first paint, so th
 | --- | --- |
 | `npm test` (Vitest) | Break rules, quiz/plan/digest validation, prompts, Gemini error mapping and fallback, stats (time zones, 4 AM day rollover, streak freezes), sync merging, goal and slide matching, saved timers |
 | `npm run test:e2e` (Playwright) | The full study → quiz → break loop with a fake clock, documents and goals, screen tracking with a synthetic shared screen, tab audio with a stand-in speech model, appearance, study buddies, stats, streaks, saved timers, focus mode, the first-time tour, data export and delete, and axe-core accessibility checks of every view |
-| `npm run test:ai` | The real `/api/ai/*` routes against `tests/fake-gemini/server.mjs` (which also stands in for Unsplash); Spotify faked in the browser |
+| `npm run test:ai` | The real `/api/ai/*` routes against `tests/fake-gemini/server.mjs` (which also stands in for Unsplash and Last.fm); Spotify faked in the browser |
 | `npm run test:sync` | Two browsers syncing through PostgREST on a real Postgres running the actual migrations, with a fake auth server (`tests/fake-supabase/server.mjs`); includes the celebration showing once per day across two devices |

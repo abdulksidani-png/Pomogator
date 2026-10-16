@@ -48,6 +48,7 @@ optional screen tracking, sign-in with cloud sync, and appearance customization.
 | + | UF default look, Rocket (robot retired), fold-away cards, Today → Stats, replies to support messages | Built, waiting on his test (replies need migration 5) |
 | + | Study points + buddy shop, Sugarcane + Canes theme (tomato retired), "How far did you get?" removed | Built, waiting on his test (no migration) |
 | + | Propeller cap, gear everywhere (assistant button too), friends see outfits, saved outfits, cartoon Sugarcane, gifts | Built, waiting on his test (no migration; gift SQL run by him) |
+| + | Last.fm music for everyone (gets around Spotify's 5-user cap) | Built, waiting on his test (needs `LASTFM_API_KEY` in Vercel; no migration) |
 
 Phase 3 also added the **study assistant** he asked for (`components/Assistant.tsx`, `lib/assistant.ts`): a corner
 "Ask PomoGator" button / `A` key opens a chat panel that sees the study panel, timer, to-do list, the selected
@@ -216,6 +217,17 @@ free; `hasItem`), given with the SQL in docs/SETUP.md "Give someone a cosmetic" 
 running the same SQL, used in the sync test). He asked for the propeller on his own account: he runs that SQL himself
 (his email is never committed).
 
+**Last.fm music (2026-10-16, his request after Spotify's 5-user dev-mode cap):** `settings.lastfmUser` (synced,
+`cleanLastfmUser`), `/api/lastfm?user=` (`lib/lastfm-server.ts`, `LASTFM_API_KEY`, `LASTFM_BASE_URL` for tests;
+`s-maxage=15`), pure parser `lib/lastfm-core.ts` (`toLastfmPlayback`, grey-star art dropped, `lastfmError`: 6 no_user,
+17 private, 29 rate_limited), browser `lib/lastfm.ts` (`useLastfm`, `refreshLastfm`). MusicCard: source = Spotify if
+linked on this device, else Last.fm if a username is set and the site has the key (`/api/config` `lastfm`); polls every
+20 s; no controls/progress, "via Last.fm · user", "Last played" for a past track; the not-connected card has
+`LastfmForm` ("Use Last.fm instead"). Settings → Music `LastfmSetting` (`#lastfmUser`). `myMusic()` in social.ts falls
+back to Last.fm, so friends see it through the same heartbeat. Spotify 403/sign-in failures point to Last.fm when it's
+on. Stand-in in `tests/fake-gemini/server.mjs` (`/2.0/`: nowplayer / quietone / nobody); test in
+`tests/e2e-ai/extras.spec.ts`. SETUP.md section 6 has the click-by-click key steps.
+
 **Quizzes from the shared screen (2026-10-15, his report: a Python session got a quiz on yesterday's philosophy deck):**
 screen tracking used OCR only to match slides, so off-document work was ignored. Now `capture()` in `lib/docs/screen.ts`
 puts every read frame's text on the live session (`addScreenText` → `session.screen`, ≤24k chars, dropped from history like
@@ -330,7 +342,7 @@ Earlier requests, all done and confirmed:
 ```bash
 npm run dev          # http://localhost:3000 (copies vendor files first)
 npm run typecheck
-npm test             # Vitest unit tests (122)
+npm test             # Vitest unit tests (126)
 npm run test:e2e     # Playwright: loop, documents, goals, screen tracking, tab sound, sounds, appearance, buddies, stats,
                      # saved timers, full screen, plan fold, weekly report, loading screen
 npm run test:ai      # Playwright: AI, Unsplash and Spotify against stand-ins (tests/fake-gemini; Spotify faked in-test)

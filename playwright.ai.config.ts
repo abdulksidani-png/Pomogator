@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// The AI, Unsplash and Spotify features end to end: the real /api routes, talking to stand-ins
-// (tests/fake-gemini/server.mjs for Gemini and Unsplash; Spotify is faked inside the tests).
+// The AI, Unsplash, Spotify and Last.fm features end to end: the real /api routes, talking to stand-ins
+// (tests/fake-gemini/server.mjs for Gemini, Unsplash and Last.fm; Spotify is faked inside the tests).
 // Run with `npm run test:ai`.
 export default defineConfig({
   testDir: 'tests/e2e-ai',
@@ -22,6 +22,7 @@ export default defineConfig({
         GEMINI_API_KEY: 'test-key', GEMINI_BASE_URL: 'http://localhost:4010',
         UNSPLASH_ACCESS_KEY: 'test-unsplash', UNSPLASH_BASE_URL: 'http://localhost:4010',
         SPOTIFY_CLIENT_ID: 'test-spotify',
+        LASTFM_API_KEY: 'test-lastfm', LASTFM_BASE_URL: 'http://localhost:4010',
       },
     },
   ],

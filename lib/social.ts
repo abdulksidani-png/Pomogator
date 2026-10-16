@@ -20,6 +20,7 @@ import { MIN } from './util';
 import type { MascotKind } from './types';
 import { refreshInvites, resetCollab, resumeRoom } from './collab';
 import { decodeBuddy, encodeBuddy } from './cosmetics';
+import { useLastfm } from './lastfm';
 
 export type Doing = 'studying' | 'paused' | 'quiz' | 'break' | 'idle';
 export interface Activity { state: Doing; sessionMin?: number; todayMin: number; together?: boolean }
@@ -87,9 +88,12 @@ export function myActivity(): Activity {
   return { state, ...(sessionMin !== undefined ? { sessionMin } : {}), todayMin: Math.round(done + (sessionMin ?? 0)), ...(s.collab ? { together: true } : {}) };
 }
 
+/** What I'm playing: Spotify on this device if connected, else Last.fm (any number of people can use that). */
 function myMusic(): Music | null {
-  const p = useSpotify.getState().playback;
-  return p && p.isPlaying && p.title ? { title: p.title.slice(0, 120), artist: p.artist.slice(0, 120) } : null;
+  const sp = useSpotify.getState().playback;
+  const lf = useStudy.getState().settings.lastfmUser ? useLastfm.getState().playback : null;
+  const p = sp?.isPlaying && sp.title ? sp : lf?.isPlaying && lf.title ? lf : null;
+  return p ? { title: p.title.slice(0, 120), artist: p.artist.slice(0, 120) } : null;
 }
 
 export function myStats(): SharedStats {

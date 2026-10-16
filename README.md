@@ -69,7 +69,7 @@ comes with an explanation and a memory aid, and **your score earns your break** 
   Rocket the bulldog, Sugarcane the cartoon ibis, Panfer the panther and Dulie the gorilla) that put on glasses and study at a desk while
   you do, cheer you through the quiz (happy when you're right, sad when you're not) and react in the chat. 7 clock
   fonts, 3 timer styles, Unsplash photo backgrounds, glass cards, side cards that fold away, saved timer presets, a
-  full-screen focus mode and a Spotify "now playing" widget.
+  full-screen focus mode and a "now playing" music widget (Spotify with controls, or Last.fm for anyone).
 - **Accounts without friction.** Start instantly as a guest, with a one-minute tour from your study buddy (skippable);
   sign in with Google or an email link later and keep everything. Progress syncs across devices. Download all your
   data as one file, or delete your account and everything in it, from Settings.
@@ -130,6 +130,7 @@ flowchart LR
   AI -->|"daily allowance"| SB
   UI --> PH --> UNS["Unsplash"]
   UI -->|"PKCE; tokens stay in the browser"| SPOT["Spotify Web API"]
+  UI --> LF["/api/lastfm"] --> LFM["Last.fm"]
 ```
 
 ## Tech stack
@@ -141,7 +142,7 @@ flowchart LR
 | Backend | Supabase (Auth, Postgres with row-level security, Storage), Vercel |
 | AI | Google Gemini API (JSON mode), Tesseract.js, Whisper via Transformers.js |
 | Documents | pdf.js, JSZip, mammoth |
-| Integrations | Unsplash API, Spotify Web API (PKCE) |
+| Integrations | Unsplash API, Spotify Web API (PKCE), Last.fm API |
 | Testing | Vitest, Playwright, PostgreSQL + PostgREST for sync tests, GitHub Actions |
 
 ## Run it yourself
@@ -160,9 +161,9 @@ It runs with no keys at all, saving everything in the browser. To switch on acco
 
 ```bash
 npm run typecheck
-npm test            # 122 unit tests: break rules, AI reply validation, stats (time zones, 4 AM rollover, streak freezes), check-in streaks, study points, cosmetics, weekly reports, sync merging, saved timers
+npm test            # 126 unit tests: break rules, AI reply validation, stats (time zones, 4 AM rollover, streak freezes), check-in streaks, study points, cosmetics, weekly reports, sync merging, saved timers
 npm run test:e2e    # 36 browser tests: study → quiz → break, document goals, screen tracking, tab audio, appearance, stats, streaks, the buddy shop, weekly report, focus mode, the tour, data export/delete, accessibility (axe)
-npm run test:ai     # 10 browser tests of the AI, Unsplash and Spotify features against local stand-ins
+npm run test:ai     # 11 browser tests of the AI, Unsplash, Spotify and Last.fm features against local stand-ins
 npm run test:sync   # two devices and two accounts through real Postgres + PostgREST running the actual migrations: sync, streaks, friends, studying together, account deletion
 ```
 
