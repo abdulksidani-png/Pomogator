@@ -49,7 +49,7 @@ export function errorFrom(status: number, j: GeminiReply): AiError {
   if (status === 401 || status === 403) return fail('bad_key', msg);
   if (status === 404) return fail('model_missing', msg);
   if (status === 400 && /token|too large|exceeds/i.test(msg)) return fail('prompt_too_large', msg);
-  return fail('upstream_error', msg || `Google returned ${status}.`);
+  return { ...fail('upstream_error', msg || `Google returned ${status}.`), why: `gemini ${status}` };
 }
 
 /** The text of the first answer, skipping any "thinking" parts. */
@@ -97,7 +97,9 @@ export async function askJson(opts: { system?: string; turns: Turn[]; images?: I
     for (let attempt = 0; attempt < 2; attempt++) {
       const j = await call(model, body, opts.signal);
       if (j.httpStatus !== 200) {
-        lastErr = errorFrom(j.httpStatus, j);
+        lastErr = { why: `gemini ${j.httpStatus}`, ...errorFrom(j.httpStatus, j) };
+        // Google's servers being busy (500/503) usually passes in a moment: wait briefly and ask once more.
+        if (j.httpStatus >= 500 && attempt === 0) { await new Promise((r) => setTimeout(r, 900)); continue; }
         break; // try the backup model (helps when one model's free quota is used up)
       }
       try { return parseJson(replyText(j)); }

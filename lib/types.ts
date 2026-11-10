@@ -438,7 +438,8 @@ export interface DayInput {
 }
 
 /** Error shape every AI call rejects with. */
-export interface AiError { code: string; message?: string }
+/** `why`: which AI and which HTTP status, e.g. "gemini 503" (safe to show; helps tell an outage from a setup problem). */
+export interface AiError { code: string; message?: string; why?: string }
 
 /** What the AI gets to write the weekly report's summary (lib/weekly.ts → weeklyInput). */
 export interface WeeklyInput {

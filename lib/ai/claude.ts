@@ -93,7 +93,12 @@ export async function askClaude(opts: { system?: string; turns: Turn[]; images?:
   for (const model of MODELS()) {
     for (let attempt = 0; attempt < 2; attempt++) {
       const j = await call(model, body, opts.signal);
-      if (j.httpStatus !== 200) { lastErr = claudeErrorFrom(j.httpStatus, j); break; }
+      if (j.httpStatus !== 200) {
+        lastErr = { ...claudeErrorFrom(j.httpStatus, j), why: `claude ${j.httpStatus}` };
+        // A busy server (500/529) usually passes in a moment: wait briefly and ask once more.
+        if (j.httpStatus >= 500 && attempt === 0) { await new Promise((r) => setTimeout(r, 900)); continue; }
+        break;
+      }
       try { return parseJson(claudeText(j)); }
       catch (e) {
         lastErr = e as AiError;

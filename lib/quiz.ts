@@ -120,6 +120,11 @@ export function aiErrorText(e: unknown): string {
     case 'bad_key': case 'model_missing': return 'The AI isn\'t working on this site right now. The timer works without it; try again later.';
     case 'prompt_too_large': return 'Your notes are too long. Trim them and try again.';
     case 'invalid_json': case 'empty_completion': return 'The reply came back incomplete. Try again.';
-    default: return 'Couldn\'t reach the AI. Check your connection and try again.';
+    case 'timeout': return 'The AI took too long to answer. Try again.';
+    default: {
+      // Not the student's connection: the AI service itself failed. Say so, with a short code that helps the site owner.
+      const why = isObj(e) && typeof e.why === 'string' ? ` (${e.why})` : '';
+      return `The AI service had a problem${why}. It's not your connection. Try again in a minute.`;
+    }
   }
 }

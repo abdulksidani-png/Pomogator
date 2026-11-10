@@ -16,10 +16,11 @@ async function post(path: string, body: unknown, signal?: AbortSignal): Promise<
     if ((e as { name?: string })?.name === 'AbortError') throw { code: 'cancelled' } satisfies AiError;
     throw { code: 'offline' } satisfies AiError;
   }
-  const j = (await r.json().catch(() => null)) as { code?: string; message?: string } | null;
+  const j = (await r.json().catch(() => null)) as { code?: string; message?: string; why?: string } | null;
   if (!r.ok) {
     if (r.status === 503 && j?.code === 'not_configured') status = 'off';
-    throw { code: j?.code || 'upstream_error', message: j?.message } satisfies AiError;
+    // No JSON at all means the site's own server gave up (for example it ran out of time), not the AI company.
+    throw { code: j?.code || (r.status === 504 ? 'timeout' : 'upstream_error'), message: j?.message, why: j?.why ?? (j ? undefined : `site ${r.status}`) } satisfies AiError;
   }
   return j;
 }
