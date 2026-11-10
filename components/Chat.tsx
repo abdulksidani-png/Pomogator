@@ -84,7 +84,7 @@ export function ChatPanel() {
   const name = friend ? nameOf(friend.id, friend.name) : '';
 
   return (
-    <motion.aside className="assistant chat-panel" id="chatPanel" aria-label={friend ? `Chat with ${name}` : 'Chat'} aria-hidden={!open} inert={!open}
+    <motion.aside className="chat-panel" id="chatPanel" aria-label={friend ? `Chat with ${name}` : 'Chat'} aria-hidden={!open} inert={!open}
       initial={false} animate={open ? { x: 0, opacity: 1 } : { x: '104%', opacity: 0.6 }} transition={{ duration: 0.34, ease: EASE }}>
       <header className="assistant-head">
         <span className="assistant-mark has-buddy" aria-hidden="true">{friend && <Mascot mood={moodFor(friend)} kind={friend.buddy} wear={friend.wear} />}</span>

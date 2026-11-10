@@ -6,7 +6,7 @@ export type BreakReason = '' | 'quiz' | 'quiz-skipped' | 'short-session' | 'skip
 export type Level = 'hs' | 'intro' | 'advanced' | 'exam';
 export type Difficulty = 'gentle' | 'standard' | 'challenging';
 export type Skin = 'auto' | 'notebook' | 'chalkboard' | 'canes' | 'midnight' | 'sakura' | 'matcha' | 'sunset' | 'jungle' | 'gator' | 'panther' | 'robotlab';
-export type ClockFont = 'theme' | 'mono' | 'rounded' | 'serif' | 'condensed' | 'digital' | 'hand';
+export type ClockFont = 'theme' | 'editorial' | 'mono' | 'rounded' | 'serif' | 'condensed' | 'digital' | 'hand';
 export type TimerStyle = 'classic' | 'ring' | 'minimal';
 export type Background = 'theme' | 'plain' | 'dots' | 'grid' | 'lined' | 'gradient' | 'image' | 'unsplash';
 export type MascotKind = 'gorilla' | 'gator' | 'panther' | 'bulldog' | 'ibis';
@@ -99,7 +99,9 @@ export interface Settings {
   bgPhoto: UnsplashPhoto | null;
   /** A mood (search words) for a new Unsplash photo every day; '' = keep the chosen photo. */
   bgDaily: string;
-  cardStyle: 'solid' | 'glass';
+  cardStyle: 'ruled' | 'solid' | 'glass';
+  /** Which version of the default look these settings were last brought up to (see normalizeData). */
+  look: number;
   /** Show the Spotify "now playing" widget. */
   musicWidget: boolean;
   corners: Corners;

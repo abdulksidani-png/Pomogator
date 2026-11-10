@@ -51,6 +51,7 @@ optional screen tracking, sign-in with cloud sync, and appearance customization.
 | + | Last.fm music for everyone (gets around Spotify's 5-user cap) | Built, waiting on his test (needs `LASTFM_API_KEY` in Vercel; no migration) |
 | + | Pick a username after signing in (what friends see instead of "Study buddy") | Built, waiting on his test (no migration) |
 | + | Private nicknames for friends | Built, waiting on his test (migration 6 for nicknames on messages and invites) |
+| DRAFT | Redesign ("the sheet"), Claude API, friend chat + Do Not Disturb, old material put away | **On branch `claude/exciting-albattani-r60vol` only, NOT on `main`** (main stays at `1f29c2d` until he says ship; needs migration 7 + `ANTHROPIC_API_KEY`) |
 
 Phase 3 also added the **study assistant** he asked for (`components/Assistant.tsx`, `lib/assistant.ts`): a corner
 "Ask PomoGator" button / `A` key opens a chat panel that sees the study panel, timer, to-do list, the selected
@@ -248,6 +249,31 @@ beside it (`.friend-real`); `NicknameField` in the expanded row (`#nick-<id>`). 
 emptied; `normalizeData` reads `nicknames` from the raw settings, and sync pull now applies settings through
 `normalizeData` too (regression test in tests/unit/sync.test.ts).
 
+**The 2026-11 draft (his request: an experiment he can throw away).** Lives only on the branch; **do not push it to
+`main` until he says so** (to discard: reset the branch to `main`). Vercel builds a Preview for the branch; sign-in on
+a preview needs its address under Supabase → Auth → URL Configuration → Redirect URLs. Four parts:
+- **AI**: `lib/ai/claude.ts` (Anthropic Messages API, `ANTHROPIC_API_KEY`, smallest model with a backup on 404,
+  `max_tokens` per action, system prompt marked cacheable, no temperature), `lib/ai/provider.ts` (`providers()`: Claude
+  then Gemini, `AI_PROVIDER` flips; `askJson(build, order)` falls through on rate_limited/out_of_credit/bad_key/…;
+  `BUDGET` per provider: Claude gets 24k chars of material, 3 snapshots, 2 chat photos). Quota: 12/60 when Claude is
+  first, plus `ai_calls_today()` site ceiling (`site_limit`). The fake server answers `/v1/messages` too (recorded in
+  Gemini's shape; `CLAUDE_OUT` in a prompt = out of credit); `__reset?what=ai|extras`.
+- **Recent material** (`lib/recent.ts`): `context.docUsedAt` / `topicDoc`; `tidyMaterial()` (6 s after load, every 5 min,
+  on tab focus, never mid-session) puts away a document unused for 48 h and a topic that came from it; `#docSelect`
+  lists `splitDocs().recent` + "Older material (N)…" (`__older` → library); quiz screen `#quizOlder`; a document picked
+  during the quiz is quizzed whole (`quizPages`) and forces `quizPick.doc`.
+- **Chat + DND**: migration 7 (`20261110000000_chat.sql`): `chat_messages` (functions only: `send_chat`, `chat_with`
+  marks read, `chat_unread`; 24 h window, swept on send; 20 per 30 s), `social_profiles.dnd` + `set_dnd()`,
+  `friends_overview()` returns `dnd`. `lib/chat.ts` (`useFriendChat`; polls unread 6 s, open chat 3 s),
+  `components/Chat.tsx` (`ChatPanel` `#chatPanel` class `chat-panel`, NOT `.assistant`; `ChatPopup` `#chatPop`;
+  `DndButton` `#dndBtn`). DND hides chat/support popups and the invite banner (`InviteBanner quiet` → `#quietInvite` in
+  the Friends card). Without migration 7 (`ready === false`) the old SupportPicker shows instead of Message.
+- **Redesign**: a layer appended to `app/globals.css` ("REDESIGN … the sheet"): Instrument Serif (clock, titles),
+  Geist (text), Geist Mono (labels); hairline rules, no shadows/pills; `cardStyle: 'ruled'` (new default; `solid`
+  over photos), `clockFont: 'editorial'`, `settings.look` (2) with a one-time move of old looks in `normalizeData`.
+  `data-cards` is always set (also by the early script in layout.tsx). Rules that set columns must stay inside
+  `min-width: 921px` (the phone layout is one column).
+
 **Quizzes from the shared screen (2026-10-15, his report: a Python session got a quiz on yesterday's philosophy deck):**
 screen tracking used OCR only to match slides, so off-document work was ignored. Now `capture()` in `lib/docs/screen.ts`
 puts every read frame's text on the live session (`addScreenText` → `session.screen`, ≤24k chars, dropped from history like
@@ -362,7 +388,7 @@ Earlier requests, all done and confirmed:
 ```bash
 npm run dev          # http://localhost:3000 (copies vendor files first)
 npm run typecheck
-npm test             # Vitest unit tests (132)
+npm test             # Vitest unit tests (145)
 npm run test:e2e     # Playwright: loop, documents, goals, screen tracking, tab sound, sounds, appearance, buddies, stats,
                      # saved timers, full screen, plan fold, weekly report, loading screen
 npm run test:ai      # Playwright: AI, Unsplash and Spotify against stand-ins (tests/fake-gemini; Spotify faked in-test)

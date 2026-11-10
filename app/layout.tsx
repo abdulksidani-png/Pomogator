@@ -9,6 +9,10 @@ import '@fontsource/bebas-neue';
 import '@fontsource/dm-serif-display';
 import '@fontsource-variable/orbitron';
 import '@fontsource-variable/caveat';
+import '@fontsource/instrument-serif/400.css';
+import '@fontsource/instrument-serif/400-italic.css';
+import '@fontsource-variable/geist';
+import '@fontsource-variable/geist-mono';
 import './globals.css';
 
 const description = 'A Pomodoro study timer that quizzes you on what you studied, sets your break from your score, and plans your next session.';
@@ -25,7 +29,7 @@ export const metadata: Metadata = {
 };
 
 // New visitors start on the gator theme (the default look), so the loading screen is blue and orange for them too.
-const EARLY_THEME = `try{var e=document.documentElement;var s=JSON.parse(localStorage.getItem('studybuddy.v1')||'{}').state;s=s&&s.settings;var k=s&&s.skin?s.skin:'gator';if(k!=='auto')e.dataset.skin=k;if(!s)e.dataset.bg='dots';if(s&&/^#[0-9a-f]{6}$/i.test(s.accent||''))e.style.setProperty('--accent',s.accent)}catch(_){}`;
+const EARLY_THEME = `try{var e=document.documentElement;var s=JSON.parse(localStorage.getItem('studybuddy.v1')||'{}').state;s=s&&s.settings;var k=s&&s.skin?s.skin:'gator';if(k!=='auto')e.dataset.skin=k;if(!s)e.dataset.bg='plain';var c=s&&s.look>=2?s.cardStyle:'ruled';var ph=s&&(s.background==='image'||s.background==='unsplash');e.dataset.cards=c==='ruled'&&ph?'solid':(c||'ruled');if(s&&/^#[0-9a-f]{6}$/i.test(s.accent||''))e.style.setProperty('--accent',s.accent)}catch(_){}`;
 
 export const viewport: Viewport = {
   width: 'device-width',

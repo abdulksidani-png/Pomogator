@@ -23,6 +23,7 @@ export const ACCENTS = ['#2F4BC8', '#7C4DDB', '#B83C7A', '#D63A43', '#C2662D', '
 
 export const CLOCK_FONTS: { id: ClockFont; name: string; family?: string }[] = [
   { id: 'theme', name: 'Theme' },
+  { id: 'editorial', name: 'Editorial', family: '"Instrument Serif", serif' },
   { id: 'mono', name: 'Mono', family: '"Martian Mono Variable", monospace' },
   { id: 'rounded', name: 'Rounded', family: '"Fredoka Variable", sans-serif' },
   { id: 'serif', name: 'Serif', family: '"DM Serif Display", serif' },
@@ -99,7 +100,8 @@ export function applyAppearance(s: Settings, bgUrl: string | null) {
   setAttr(el, 'density', s.density, 'comfortable');
   setAttr(el, 'mascot', s.mascot === 'off' ? 'off' : 'on', 'auto');
   setAttr(el, 'timer', s.timerStyle, 'classic');
-  setAttr(el, 'cards', s.cardStyle, 'solid');
+  // Ruled sections have no background of their own, so over a photo they become solid cards.
+  setAttr(el, 'cards', s.cardStyle === 'ruled' && (s.background === 'image' || s.background === 'unsplash') ? 'solid' : s.cardStyle, '');
   // Your photo and Unsplash photos share one look ("image"); without a photo, fall back to the theme.
   const photo = s.background === 'unsplash' ? (s.bgPhoto ? photoUrl(s.bgPhoto, 2400) : null) : s.background === 'image' ? bgUrl : null;
   const isPhoto = s.background === 'image' || s.background === 'unsplash';

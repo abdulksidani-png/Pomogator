@@ -40,6 +40,7 @@ Every push to the main branch redeploys the site. After adding or changing an en
    4. [`supabase/migrations/20261016000000_friends.sql`](../supabase/migrations/20261016000000_friends.sql): "Delete my account", friends, support messages and studying together
    5. [`supabase/migrations/20261017000000_support_replies.sql`](../supabase/migrations/20261017000000_support_replies.sql): replies to friends' support messages
    6. [`supabase/migrations/20261018000000_sender_ids.sql`](../supabase/migrations/20261018000000_sender_ids.sql): your nicknames for friends also show on their messages and study invites
+   7. [`supabase/migrations/20261110000000_chat.sql`](../supabase/migrations/20261110000000_chat.sql): chat between friends (kept 24 hours), Do Not Disturb, and a daily AI ceiling for the whole site
 
    Each file is safe to run again. If a feature says it "isn't switched on for this site yet", the file it needs
    hasn't been run.
@@ -69,6 +70,23 @@ Every push to the main branch redeploys the site. After adding or changing an en
 
 Supabase's built-in email service sends only a few emails per hour, which is fine for a small site. For more, add your
 own SMTP server under **Authentication → Emails**.
+
+## 3a. AI with Claude (paid, a few cents a day)
+
+Claude is paid per use from prepaid credit; it is separate from a Claude.ai subscription, which a website can't use.
+The site uses the smallest Claude model, caps the length of every answer, and sends less of long documents.
+
+1. Go to **console.anthropic.com** and sign in. Open **Billing** and buy a small amount of credit (the minimum is
+   enough to start). Leave **auto-reload off**: then the most the site can ever spend is what you put in.
+2. Open **API keys → Create key**, name it `pomogator`, and copy the key (it starts with `sk-ant-`).
+3. In Vercel: your project → **Settings → Environment Variables** → add `ANTHROPIC_API_KEY` with that key, for all
+   environments → **Save** → **Deployments → ⋯ → Redeploy**.
+
+The key stays on the server and is never sent to the browser. If a Gemini key is also set, Gemini answers whenever
+Claude can't (for example when the credit runs out), so quizzes keep working. To put free Gemini first and keep Claude
+as the backup, also add `AI_PROVIDER` = `gemini`. Daily limits while Claude answers: 12 AI requests per guest, 60 per
+account, 600 for the whole site (`AI_DAILY_LIMIT_GUEST`, `AI_DAILY_LIMIT_USER`, `AI_DAILY_LIMIT_SITE`; the site-wide
+one needs migration 7).
 
 ## 3. AI quizzes with Gemini
 

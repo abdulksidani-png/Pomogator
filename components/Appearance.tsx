@@ -180,7 +180,7 @@ export function AppearanceDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialo
             </div>
             <input ref={photoRef} type="file" accept="image/*" hidden onChange={onPhoto} />
           </div>
-          <Seg label="Cards" value={s.cardStyle} options={[{ id: 'solid', name: 'Solid' }, { id: 'glass', name: 'Glass' }]} onPick={(v) => set('cardStyle', v)} />
+          <Seg label="Cards" value={s.cardStyle} options={[{ id: 'ruled', name: 'Ruled' }, { id: 'solid', name: 'Solid' }, { id: 'glass', name: 'Glass' }]} onPick={(v) => set('cardStyle', v)} />
           <Seg label="Corners" value={s.corners} options={CORNERS} onPick={(v) => set('corners', v)} />
           <Seg label="Spacing" value={s.density} options={[{ id: 'comfortable', name: 'Comfortable' }, { id: 'compact', name: 'Compact' }]} onPick={(v) => set('density', v)} />
         </fieldset>

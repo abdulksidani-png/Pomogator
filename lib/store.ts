@@ -300,6 +300,12 @@ export function normalizeData(p: Partial<Data> | undefined): Data {
     if (t.values.mascotKind && !buddies.includes(t.values.mascotKind)) t.values.mascotKind = 'gator';
     if ((t.values.skin as string) === 'tomato') t.values.skin = 'gator';
   }
+  // The 2026-11 redesign: settings saved under the old look move to the new form once (flat ruled sections, the
+  // editorial clock, a plain page). The theme, accent, buddy and any photo background are kept.
+  if (((p.settings as Partial<Settings> | undefined)?.look ?? 0) < 2) {
+    const photo = settings.background === 'image' || settings.background === 'unsplash';
+    Object.assign(settings, { clockFont: 'editorial', corners: 'theme', cardStyle: photo ? 'solid' : 'ruled', ...(photo ? {} : { background: 'plain' }), look: 2 });
+  }
   settings.wear = cleanWear(settings.wear);
   settings.outfits = cleanOutfits(settings.outfits);
   settings.lastfmUser = cleanLastfmUser(settings.lastfmUser);
