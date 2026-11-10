@@ -154,7 +154,7 @@ points; they show up as "A gift, free to wear" the next time the site is opened 
 
 ## Going back to the old look
 
-The version from before the redesign is saved as the tag `pre-redesign`. Two ways back:
+The version from before the redesign is commit `1f29c2d` ("Private nicknames for friends"). Two ways back:
 
 - **Fastest (about a minute, no code):** in Vercel → your project → **Deployments**, find the last deployment from before
   the redesign (commit `1f29c2d`, "Private nicknames for friends"), click **⋯ → Promote to Production** (or **Instant

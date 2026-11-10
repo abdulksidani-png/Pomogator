@@ -51,7 +51,7 @@ optional screen tracking, sign-in with cloud sync, and appearance customization.
 | + | Last.fm music for everyone (gets around Spotify's 5-user cap) | Built, waiting on his test (needs `LASTFM_API_KEY` in Vercel; no migration) |
 | + | Pick a username after signing in (what friends see instead of "Study buddy") | Built, waiting on his test (no migration) |
 | + | Private nicknames for friends | Built, waiting on his test (migration 6 for nicknames on messages and invites) |
-| + | Redesign ("the sheet"), Claude API, friend chat + Do Not Disturb, old material put away | **LIVE since 2026-11-10 at his request, waiting on his test** (before it, `main` was `1f29c2d`, tagged `pre-redesign`; needs migration 7 for chat/DND and `ANTHROPIC_API_KEY` for Claude) |
+| + | Redesign ("the sheet"), Claude API, friend chat + Do Not Disturb, old material put away | **LIVE since 2026-11-10 at his request, waiting on his test** (before it, `main` was `1f29c2d`, commit `1f29c2d`; needs migration 7 for chat/DND and `ANTHROPIC_API_KEY` for Claude) |
 
 Phase 3 also added the **study assistant** he asked for (`components/Assistant.tsx`, `lib/assistant.ts`): a corner
 "Ask PomoGator" button / `A` key opens a chat panel that sees the study panel, timer, to-do list, the selected
@@ -249,8 +249,8 @@ beside it (`.friend-real`); `NicknameField` in the expanded row (`#nick-<id>`). 
 emptied; `normalizeData` reads `nicknames` from the raw settings, and sync pull now applies settings through
 `normalizeData` too (regression test in tests/unit/sync.test.ts).
 
-**The 2026-11 update (his request; first a draft, put live on 2026-11-10).** To go back to the old look: tag
-`pre-redesign` (= `1f29c2d`) is the last old version; see the revert recipe in docs/SETUP.md → "Going back". Four parts:
+**The 2026-11 update (his request; first a draft, put live on 2026-11-10).** To go back to the old look: commit
+`1f29c2d` is the last old version; see the revert recipe in docs/SETUP.md → "Going back". Four parts:
 - **AI**: `lib/ai/claude.ts` (Anthropic Messages API, `ANTHROPIC_API_KEY`, smallest model with a backup on 404,
   `max_tokens` per action, system prompt marked cacheable, no temperature), `lib/ai/provider.ts` (`providers()`: Claude
   then Gemini, `AI_PROVIDER` flips; `askJson(build, order)` falls through on rate_limited/out_of_credit/bad_key/…;
