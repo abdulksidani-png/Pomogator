@@ -1547,3 +1547,23 @@ html[data-ready] .splash { animation: splash-out .6s cubic-bezier(.22,1,.36,1) v
 .friend-nick { display: grid; gap: 6px; margin: 4px 0 10px; }
 .friend-nick .inline { display: flex; gap: 8px; }
 .friend-nick input { flex: 1; min-width: 0; }
+/* ---------- Friend chat + Do Not Disturb ---------- */
+.friend { position: relative; }
+.friend-chat { position: absolute; top: 9px; right: 30px; }
+.friend-chat .unread-dot, .unread-dot { position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font: 700 11px/18px var(--f-body); text-align: center; }
+.friend-dnd { display: inline-flex; margin-left: 6px; vertical-align: -2px; color: var(--fg-3); }
+.friend-dnd svg.i { width: 14px; height: 14px; fill: currentColor; }
+.dnd-btn[aria-pressed="true"] { background: var(--accent); border-color: transparent; color: var(--on-accent); }
+.dnd-btn[aria-pressed="true"] svg.i { fill: currentColor; }
+.dnd-note, .chat-note { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; font-size: 13px; color: var(--fg-2); }
+.dnd-note svg.i, .chat-note svg.i, .chat-status svg.i { width: 14px; height: 14px; flex: none; fill: currentColor; }
+.quiet-invite { display: grid; gap: 6px; padding: 10px 12px; margin-bottom: 8px; border: 1px solid var(--rule); border-radius: var(--r-md); font-size: 13.5px; }
+.quiet-invite-btns { display: flex; gap: 8px; }
+.chat-list { gap: 8px; }
+.chat-note { justify-content: center; text-align: center; margin: 0; font-size: 12.5px; color: var(--fg-3); }
+.chat-empty { margin: 18px 0; text-align: center; color: var(--fg-2); }
+.chat-status { display: inline-flex; align-items: center; gap: 5px; }
+.chat-panel .bubble { display: grid; gap: 2px; }
+.chat-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.chat-time { font-size: 11px; opacity: .7; justify-self: end; }
+.chat-panel .bubble[data-state="sending"] { opacity: .7; }

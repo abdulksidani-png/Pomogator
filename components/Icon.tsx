@@ -1,5 +1,5 @@
 export type IconName =
-  | 'user' | 'palette' | 'monitor' | 'upload' | 'download' | 'trash' | 'play' | 'pause' | 'reset' | 'skip' | 'loop' | 'gear' | 'kbd' | 'x' | 'check' | 'plus' | 'flag' | 'file' | 'camera' | 'sound' | 'sparkle' | 'send' | 'prev' | 'next' | 'music' | 'external' | 'chart' | 'bookmark' | 'expand' | 'shrink' | 'chevron' | 'image' | 'flame' | 'book' | 'coin';
+  | 'user' | 'palette' | 'monitor' | 'upload' | 'download' | 'trash' | 'play' | 'pause' | 'reset' | 'skip' | 'loop' | 'gear' | 'kbd' | 'x' | 'check' | 'plus' | 'flag' | 'file' | 'camera' | 'sound' | 'sparkle' | 'send' | 'prev' | 'next' | 'music' | 'external' | 'chart' | 'bookmark' | 'expand' | 'shrink' | 'chevron' | 'image' | 'flame' | 'book' | 'coin' | 'chat' | 'moon';
 
 export function Icon({ name }: { name: IconName }) {
   return (
@@ -47,6 +47,8 @@ export function IconSprite() {
         <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5" /><circle cx="9" cy="10" r="1.8" /><path d="M21 16l-5-5-9 9" /></symbol>
         <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 22c4 0 7-2.7 7-6.6 0-3.3-2.1-5.3-3.6-7.4-.6 1.7-1.6 2.7-2.6 3.1C13 7.6 11.7 4.6 9 2.5 9 6.4 5 9 5 15.4 5 19.3 8 22 12 22z" /><path d="M12 22c-1.7 0-3-1.2-3-2.9 0-2 1.6-2.8 2.4-4.6.9 1.2 3.6 2.4 3.6 4.6 0 1.7-1.3 2.9-3 2.9z" /></symbol>
         <symbol id="i-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7.2l1.5 3 3.3.5-2.4 2.3.6 3.3-3-1.6-3 1.6.6-3.3-2.4-2.3 3.3-.5z" /></symbol>
+        <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z" /></symbol>
+        <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" /></symbol>
         <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z" /><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5" /><path d="M8 7h8" /></symbol>
         <symbol id="i-sound" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4z" /><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14" /></symbol>
       </defs>

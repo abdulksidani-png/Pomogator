@@ -22,6 +22,7 @@ import { refreshInvites, resetCollab, resumeRoom } from './collab';
 import { decodeBuddy, encodeBuddy } from './cosmetics';
 import { useLastfm } from './lastfm';
 import { shownName } from './nicknames';
+import { refreshUnread, resetChat } from './chat';
 export { cleanUsername } from './username';
 
 export type Doing = 'studying' | 'paused' | 'quiz' | 'break' | 'idle';
@@ -36,8 +37,10 @@ export interface Friend {
   /** `wear`: the friend's outfit from the shop (it travels inside the buddy field, see encodeBuddy). */
   id: string; name: string; buddy: MascotKind; wear: string[]; relation: 'friend' | 'sent' | 'received';
   online: boolean; activity: Activity | null; music: Music | null; stats: SharedStats | null; supportedToday: boolean;
+  /** Do Not Disturb is on for them: they aren't notified of messages and invites until they turn it off. */
+  dnd: boolean;
 }
-export interface MyProfile { code: string; name: string; buddy: MascotKind; buddyCode: string; shareOnline: boolean; shareMusic: boolean; shareStats: boolean }
+export interface MyProfile { code: string; name: string; buddy: MascotKind; buddyCode: string; shareOnline: boolean; shareMusic: boolean; shareStats: boolean; dnd: boolean }
 export interface Support { id: string; fromId: string; fromName: string; buddy: MascotKind; wear: string[]; text: string; at: string; isReply: boolean }
 
 export type SocialStatus = 'off' | 'guest' | 'loading' | 'ready' | 'not_ready' | 'error';
@@ -136,9 +139,10 @@ export function startSocial(status: string) {
       setInterval(() => { if (visible()) void heartbeat(true); }, 60_000),
       setInterval(() => { if (visible()) { void refreshFriends(); void refreshInbox(); } }, 30_000),
       setInterval(() => { if (visible()) void refreshInvites(); }, 10_000),
+      setInterval(() => { if (visible()) void refreshUnread(); }, 6_000),
       setInterval(() => void heartbeat(false), 5_000), // only sends when what I'm doing changed
     ];
-    await Promise.allSettled([refreshFriends(), refreshInbox(), heartbeat(true), publishStats(), resumeRoom(), refreshInvites()]);
+    await Promise.allSettled([refreshFriends(), refreshInbox(), heartbeat(true), publishStats(), resumeRoom(), refreshInvites(), refreshUnread()]);
   })();
 }
 
@@ -148,6 +152,7 @@ export function stopSocial() {
   forUser = '';
   lastBeat = '';
   resetCollab();
+  resetChat();
   set({ status: 'off', me: null, friends: [], inbox: [], error: '' });
 }
 
@@ -163,7 +168,7 @@ async function loadMe(): Promise<boolean> {
   if (!row) { set({ status: 'error' }); return false; }
   set({
     status: 'ready',
-    me: { code: String(row.code), name: String(row.name), buddy: buddyOf(row.buddy), buddyCode: String(row.buddy), shareOnline: !!row.share_online, shareMusic: !!row.share_music, shareStats: !!row.share_stats },
+    me: { code: String(row.code), name: String(row.name), buddy: buddyOf(row.buddy), buddyCode: String(row.buddy), shareOnline: !!row.share_online, shareMusic: !!row.share_music, shareStats: !!row.share_stats, dnd: !!row.dnd },
   });
   return true;
 }
@@ -177,7 +182,7 @@ export async function refreshFriends() {
     friends: ((data ?? []) as Record<string, unknown>[]).map((r) => ({
       id: String(r.user_id), name: String(r.name || 'Friend'), buddy: buddyOf(r.buddy), wear: wearOf(r.buddy), relation: r.relation as Friend['relation'],
       online: !!r.online, activity: (r.activity as Activity) ?? null, music: (r.music as Music) ?? null,
-      stats: (r.stats as SharedStats) ?? null, supportedToday: !!r.supported_today,
+      stats: (r.stats as SharedStats) ?? null, supportedToday: !!r.supported_today, dnd: !!r.dnd,
     })),
   });
 }
@@ -286,6 +291,19 @@ export async function syncBuddy(code: string) {
   if (!c || !me || me.buddyCode === code) return;
   set({ me: { ...me, buddy: buddyOf(code), buddyCode: code } });
   await c.sb.rpc('social_me', { p_name: null, p_buddy: code });
+}
+
+/**
+ * Do Not Disturb: friends see a mark by my name, and this browser stops popping up messages and study invites
+ * (they wait quietly in the Friends card). Returns false when the site's database doesn't have it yet.
+ */
+export async function setDnd(on: boolean): Promise<boolean> {
+  const c = syncClient();
+  const me = useSocial.getState().me;
+  if (!c || !me) return false;
+  set({ me: { ...me, dnd: on } }); // mute this device right away, whatever the server says
+  const { error } = await c.sb.rpc('set_dnd', { p_on: on });
+  return !error;
 }
 
 /** In components: (friend id, their username) → your nickname for them, else the username. */

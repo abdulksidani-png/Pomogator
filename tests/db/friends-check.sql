@@ -106,6 +106,42 @@ set request.jwt.claims = '{"sub": "aaaaaaaa-0000-0000-0000-000000000002", "role"
 select public.leave_collab(current_setting('test.room')::uuid);
 select 'room ends when everyone leaves', public.collab_room() is null as ok;
 
+-- Chat (migration 7): friends only, the last 24 hours, read marks, Do Not Disturb. (Bo is signed in here.)
+select 'chat sent', public.send_chat('aaaaaaaa-0000-0000-0000-000000000001', '  hey Ana, studying?  ') = 'sent' as ok;
+select 'empty messages are refused', public.send_chat('aaaaaaaa-0000-0000-0000-000000000001', '   ') = 'empty' as ok;
+select 'no chat with strangers', public.send_chat('aaaaaaaa-0000-0000-0000-000000000003', 'hi') = 'not_friends' as ok;
+select 'no chat with yourself', public.send_chat('aaaaaaaa-0000-0000-0000-000000000002', 'hi') = 'not_friends' as ok;
+do $$ begin
+  perform 1 from public.chat_messages;
+  raise exception 'read the table';
+exception when insufficient_privilege then null; end $$;
+select 'the messages table is only reachable through the functions', true as ok;
+select 'bo turns on do not disturb', public.set_dnd(true) as ok;
+set request.jwt.claims = '{"sub": "aaaaaaaa-0000-0000-0000-000000000003", "role": "authenticated", "is_anonymous": false}';
+select 'a stranger sees nothing', (select count(*) = 0 from public.chat_unread()) and (select count(*) = 0 from public.chat_with('aaaaaaaa-0000-0000-0000-000000000002')) as ok;
+set request.jwt.claims = '{"sub": "aaaaaaaa-0000-0000-0000-000000000001", "role": "authenticated", "is_anonymous": false}';
+select 'ana has one unread from Bo, trimmed', (select unread = 1 and last_text = 'hey Ana, studying?' and from_id = 'aaaaaaaa-0000-0000-0000-000000000002' from public.chat_unread()) as ok;
+select 'ana sees that Bo does not want to be disturbed', (select dnd from public.friends_overview() where name = 'Bo') as ok;
+select 'she can still write to him', public.send_chat('aaaaaaaa-0000-0000-0000-000000000002', 'yes! library at 4?') = 'sent' as ok;
+select 'the chat shows both, oldest first', (select count(*) = 2 and (array_agg(mine order by created_at, id))[1] = false and (array_agg(mine order by created_at, id))[2] = true
+  from public.chat_with('aaaaaaaa-0000-0000-0000-000000000002')) as ok;
+select 'opening it marked his message read', (select count(*) = 0 from public.chat_unread()) as ok;
+reset role;
+update public.chat_messages set created_at = now() - interval '25 hours' where text = 'hey Ana, studying?';
+set role authenticated;
+select 'messages older than a day are gone from the chat', (select count(*) = 1 from public.chat_with('aaaaaaaa-0000-0000-0000-000000000002')) as ok;
+select 'the next message sweeps them out of the table', public.send_chat('aaaaaaaa-0000-0000-0000-000000000002', 'see you there') = 'sent' as ok;
+reset role;
+select 'swept', (select count(*) = 2 from public.chat_messages) as ok;
+set role authenticated;
+do $$ begin
+  for i in 1..25 loop perform public.send_chat('aaaaaaaa-0000-0000-0000-000000000002', 'spam ' || i); end loop;
+end $$;
+select 'a flood is slowed down', public.send_chat('aaaaaaaa-0000-0000-0000-000000000002', 'one more') = 'too_fast' as ok;
+select 'the AI ceiling counts everyone''s calls, and only the total', public.ai_calls_today() >= 0 as ok;
+set request.jwt.claims = '{"sub": "aaaaaaaa-0000-0000-0000-000000000002", "role": "authenticated", "is_anonymous": false}';
+select 'bo turns do not disturb off', not public.set_dnd(false) as ok;
+
 -- Unfriend, then delete an account: everything of theirs goes.
 select public.respond_friend('aaaaaaaa-0000-0000-0000-000000000001', false);
 select 'unfriended', (select count(*) = 0 from public.friends_overview()) as ok;
@@ -113,4 +149,5 @@ select public.delete_my_account();
 reset role;
 select 'account and its rows deleted', (select count(*) = 0 from auth.users where id = 'aaaaaaaa-0000-0000-0000-000000000002')
   and (select count(*) = 0 from public.social_profiles where user_id = 'aaaaaaaa-0000-0000-0000-000000000002')
-  and (select count(*) = 0 from public.support_messages where to_id = 'aaaaaaaa-0000-0000-0000-000000000002') as ok;
+  and (select count(*) = 0 from public.support_messages where to_id = 'aaaaaaaa-0000-0000-0000-000000000002')
+  and (select count(*) = 0 from public.chat_messages where 'aaaaaaaa-0000-0000-0000-000000000002' in (from_id, to_id)) as ok;

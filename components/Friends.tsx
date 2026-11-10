@@ -21,6 +21,9 @@ import { SOFT, SPRING } from './motion';
 import { encodeBuddy } from '@/lib/cosmetics';
 import { pullNow } from '@/lib/sync';
 import { useNameOf } from '@/lib/social';
+import { useFriendChat } from '@/lib/chat';
+import { DndButton, startChat, toggleDnd, useUnreadTotal } from './Chat';
+import { InviteBanner } from './Together';
 
 const hm = (min: number) => (min >= 60 ? `${Math.floor(min / 60)} h${min % 60 ? ` ${min % 60} min` : ''}` : `${min} min`);
 const days = (n: number) => `${n} day${n === 1 ? '' : 's'}`;
@@ -143,6 +146,8 @@ export function FriendsCard({ onSignIn, onOpen, onTogether }: { onSignIn: () => 
   const nameOf = useNameOf();
   const { status, friends } = useSocial();
   const account = useStudy((s) => s.account.status);
+  const dnd = useSocial((s) => !!s.me?.dnd);
+  const unread = useUnreadTotal();
   const [openId, setOpenId] = useState('');
   if (status === 'off' && account !== 'connecting' && account !== 'guest') return null; // no accounts on this copy of the site
 
@@ -152,8 +157,8 @@ export function FriendsCard({ onSignIn, onOpen, onTogether }: { onSignIn: () => 
 
   return (
     <FoldCard id="friendsCard" fold="friends" title="Friends" meta={status === 'ready' && mates.length ? `${online} online` : ''}
-      summary={requests.length ? `${requests.length} request${requests.length === 1 ? '' : 's'}` : undefined}
-      actions={status === 'ready' ? <button className="icon-btn small-icon" type="button" aria-label="Add friends and sharing settings" title="Add friends" onClick={onOpen}><Icon name="plus" /></button> : null}>
+      summary={unread ? `${unread} new message${unread === 1 ? '' : 's'}` : requests.length ? `${requests.length} request${requests.length === 1 ? '' : 's'}` : undefined}
+      actions={status === 'ready' ? <><DndButton /><button className="icon-btn small-icon" type="button" aria-label="Add friends and sharing settings" title="Add friends" onClick={onOpen}><Icon name="plus" /></button></> : null}>
       {status === 'guest' || account === 'guest' ? (
         <div className="friends-empty">
           <p>Study with friends: see who&apos;s studying, cheer each other on and start sessions together.</p>
@@ -167,6 +172,8 @@ export function FriendsCard({ onSignIn, onOpen, onTogether }: { onSignIn: () => 
         <p className="hint warn">Couldn&apos;t load your friends. <button className="btn-link" type="button" onClick={() => startSocial('user')}>Try again</button></p>
       ) : (
         <>
+          {dnd && <p className="dnd-note" id="dndNote"><Icon name="moon" />Do Not Disturb is on. Messages and study invites wait here quietly.</p>}
+          {dnd && <InviteBanner quiet />}
           {requests.map((f) => (
             <div key={f.id} className="friend-request">
               <span className="friend-ava" aria-hidden="true"><Mascot mood="happy" kind={f.buddy} wear={f.wear} /></span>
@@ -197,23 +204,32 @@ export function FriendsCard({ onSignIn, onOpen, onTogether }: { onSignIn: () => 
 function FriendRow({ f, open, onToggle, onTogether }: { f: Friend; open: boolean; onToggle: () => void; onTogether: () => void }) {
   const nameOf = useNameOf();
   const pending = f.relation === 'sent';
+  const unread = useFriendChat((s) => s.unread[f.id]?.n ?? 0);
+  const chatOff = useFriendChat((s) => s.ready === false); // the site's database doesn't have chat yet
   return (
     <li className="friend" data-online={f.online ? '1' : '0'} data-open={open ? '1' : undefined}>
       <button className="friend-row" type="button" aria-expanded={open} disabled={pending} onClick={onToggle}>
         <span className="friend-ava" aria-hidden="true"><Mascot mood={moodOf(f)} kind={f.buddy} wear={f.wear} /></span>
         <span className="friend-main">
-          <strong>{nameOf(f.id, f.name)}{nameOf(f.id, f.name) !== f.name && <small className="friend-real">{f.name}</small>}</strong>
+          <strong>{nameOf(f.id, f.name)}{nameOf(f.id, f.name) !== f.name && <small className="friend-real">{f.name}</small>}
+            {f.dnd && <span className="friend-dnd" title="Do Not Disturb is on: they won't be notified until they turn it off"><Icon name="moon" /><span className="sr-only">Do Not Disturb</span></span>}</strong>
           <span className="friend-doing">{doingText(f)}</span>
           {f.music && <span className="friend-music"><Icon name="music" />{f.music.title} · {f.music.artist}</span>}
         </span>
         <span className="friend-dot" aria-label={f.online ? 'online' : 'offline'} />
       </button>
+      {!pending && !chatOff && (
+        <button className="icon-btn small-icon friend-chat" type="button" aria-label={`Message ${nameOf(f.id, f.name)}${unread ? ` (${unread} new)` : ''}`} title="Message" onClick={() => startChat(f.id)}>
+          <Icon name="chat" />{unread > 0 && <span className="unread-dot" aria-hidden="true">{unread > 9 ? '9+' : unread}</span>}
+        </button>
+      )}
       {open && !pending && (
         <motion.div className="friend-more" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} transition={SOFT}>
           {f.stats ? <FriendStats s={f.stats} /> : <p className="muted small">{nameOf(f.id, f.name)} keeps their stats private.</p>}
           <NicknameField f={f} />
-          <SupportPicker f={f} />
+          {chatOff && <SupportPicker f={f} />}
           <div className="friend-actions">
+            {!chatOff && <button className="btn btn-primary" type="button" onClick={() => startChat(f.id)}><Icon name="chat" />Message</button>}
             <button className="btn" type="button" onClick={onTogether}><Icon name="loop" />Study together</button>
             <RemoveFriend f={f} />
           </div>
@@ -375,6 +391,10 @@ export function FriendsDialog({ dialogRef, code: prefill }: { dialogRef: RefObje
                   }} />
               </div>
               <div className="set-row">
+                <label htmlFor="dndSwitch">Do Not Disturb<span className="sub">Messages and study invites don&apos;t pop up; friends see a moon by your name</span></label>
+                <input type="checkbox" className="switch" id="dndSwitch" checked={me.dnd} onChange={() => void toggleDnd()} />
+              </div>
+              <div className="set-row">
                 <label htmlFor="shareOnline">When I&apos;m online<span className="sub">And whether I&apos;m studying, on a break or taking a quiz, and for how long</span></label>
                 <input type="checkbox" className="switch" id="shareOnline" checked={me.shareOnline} onChange={(e) => void updateMe({ shareOnline: e.target.checked })} />
               </div>
@@ -397,7 +417,7 @@ export function FriendsDialog({ dialogRef, code: prefill }: { dialogRef: RefObje
 
 /** A friend's study buddy walks in and says their message. One at a time; shown once on any device. */
 export function SupportPopup() {
-  const msg = useSocial((s) => s.inbox[0]);
+  const msg = useSocial((s) => (s.me?.dnd ? undefined : s.inbox[0])); // Do Not Disturb: it waits
   const shown = useRef('');
   useEffect(() => {
     if (!msg || shown.current === msg.id) return;

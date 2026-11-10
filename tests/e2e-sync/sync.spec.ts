@@ -213,7 +213,7 @@ async function friends(browser: Browser, a: string, b: string) {
   return { pa, pb };
 }
 
-test('friends: add by code, see each other studying and their stats, and send support once a day', async ({ browser }) => {
+test('friends: add by code, see each other studying and their stats, chat, and Do Not Disturb', async ({ browser }) => {
   const { pa, pb } = await friends(browser, 'Ana', 'Bo');
 
   // Bo unlocks sunglasses in the shop; friends see them on his buddy everywhere (list, messages).
@@ -238,14 +238,17 @@ test('friends: add by code, see each other studying and their stats, and send su
   await expect(ana).toContainText('Studying', { timeout: 15_000 });
   await expect(ana).toHaveAttribute('data-online', '1');
 
-  // Her stats, and one support message a day.
+  // Her stats, then a message: Bo opens the chat from her row and writes.
   await ana.locator('.friend-row').click();
   await expect(ana.locator('.friend-stats')).toContainText('Check-in streak');
-  await ana.getByRole('button', { name: 'Send', exact: true }).click();
-  await expect(ana).toContainText('Support sent today');
-  await pb.reload();
-  await pb.locator('#friendsCard .friend', { hasText: 'Ana' }).locator('.friend-row').click();
-  await expect(pb.locator('#friendsCard .friend', { hasText: 'Ana' })).toContainText('Support sent today');
+  await ana.getByRole('button', { name: 'Message', exact: true }).click();
+  const chatB = pb.locator('#chatPanel');
+  await expect(chatB).toContainText('Messages disappear after 24 hours.');
+  await chatB.getByRole('button', { name: 'You\'ve got this! 💪' }).click(); // a quick cheer
+  await pb.locator('#chatBox').fill('Library at 4?');
+  await pb.keyboard.press('Enter');
+  await expect(chatB.locator('.bubble.me')).toHaveCount(2);
+  await expect(chatB.locator('.bubble.me .chat-time').last()).not.toHaveText('Sending…', { timeout: 10_000 });
 
   // Ana gives Bo a nickname only she sees; it shows in her list and on his messages, with his username beside it.
   const bo = pa.locator('#friendsCard .friend', { hasText: 'Bo' });
@@ -254,29 +257,44 @@ test('friends: add by code, see each other studying and their stats, and send su
   await bo.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(bo.locator('.friend-row strong')).toHaveText('Bo (chem lab)Bo');
 
-  // Ana's screen: Bo's buddy walks in with the message.
-  await pa.reload();
-  const pop = pa.locator('.support-pop');
-  await expect(pop).toContainText('You\'ve got this!', { timeout: 15_000 });
-  await expect(pop).toContainText('brought this from Bo (chem lab)');
+  // Ana's screen: Bo's buddy walks in with his newest message, and his row shows two unread.
+  const pop = pa.locator('#chatPop');
+  await expect(pop).toContainText('Library at 4?', { timeout: 15_000 });
+  await expect(pop).toContainText('Bo (chem lab) sent you a message');
   await expect(pop.locator('.mascot')).toHaveAttribute('data-wear', 'sunglasses');
-  await expect(pa.locator('#friendsCard .friend', { hasText: 'Bo' }).locator('.friend-ava .mascot')).toHaveAttribute('data-wear', 'sunglasses');
-  // Ana replies in her own words, and her buddy carries it back to Bo.
+  await expect(bo.locator('.friend-ava .mascot')).toHaveAttribute('data-wear', 'sunglasses');
+  await expect(bo.locator('.unread-dot')).toHaveText('2');
+  // She replies; the conversation shows on both sides, and the unread mark clears.
   await pop.getByRole('button', { name: 'Reply' }).click();
-  await pop.locator('#supportReply').fill('Thanks Bo, you too!');
-  await pop.getByRole('button', { name: 'Send' }).click();
+  const chatA = pa.locator('#chatPanel');
+  await expect(chatA.locator('.bubble.bot')).toHaveText([/You've got this!/, /Library at 4\?/]);
   await expect(pop).toHaveCount(0);
-  await pa.reload();
-  await pa.waitForTimeout(2000);
-  await expect(pa.locator('.support-pop')).toHaveCount(0);
-  await pb.reload();
-  const back = pb.locator('.support-pop');
-  await expect(back).toContainText('Thanks Bo, you too!', { timeout: 15_000 });
-  await expect(back).toContainText('brought a reply from Ana');
+  await expect(bo.locator('.unread-dot')).toHaveCount(0);
+  await pa.locator('#chatBox').fill('Yes! See you there');
+  await pa.keyboard.press('Enter');
+  await expect(chatB.locator('.bubble.bot')).toContainText('Yes! See you there', { timeout: 10_000 });
+  await expect(pb.locator('#chatPop')).toHaveCount(0); // Bo has the chat open: no popup for him
   await expect(pb.locator('#friendsCard .friend', { hasText: 'Ana' }).locator('.friend-row strong')).toHaveText('Ana'); // nicknames are private
-  await expect(back.getByRole('button', { name: 'Reply' })).toHaveCount(0); // no replies to replies
-  await back.getByRole('button', { name: /Thanks/ }).click();
-  await expect(back).toHaveCount(0);
+  await pa.getByRole('button', { name: 'Close the chat' }).click();
+
+  // Do Not Disturb: Ana turns it on. Bo sees the moon by her name and in the chat; his next message reaches her
+  // quietly (an unread mark, no popup).
+  await pa.locator('#dndBtn').click();
+  await expect(pa.locator('#dndNote')).toBeVisible();
+  await pb.reload();
+  const anaRow = pb.locator('#friendsCard .friend', { hasText: 'Ana' });
+  await expect(anaRow.locator('.friend-dnd')).toBeVisible({ timeout: 15_000 });
+  await anaRow.getByRole('button', { name: /^Message Ana/ }).click();
+  await expect(pb.locator('#chatPanel')).toContainText('Ana has Do Not Disturb on');
+  await pb.locator('#chatBox').fill('ok, do not disturb, got it');
+  await pb.keyboard.press('Enter');
+  await expect(bo.locator('.unread-dot')).toHaveText('1', { timeout: 15_000 });
+  await expect(pa.locator('#chatPop')).toHaveCount(0);
+  // Turning it off brings the waiting message up.
+  await pa.locator('#dndBtn').click();
+  await expect(pa.locator('#chatPop')).toContainText('ok, do not disturb, got it');
+  await pa.locator('#chatPop').getByRole('button', { name: 'Later' }).click();
+  await expect(pa.locator('#chatPop')).toHaveCount(0);
 
   // Ana hides being online: Bo sees her as offline.
   await pa.locator('#friendsCard').getByRole('button', { name: /Add friends/ }).click();
@@ -287,6 +305,9 @@ test('friends: add by code, see each other studying and their stats, and send su
 
 test('study together: invite, join, one shared timer, and the same break for everyone', async ({ browser }) => {
   const { pa, pb } = await friends(browser, 'Cat', 'Dev');
+  // Dev has Do Not Disturb on: the invite won't pop up as a banner, it waits in the Friends card.
+  await pb.locator('#dndBtn').click();
+  await expect(pb.locator('#dndNote')).toBeVisible();
   const dev = pa.locator('#friendsCard .friend', { hasText: 'Dev' });
   await dev.locator('.friend-row').click();
   await dev.getByRole('button', { name: 'Study together' }).click();
@@ -298,7 +319,11 @@ test('study together: invite, join, one shared timer, and the same break for eve
   await expect(pa.locator('#roomPanel')).toContainText('30 min study · 10 min breaks');
   await expect(pa.locator('#roomPanel')).toContainText('invited');
 
-  // Dev gets the invite and joins.
+  // With Do Not Disturb on, the invite waits quietly in Dev's Friends card and no banner appears.
+  await expect(pb.locator('#quietInvite')).toContainText('Cat invited you to study together', { timeout: 20_000 });
+  await expect(pb.locator('#inviteBanner')).toHaveCount(0);
+  // Dev turns Do Not Disturb off: now the banner shows, and Dev joins.
+  await pb.locator('#dndBtn').click();
   const inv = pb.locator('#inviteBanner');
   await expect(inv).toContainText('Cat invited you to study together', { timeout: 20_000 });
   await expect(inv).toContainText('Chem cram');

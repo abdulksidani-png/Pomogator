@@ -11,6 +11,7 @@ import { AI } from './ai-client';
 import { aiErrorText, taskLine } from './quiz';
 import { MIN, uid } from './util';
 import type { AssistantInput, ChatImage, ChatMessage } from './types';
+import { closeChat } from './chat';
 
 interface ChatState {
   open: boolean;
@@ -38,7 +39,7 @@ export const useChat = create<ChatState>()(
 
 let ctl: AbortController | null = null;
 
-export function openAssistant(draft = '') { useChat.setState({ open: true, ...(draft ? { draft } : {}) }); }
+export function openAssistant(draft = '') { closeChat(); useChat.setState({ open: true, ...(draft ? { draft } : {}) }); } // a friend's chat uses the same side of the screen
 export function closeAssistant() { useChat.setState({ open: false }); }
 export function clearChat() { ctl?.abort(); useChat.setState({ messages: [], busy: false, pending: [] }); }
 

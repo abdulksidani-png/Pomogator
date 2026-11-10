@@ -24,6 +24,7 @@ import { CelebrationHost, StreakPills } from './Streaks';
 import { PointsChip, ShopDialog } from './Shop';
 import { FriendsCard, FriendsDialog, SocialHost, SupportPopup, UsernamePrompt } from './Friends';
 import { InviteBanner, RoomPanel, TogetherDialog } from './Together';
+import { ChatPanel, ChatPopup } from './Chat';
 import { SITE } from '@/lib/site';
 import { openAssistant } from '@/lib/assistant';
 import { exitFocus, toggleFocus, useFocusMode, watchFullscreen } from '@/lib/focus';
@@ -283,6 +284,8 @@ export default function PomoGatorApp({ initialView = 'timer' }: { initialView?: 
       <SocialHost onOpenFriends={(c) => openFriends(c)} />
       <UsernamePrompt />
       <SupportPopup />
+      <ChatPopup />
+      <ChatPanel />
       <TogetherDialog friendId={togetherWith} onClose={() => setTogetherWith(null)} />
       <ProfileDialog dialogRef={profileRef} />
       <AssistantButton />

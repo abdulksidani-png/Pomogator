@@ -64,7 +64,7 @@ export function TogetherDialog({ friendId, onClose }: { friendId: string | null;
                 <label>
                   <input type="checkbox" checked={picked.includes(f.id)} disabled={!picked.includes(f.id) && picked.length >= 3} onChange={() => toggle(f.id)} />
                   <span className="friend-ava" aria-hidden="true"><Mascot mood={f.online ? 'happy' : 'idle'} kind={f.buddy} wear={f.wear} /></span>
-                  <span>{nameOf(f.id, f.name)}<small>{f.online ? 'online' : 'offline'}</small></span>
+                  <span>{nameOf(f.id, f.name)}<small>{f.dnd ? 'do not disturb: they won\'t be notified' : f.online ? 'online' : 'offline'}</small></span>
                 </label>
               </li>
             ))}
@@ -97,21 +97,37 @@ export function TogetherDialog({ friendId, onClose }: { friendId: string | null;
   );
 }
 
-/** Invites to study together, above the timer. */
-export function InviteBanner() {
+/**
+ * Invites to study together: a banner above the timer. With Do Not Disturb on, the banner stays away and the invite
+ * waits as a quiet row in the Friends card (`quiet`).
+ */
+export function InviteBanner({ quiet = false }: { quiet?: boolean }) {
   const nameOf = useNameOf();
   const invites = useInvites((s) => s.invites);
+  const dnd = useSocial((s) => !!s.me?.dnd);
   const inRoom = useStudy((s) => !!s.collab);
   const T = useStudy((s) => s.timer);
   const [err, setErr] = useState('');
   const inv = invites[0];
-  if (!inv) return null;
+  if (!inv || dnd !== quiet) return null;
   const isBusy = T.phase === 'quiz' || T.status !== 'idle';
   const accept = async () => {
     const r = await answerInvite(inv.roomId, true);
     if (r === 'joined') useStudy.getState().showToast(`You joined ${nameOf(inv.hostId, inv.hostName)}'s session`);
     else setErr(r === 'full' ? 'That group is full.' : r === 'ended' ? 'That session has ended.' : 'Couldn\'t join. Try again.');
   };
+  if (quiet) {
+    return (
+      <div className="quiet-invite" id="quietInvite">
+        <span><strong>{nameOf(inv.hostId, inv.hostName)}</strong> invited you to study together · {roomTerms(inv.studyMin, inv.breakMin)}</span>
+        {err && <span className="hint warn">{err}</span>}
+        <span className="quiet-invite-btns">
+          <button className="btn" type="button" disabled={isBusy} onClick={() => void accept()}>Join</button>
+          <button className="btn-quiet" type="button" onClick={() => void answerInvite(inv.roomId, false)}>No thanks</button>
+        </span>
+      </div>
+    );
+  }
   return (
     <motion.section className="card week-banner invite-banner" id="inviteBanner" aria-label="Study together invite" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={SOFT}>
       <span className="invite-ava" aria-hidden="true"><Mascot mood="cheer" kind={inv.hostBuddy} wear={inv.hostWear} /></span>
