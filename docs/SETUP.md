@@ -152,6 +152,16 @@ returning p.app_state->'gifts' as gifts;
 The result shows their gifts. "No rows returned" means that email hasn't signed in to the site yet. Gifts cost no
 points; they show up as "A gift, free to wear" the next time the site is opened or reloaded.
 
+## Going back to the old look
+
+The version from before the redesign is saved as the tag `pre-redesign`. Two ways back:
+
+- **Fastest (about a minute, no code):** in Vercel → your project → **Deployments**, find the last deployment from before
+  the redesign (commit `1f29c2d`, "Private nicknames for friends"), click **⋯ → Promote to Production** (or **Instant
+  Rollback**). The site switches at once. Later pushes to `main` don't replace it until you promote again.
+- **Permanent:** ask Claude Code to "put main back to the old look". It adds one commit that restores the old files
+  (nothing is deleted from history), and the database changes stay in place because the old site ignores them.
+
 ## What it costs
 
 Nothing, on these free plans, for a personal or class-sized site:
