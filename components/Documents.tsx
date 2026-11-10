@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useEffect, useRef, useState, type RefObject, useMemo } from 'react';
 import { useStudy, unitWord } from '@/lib/store';
 import { ACCEPT } from '@/lib/docs/parse';
 import { deleteDocument, getPages, importDocument } from '@/lib/docs/library';
@@ -10,6 +10,7 @@ import type { DocMeta, DocPage, SeenEvent } from '@/lib/types';
 import { Icon } from './Icon';
 import { useArmed } from './Panels';
 import { ensureDigest, useDigests } from '@/lib/ai/digest';
+import { splitDocs } from '@/lib/recent';
 
 // A shared empty list: a fresh [] in a store selector would re-render forever.
 const NO_EVENTS: SeenEvent[] = [];
@@ -30,10 +31,20 @@ function useDocPages(id: string): DocPage[] {
 
 /* ---------------- in "What you're studying" ---------------- */
 
+const OLDER = '__older';
+
+/** Open the library of everything uploaded (the dialog lives at the app root). */
+export function openLibrary() {
+  (document.getElementById('docsDlg') as HTMLDialogElement | null)?.showModal();
+}
+
 export function StudyMaterial({ onManage }: { onManage: () => void }) {
   const docs = useStudy((s) => s.docs);
   const docId = useStudy((s) => s.context.docId);
+  const docUsedAt = useStudy((s) => s.context.docUsedAt);
   const { selectDoc } = useStudy.getState();
+  // The picker offers what's in use (uploaded or studied in the last two days); the rest is under "Older material".
+  const { recent, older } = splitDocs(docs, { docId, docUsedAt }, Date.now());
   const [busy, setBusy] = useState('');
   const [err, setErr] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
@@ -58,9 +69,10 @@ export function StudyMaterial({ onManage }: { onManage: () => void }) {
         {docs.length > 0 && (
           <>
             <label className="sr-only" htmlFor="docSelect">Document</label>
-            <select id="docSelect" value={docId} onChange={(e) => selectDoc(e.target.value)}>
+            <select id="docSelect" value={docId} onChange={(e) => { if (e.target.value === OLDER) onManage(); else selectDoc(e.target.value); }}>
               <option value="">No document</option>
-              {docs.map((d) => <option key={d.id} value={d.id}>{d.name} · {d.pageCount} {unitWord(d, d.pageCount)}</option>)}
+              {recent.map((d) => <option key={d.id} value={d.id}>{d.name} · {d.pageCount} {unitWord(d, d.pageCount)}</option>)}
+              {older.length > 0 && <option value={OLDER}>Older material ({older.length})…</option>}
             </select>
           </>
         )}
@@ -337,7 +349,8 @@ export function ScreenConsentDialog({ dialogRef }: { dialogRef: RefObject<HTMLDi
 /* ---------------- library ---------------- */
 
 export function DocumentsDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialogElement | null> }) {
-  const docs = useStudy((s) => s.docs);
+  const all = useStudy((s) => s.docs);
+  const docs = useMemo(() => [...all].sort((a, b) => b.createdAt - a.createdAt), [all]);
   const current = useStudy((s) => s.context.docId);
   const signedIn = useStudy((s) => s.account.status === 'guest' || s.account.status === 'user');
   const [open, setOpen] = useState('');
@@ -348,6 +361,7 @@ export function DocumentsDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialog
         <button className="icon-btn" type="button" aria-label="Close documents" onClick={close}><Icon name="x" /></button></div>
       <div className="dlg-body">
         {!docs.length && <p className="empty">No documents yet. Use Upload in &ldquo;What you&apos;re studying&rdquo;.</p>}
+        {docs.length > 0 && <p className="hint">Everything you&apos;ve uploaded, newest first. Material you haven&apos;t used for two days is put away here; &ldquo;Study this&rdquo; brings it back for your next session and quiz.</p>}
         <ul className="doc-list">
           {docs.map((d) => (
             <DocRow key={d.id} doc={d} current={d.id === current} open={open === d.id} canDownload={signedIn}

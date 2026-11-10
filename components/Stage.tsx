@@ -11,7 +11,7 @@ import { MIN, clamp, fmt } from '@/lib/util';
 import { Icon } from './Icon';
 import type { Mood } from './Mascot';
 import { MyBuddy } from './Shop';
-import { DocProgress, ScreenTracker } from './Documents';
+import { DocProgress, ScreenTracker, openLibrary } from './Documents';
 import { EASE, SOFT, SPRING } from './motion';
 import { TimerMenu } from './TimerMenu';
 import { enterFocus, exitFocus, useFocusMode } from '@/lib/focus';
@@ -307,6 +307,7 @@ function QuizPicker() {
   const topic = useStudy((s) => s.context.topic);
   const docName = useStudy((s) => s.docs.find((d) => d.id === s.context.docId)?.name ?? 'Your document');
   const pages = useStudy(useShallow((s) => quizPages(s)));
+  const docCount = useStudy((s) => s.docs.length);
   const [draft, setDraft] = useState(topic);
   useEffect(() => setDraft(topic), [topic]);
   const { setQuizPick, setContext, prefetchQuiz } = useStudy.getState();
@@ -330,6 +331,11 @@ function QuizPicker() {
             {pick[c.key] && <Icon name="check" />}{c.label}
           </button>
         ))}
+        {docCount > 0 && (
+          <button type="button" className="pick-chip pick-older" id="quizOlder" onClick={openLibrary} title="Quiz on something you uploaded before">
+            <Icon name="file" />{has.doc ? 'Other material…' : 'Older material…'}
+          </button>
+        )}
         <span className="pick-topic">
           <label className="sr-only" htmlFor="quizTopic">Topic</label>
           <input id="quizTopic" type="text" value={draft} maxLength={140} placeholder="Topic, e.g. Python loops"

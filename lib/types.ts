@@ -179,6 +179,10 @@ export interface StudyContext {
   goalPage: number;
   /** Where the next session starts. */
   startPage: number;
+  /** When the selected document was last picked or studied (ms). Unused for two days, it's put away (lib/recent.ts). */
+  docUsedAt: number;
+  /** The document the topic text came from ('' when the student typed it), so the topic leaves with that document. */
+  topicDoc: string;
 }
 
 export interface QuizItemResult {

@@ -235,3 +235,33 @@ test('buddy themes bring their buddy: Jungle → gorilla, Canes → Sugarcane, P
   await page.getByRole('button', { name: /Start studying/ }).click();
   await expect(page.locator('.mascot-wrap .pencil')).toHaveCount(1); // taking notes
 });
+
+test('material left selected long ago is put away; it can be picked again under "Older material"', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (localStorage.getItem('studybuddy.v1')) return;
+    const old = Date.now() - 30 * 24 * 3600_000;
+    const doc = { id: 'phil-quiz', name: 'Philosophy quiz.pdf', kind: 'pdf', size: 1200, pageCount: 6, titles: ['One', 'Two', 'Three', 'Four', 'Five', 'Six'], createdAt: old, furthest: 2 };
+    // Saved the way an older version left it: the document still selected, its topic filled in from the file.
+    localStorage.setItem('studybuddy.v1', JSON.stringify({ state: { docs: [doc], context: { docId: 'phil-quiz', topic: 'Philosophy quiz', topicDoc: 'phil-quiz', startPage: 3 } }, version: 1 }));
+  });
+  await page.goto('/');
+  await expect(page.locator('#docSelect')).toHaveValue('phil-quiz');
+  // A few seconds after opening, it's put away, and the topic that came from it goes too.
+  await expect(page.locator('.toast')).toContainText('Put away "Philosophy quiz.pdf"', { timeout: 15_000 });
+  await expect(page.locator('#docSelect')).toHaveValue('');
+  await expect(page.locator('#ctxTopic')).toHaveValue('');
+  await expect(page.locator('#docSelect option')).toHaveText(['No document', 'Older material (1)…']);
+
+  // "Older material" opens the library; "Study this" brings the document back.
+  await page.locator('#docSelect').selectOption('__older');
+  const lib = page.locator('#docsDlg');
+  await expect(lib).toBeVisible();
+  await expect(lib).toContainText('put away here');
+  await lib.getByRole('button', { name: 'Study this' }).click();
+  await expect(page.locator('#docSelect')).toHaveValue('phil-quiz');
+  await expect(page.locator('#ctxTopic')).toHaveValue('Philosophy quiz');
+  // Now it's in use again, so it stays after a reload.
+  await page.reload();
+  await page.waitForTimeout(7000);
+  await expect(page.locator('#docSelect')).toHaveValue('phil-quiz');
+});

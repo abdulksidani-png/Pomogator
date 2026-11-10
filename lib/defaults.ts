@@ -57,7 +57,7 @@ export function freshSync(): SyncState {
   };
 }
 
-export const DEFAULT_CONTEXT: StudyContext = { subject: '', topic: '', level: 'intro', exam: '', goal: '', notes: '', docId: '', docGoal: '', goalPage: 0, startPage: 1 };
+export const DEFAULT_CONTEXT: StudyContext = { subject: '', topic: '', level: 'intro', exam: '', goal: '', notes: '', docId: '', docGoal: '', goalPage: 0, startPage: 1, docUsedAt: 0, topicDoc: '' };
 
 export const PRESETS = [25, 30, 35, 40, 45];
 

@@ -146,6 +146,16 @@ export default function PomoGatorApp({ initialView = 'timer' }: { initialView?: 
     return () => { clearInterval(id); document.removeEventListener('visibilitychange', beat); };
   }, []);
 
+  // Old study material puts itself away: shortly after opening (once sync has had its say), on coming back to the
+  // tab, and every few minutes. Never during a session.
+  useEffect(() => {
+    const tidy = () => { if (document.visibilityState === 'visible') useStudy.getState().tidyMaterial(); };
+    const first = setTimeout(tidy, 6000);
+    const id = setInterval(tidy, 5 * 60_000);
+    document.addEventListener('visibilitychange', tidy);
+    return () => { clearTimeout(first); clearInterval(id); document.removeEventListener('visibilitychange', tidy); };
+  }, []);
+
   // Audio: browsers need a first gesture, then ambience follows the timer.
   useEffect(() => {
     const resync = () => { const s = useStudy.getState(); Sound.sync(desiredAmbience(s), s.settings.ambVol); };

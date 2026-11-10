@@ -54,7 +54,7 @@ function adoptTopic(docId: string, d: DocDigest) {
   const doc = st.docs.find((x) => x.id === docId);
   if (!doc || st.context.docId !== docId || !d.topic) return;
   const t = st.context.topic.trim();
-  if (!t || t === nameAsTopic(doc.name)) st.setContext({ topic: d.topic });
+  if (!t || t === nameAsTopic(doc.name)) st.setContext({ topic: d.topic, topicDoc: docId });
 }
 
 export function forgetDigest(docId: string) {

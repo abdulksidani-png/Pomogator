@@ -127,7 +127,7 @@ test('PomoGator: the footer links to a plain-words privacy page and the source',
   await page.getByRole('link', { name: 'Privacy' }).click();
   await expect(page.getByRole('heading', { name: 'Privacy', level: 1 })).toBeVisible();
   await expect(page.locator('main')).toContainText('row-level security');
-  await expect(page.locator('main')).toContainText('free tier');
+  await expect(page.locator('main')).toContainText('private or sensitive');
 });
 
 test('your data: download it all as one file, or delete it', async ({ page }) => {

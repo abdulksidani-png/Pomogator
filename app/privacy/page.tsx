@@ -24,7 +24,7 @@ export default function Privacy() {
         quiz answers, plans, the days you checked in and the streak badges you earned, and the text and files of documents you upload. Every table and the file storage use row-level
         security, so each account can only read and change its own rows. Your email address is used only to sign you in.</p>
       <p>Settings → Clear history deletes your study history on every device, and each document can be deleted from your
-        documents list. A one-click &ldquo;delete my account&rdquo; is on the roadmap.</p>
+        documents list. Settings → Your data downloads everything as one file, or deletes your account and everything in it.</p>
 
       <h2>Friends</h2>
       <p>Friends are only for signed-in accounts. A friend sees your name and study buddy, and only what you switch on in the

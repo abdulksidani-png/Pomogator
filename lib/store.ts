@@ -25,6 +25,7 @@ import { celebrationFor, cleanBadges, cleanDates, type Celebration } from './che
 import { COSMETICS, cleanOutfits, cleanOwned, cleanWear, saveOutfit, wearing } from './cosmetics';
 import { pointsSummary, sessionPoints } from './points';
 import { cleanLastfmUser } from './lastfm-core';
+import { putAway } from './recent';
 import { cleanNickname, cleanNicknames } from './nicknames';
 import type { Press } from './collab-core';
 
@@ -167,6 +168,8 @@ interface Actions {
   addDoc: (doc: DocMeta) => void;
   removeDoc: (id: string) => void;
   selectDoc: (id: string) => void;
+  /** Put away a selected document that hasn't been used for two days (and a topic that came from it). */
+  tidyMaterial: () => void;
   setDocGoal: (text: string, page: number) => void;
   setStartPage: (page: number) => void;
   /** During a session: the page now on screen (or picked by hand). */
@@ -198,6 +201,8 @@ export function quizPages(d: Data): [number, number] | null {
   if (!doc) return null;
   const s = d.timer.session;
   const from = clamp(s?.startPage ?? c.startPage, 1, doc.pageCount);
+  // Older material picked at quiz time (not what this session studied): the whole document, as much as fits.
+  if (s && d.timer.phase === 'quiz' && s.docId !== doc.id) return [1, doc.pageCount];
   const end = s?.progressSource === 'screen' && s.endPage ? s.endPage : c.goalPage || from + 9;
   return [from, clamp(end, from, doc.pageCount)];
 }
@@ -339,9 +344,14 @@ export const unitWord = (doc: Pick<DocMeta, 'kind'>, n: number) => (doc.kind ===
 function pointAt(d: Data, doc: DocMeta) {
   const changed = d.context.docId !== doc.id;
   d.context.docId = doc.id;
+  d.context.docUsedAt = Date.now();
   d.context.startPage = clamp(doc.furthest ? doc.furthest + 1 : 1, 1, doc.pageCount);
   if (changed) { d.context.docGoal = ''; d.context.goalPage = 0; }
-  if (!d.context.topic.trim()) d.context.topic = doc.name.replace(/\.[a-z0-9]+$/i, '').replace(/[_-]+/g, ' ').trim().slice(0, 140);
+  // An empty topic, or one that came from the previous document, becomes this document's name (the AI's topic replaces it later).
+  if (!d.context.topic.trim() || (d.context.topicDoc && d.context.topicDoc !== doc.id)) {
+    d.context.topic = doc.name.replace(/\.[a-z0-9]+$/i, '').replace(/[_-]+/g, ' ').trim().slice(0, 140);
+    d.context.topicDoc = doc.id;
+  }
 }
 
 /** After a session: move the document's resume point, and clear a goal that was met. */
@@ -349,6 +359,7 @@ function applyReached(d: Data, doc: DocMeta, rec: SessionRecord) {
   const end = rec.endPage ?? 0;
   doc.furthest = Math.max(doc.furthest, end);
   if (d.context.docId !== doc.id) return;
+  d.context.docUsedAt = Date.now(); // studied just now: it stays out
   d.context.startPage = clamp(end + 1, 1, doc.pageCount);
   if (rec.goalMet) { d.context.docGoal = ''; d.context.goalPage = 0; }
   else if (rec.goalPage && !d.context.goalPage) d.context.goalPage = rec.goalPage;
@@ -443,7 +454,16 @@ export const useStudy = create<Store>()(
             d.settings.folded = f.includes(id) ? f.filter((x) => x !== id) : [...f, id];
           });
         },
-        setContext(patch) { set((d) => { Object.assign(d.context, patch); }); },
+        // A topic the student types is theirs: it no longer belongs to a document.
+        setContext(patch) { set((d) => { Object.assign(d.context, 'topic' in patch && !('topicDoc' in patch) ? { ...patch, topicDoc: '' } : patch); }); },
+        tidyMaterial() {
+          const s = get();
+          if (s.timer.session || s.timer.phase === 'quiz') return; // never mid-session
+          const out = putAway(s.context, s.docs, Date.now());
+          if (!out) return;
+          set((d) => { d.context = out.ctx; });
+          toast(`Put away "${out.doc.name}" (not used for two days). It's under Older material.`);
+        },
         appendNotes(text, name) {
           const t = text.trim();
           if (!t) { toast('No text found in that file.'); return; }
@@ -468,6 +488,7 @@ export const useStudy = create<Store>()(
               };
               const doc = d.docs.find((x) => x.id === d.context.docId);
               if (doc) {
+                d.context.docUsedAt = Date.now();
                 Object.assign(T.session, {
                   docId: doc.id, docName: doc.name, startPage: clamp(d.context.startPage || 1, 1, doc.pageCount),
                   goalPage: d.context.goalPage ? clamp(d.context.goalPage, 1, doc.pageCount) : undefined, seen: [],
@@ -945,9 +966,16 @@ export const useStudy = create<Store>()(
         selectDoc(id) {
           set((d) => {
             const doc = d.docs.find((x) => x.id === id);
-            if (!doc) { Object.assign(d.context, { docId: '', docGoal: '', goalPage: 0, startPage: 1 }); return; }
+            if (!doc) {
+              const mine = d.context.topicDoc === d.context.docId;
+              Object.assign(d.context, { docId: '', docGoal: '', goalPage: 0, startPage: 1, docUsedAt: 0, topicDoc: '', ...(mine ? { topic: '' } : {}) });
+              return;
+            }
             pointAt(d, doc);
+            // Picked while the quiz is up (older material): quiz on it.
+            if (d.timer.phase === 'quiz' && d.timer.session) d.timer.session.quizPick = { ...quizPick(d), doc: true };
           });
+          if (get().timer.phase === 'quiz') void get().prefetchQuiz();
         },
         setDocGoal(text, page) { set((d) => { d.context.docGoal = text; d.context.goalPage = Math.max(0, Math.round(page) || 0); }); },
         setStartPage(page) {

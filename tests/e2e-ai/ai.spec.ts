@@ -268,3 +268,26 @@ test('"Quiz me on" can switch to the document, and plans can be cleared or made 
   await page.getByRole('button', { name: 'Start quiz' }).click();
   await expect(page.locator('#qText')).not.toContainText('slide');
 });
+
+test('at quiz time, older material can be picked and the quiz is rewritten from it', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#docInput').setInputFiles(fixture('lecture.pptx'));
+  await expect(page.locator('#docSelect')).toContainText('lecture.pptx', { timeout: 60_000 });
+  // Study something else: no document, a typed topic.
+  await page.locator('#docSelect').selectOption('');
+  await page.fill('#ctxTopic', 'Python loops');
+  await page.locator('#ctxTopic').blur();
+  await page.getByRole('button', { name: /Start studying/ }).click();
+  await page.getByRole('button', { name: /Finish session now/ }).click();
+  await expect(page.locator('.quiz-pick')).toBeVisible();
+  await expect(page.locator('.quiz-pick .pick-chip[aria-pressed]')).toHaveCount(0); // the deck isn't offered by itself
+
+  await page.request.post(`${GEMINI}/__reset?what=ai`);
+  await page.locator('#quizOlder').click();
+  await page.locator('#docsDlg').getByRole('button', { name: 'Study this' }).click();
+  await expect(page.locator('.quiz-pick .pick-chip[aria-pressed="true"]')).toContainText('lecture.pptx · 1–7');
+  await page.getByRole('button', { name: 'Start quiz' }).click();
+  await expect(page.locator('#qText')).toContainText('What does slide 1');
+  const call = (await sent(page)).filter((s) => textOf(s).includes('retrieval-practice quizzes')).at(-1)!;
+  expect(textOf(call)).toContain('[Slide 7]'); // the whole deck, not just "the next pages"
+});
