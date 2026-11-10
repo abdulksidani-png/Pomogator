@@ -22,6 +22,8 @@ interface ClaudeReply {
 }
 
 const fail = (code: string, message?: string): AiError => ({ code, message });
+/** How long one attempt may take. Two models at this length still fit inside the route's 60 seconds. */
+const ATTEMPT_MS = 22_000;
 const JSON_ONLY = 'Reply with one JSON object and nothing else: no markdown, no code fence, no text before or after it.';
 
 async function call(model: string, body: Record<string, unknown>, signal?: AbortSignal): Promise<ClaudeReply & { httpStatus: number }> {
@@ -31,11 +33,15 @@ async function call(model: string, body: Record<string, unknown>, signal?: Abort
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-api-key': apiKey(), 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({ ...body, model }),
-      signal,
+      // Give up on a silent server after a while, so the next model (or the other AI) gets a turn before the
+      // site's own 60-second limit.
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(ATTEMPT_MS)]) : AbortSignal.timeout(ATTEMPT_MS),
     });
   } catch (e) {
-    if ((e as { name?: string })?.name === 'AbortError') throw fail('cancelled');
-    throw fail('upstream_error', 'Couldn\'t reach Anthropic.');
+    if (signal?.aborted) throw fail('cancelled');
+    const name = (e as { name?: string })?.name;
+    if (name === 'TimeoutError' || name === 'AbortError') throw { code: 'timeout', why: 'claude timeout' } satisfies AiError;
+    throw { ...fail('upstream_error', 'Couldn\'t reach Anthropic.'), why: 'claude unreachable' };
   }
   const j = (await r.json().catch(() => ({}))) as ClaudeReply;
   return { ...j, httpStatus: r.status };
@@ -105,7 +111,7 @@ export async function askClaude(opts: { system?: string; turns: Turn[]; images?:
         if (lastErr.code !== 'invalid_json' && lastErr.code !== 'empty_completion') throw lastErr;
       }
     }
-    if (lastErr.code !== 'model_missing') break; // only a retired model is worth trying the backup for
+    if (lastErr.code !== 'model_missing') break; // only a retired model is worth trying the backup for (a timeout goes to the other AI)
   }
   throw lastErr;
 }

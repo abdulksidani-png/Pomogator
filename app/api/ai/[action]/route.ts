@@ -11,11 +11,11 @@ export const maxDuration = 60;
 
 const STATUS: Record<string, number> = {
   not_found: 404, not_configured: 503, unauthorized: 401, daily_limit: 429, site_limit: 429, rate_limited: 429, bad_request: 400,
-  prompt_too_large: 413, refused: 422, bad_key: 502, model_missing: 502, invalid_json: 502, empty_completion: 502,
+  prompt_too_large: 413, timeout: 504, refused: 422, bad_key: 502, model_missing: 502, invalid_json: 502, empty_completion: 502,
 };
 
 // Only the error code goes back to the browser; the AI company's own wording (which can name the account) stays in the server log.
-const fail = (e: AiError) => Response.json({ code: e.code, ...(e.code === 'not_configured' ? { message: e.message } : {}), ...(e.why && /^(gemini|claude) \d{3}$/.test(e.why) ? { why: e.why } : {}) }, { status: STATUS[e.code] ?? 502 });
+const fail = (e: AiError) => Response.json({ code: e.code, ...(e.code === 'not_configured' ? { message: e.message } : {}), ...(e.why && /^(gemini|claude) (\d{3}|timeout|unreachable)$/.test(e.why) ? { why: e.why } : {}) }, { status: STATUS[e.code] ?? 502 });
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 
 /** Screen snapshots for the quiz: at most six small JPEG/PNG images, anything else is dropped. */

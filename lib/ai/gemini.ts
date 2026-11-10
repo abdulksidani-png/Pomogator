@@ -23,6 +23,8 @@ interface GeminiReply {
 }
 
 const fail = (code: string, message?: string): AiError => ({ code, message });
+/** How long one attempt may take. Two models at this length still fit inside the route's 60 seconds. */
+const ATTEMPT_MS = 22_000;
 
 async function call(model: string, body: unknown, signal?: AbortSignal): Promise<GeminiReply & { httpStatus: number }> {
   let r: Response;
@@ -31,11 +33,15 @@ async function call(model: string, body: unknown, signal?: AbortSignal): Promise
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey() },
       body: JSON.stringify(body),
-      signal,
+      // Give up on a silent server after a while, so the next model (or the other AI) gets a turn before the
+      // site's own 60-second limit.
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(ATTEMPT_MS)]) : AbortSignal.timeout(ATTEMPT_MS),
     });
   } catch (e) {
-    if ((e as { name?: string })?.name === 'AbortError') throw fail('cancelled');
-    throw fail('upstream_error', 'Couldn\'t reach Google.');
+    if (signal?.aborted) throw fail('cancelled');
+    const name = (e as { name?: string })?.name;
+    if (name === 'TimeoutError' || name === 'AbortError') throw { code: 'timeout', why: 'gemini timeout' } satisfies AiError;
+    throw { ...fail('upstream_error', 'Couldn\'t reach Google.'), why: 'gemini unreachable' };
   }
   const j = (await r.json().catch(() => ({}))) as GeminiReply;
   return { ...j, httpStatus: r.status };
@@ -95,7 +101,9 @@ export async function askJson(opts: { system?: string; turns: Turn[]; images?: I
   let lastErr: AiError = fail('upstream_error');
   for (const model of MODELS()) {
     for (let attempt = 0; attempt < 2; attempt++) {
-      const j = await call(model, body, opts.signal);
+      let j: Awaited<ReturnType<typeof call>>;
+      try { j = await call(model, body, opts.signal); }
+      catch (e) { lastErr = e as AiError; if (lastErr.code === 'timeout') break; throw lastErr; } // silent: try the backup model
       if (j.httpStatus !== 200) {
         lastErr = { why: `gemini ${j.httpStatus}`, ...errorFrom(j.httpStatus, j) };
         // Google's servers being busy (500/503) usually passes in a moment: wait briefly and ask once more.

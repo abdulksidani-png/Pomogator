@@ -34,7 +34,7 @@ export function spread<T>(items: T[], n: number): T[] {
   return Array.from({ length: n }, (_, i) => items[Math.round((i * (items.length - 1)) / (n - 1))]);
 }
 
-const SWITCH = new Set(['rate_limited', 'out_of_credit', 'bad_key', 'model_missing', 'upstream_error', 'prompt_too_large']);
+const SWITCH = new Set(['timeout', 'rate_limited', 'out_of_credit', 'bad_key', 'model_missing', 'upstream_error', 'prompt_too_large']);
 
 export interface Ask { system?: string; turns: Turn[]; images?: Image[]; temperature?: number; maxTokens?: number; signal?: AbortSignal }
 

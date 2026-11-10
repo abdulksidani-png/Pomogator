@@ -108,6 +108,19 @@ describe('askJson', () => {
     expect(fetchMock.mock.calls[1][0]).toContain('gemini-flash-lite-latest');
   });
 
+  it('gives up on a silent server and tries the backup model; if that hangs too, it reports a timeout', async () => {
+    vi.stubEnv('GEMINI_API_KEY', 'secret');
+    const hang = () => Promise.reject(new DOMException('The operation timed out.', 'TimeoutError'));
+    const fetchMock = vi.fn().mockImplementationOnce(hang).mockResolvedValueOnce(ok('{"a":1}'));
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(askJson({ turns: [{ role: 'user', text: 'x' }] })).resolves.toEqual({ a: 1 });
+    expect(fetchMock.mock.calls[1][0]).toContain('gemini-flash-lite-latest');
+    expect(fetchMock.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(hang));
+    await expect(askJson({ turns: [{ role: 'user', text: 'x' }] })).rejects.toMatchObject({ code: 'timeout', why: 'gemini timeout' });
+  });
+
   it('stops at a bad key instead of trying the backup', async () => {
     vi.stubEnv('GEMINI_API_KEY', 'wrong');
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: { message: 'API key not valid' } }), { status: 400 }));
