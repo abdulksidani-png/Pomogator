@@ -1840,19 +1840,13 @@ legend { margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(
 /* ---- Glass, made light ----
    A live blur behind every card repainted on each scroll frame (about 40 fps on a slowed CPU). Over a flat page
    (plain, dots, grid, lined, glow) there is nothing to blur, so glass is a see-through tint with a bright edge and
-   no blur at all. Over a photo the blur stays, but smaller and without the extra saturation pass, and each card is
-   its own layer so scrolling moves it instead of redrawing it. */
+   no blur at all. */
 html:root[data-cards="glass"] .card {
   -webkit-backdrop-filter: none; backdrop-filter: none;
   background: color-mix(in srgb, var(--card) 72%, transparent);
   border-color: color-mix(in srgb, var(--fg) 14%, transparent);
   box-shadow: 0 1px 0 color-mix(in srgb, #FFFFFF 30%, transparent) inset;
 }
-@media (hover: hover) and (min-width: 761px) {
-  html:root[data-cards="glass"][data-bg="image"] .desk .card, html:root[data-cards="glass"][data-bg="image"] .stats-page .card {
-    -webkit-backdrop-filter: blur(9px); backdrop-filter: blur(9px);
-    background: color-mix(in srgb, var(--card) 64%, transparent);
-    transform: translateZ(0);
-  }
-}
+/* Over a photo: no live blur either (it was the last thing costing frames). A stronger tint keeps text readable. */
+html:root[data-cards="glass"][data-bg="image"] .card { background: color-mix(in srgb, var(--card) 80%, transparent); }
 html:root[data-cards="glass"] .desk .card:not(.result) { animation: none; }

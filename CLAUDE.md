@@ -402,8 +402,8 @@ npm run test:sync    # two-device sync: needs local Postgres + PostgREST (PGHOST
   per-pixel rects for its reveal), never one `<rect>` per run; big dialogs (Settings, Appearance, Shop, Profile) render
   their contents only while open (`useDialogOpen` in `lib/use-dialog-open.ts`), so query their insides only after
   opening; the splash unmounts on its `splash-out` animationend; fixed backgrounds (photo, gradient) live on a
-  `body::before` fixed layer, never `background-attachment: fixed`; glass cards never blur over a flat page and
-  only blur lightly (9px, own layer) over a photo on desktop (2026-11-10: the live blur gave ~40 fps; now 60 / ~53); CSS is inlined (`experimental.inlineCss`); Stats, Weekly and the
+  `body::before` fixed layer, never `background-attachment: fixed`; glass cards never use `backdrop-filter` (2026-11-10, his two lag reports: the live blur gave ~40 fps; glass is
+  now a see-through tint, 60 fps, stronger over photos); CSS is inlined (`experimental.inlineCss`); Stats, Weekly and the
   Tour load with `next/dynamic`. The remaining LCP on a first visit is the tour text (shown on purpose) and the
   client-only app; server-rendering the timer page would be the next big step.
 - A Zustand selector must never return a fresh `[]` or `{}`: that re-renders forever (React #185). Use a shared constant like `NO_EVENTS`.
