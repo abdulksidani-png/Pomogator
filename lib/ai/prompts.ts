@@ -39,13 +39,13 @@ function contextLines(ctx: StudyContext): string[] {
 }
 
 /** Read a whole document once, when it's uploaded, and keep compact study notes about it. */
-export function digestPrompt(m: Material): string {
+export function digestPrompt(m: Material, cap = LIMITS.material): string {
   return [
     'A student just uploaded a document to study from. Read it and write compact study notes about it, so later quizzes and questions can use them.',
     '',
     `DOCUMENT: "${m.name}" (${m.pageCount} ${m.unit}s)`,
     '<<<MATERIAL',
-    materialText(m),
+    materialText(m, cap),
     'MATERIAL>>>',
     '',
     'RULES',
@@ -60,9 +60,9 @@ export function digestPrompt(m: Material): string {
   ].join('\n');
 }
 
-export function quizPrompt({ ctx, n, difficulty, weak, asked, heard, material, digest, screen, images }: QuizInput): string {
+export function quizPrompt({ ctx, n, difficulty, weak, asked, heard, material, digest, screen, images }: QuizInput, cap = LIMITS.material): string {
   const notes = (ctx.notes || '').trim().slice(0, LIMITS.notes);
-  const doc = materialText(material);
+  const doc = materialText(material, cap);
   const spoken = (heard || '').trim().slice(-LIMITS.heard);
   const onScreen = (screen || '').trim().slice(-LIMITS.screen);
   const shots = images?.length ?? 0;
@@ -213,10 +213,10 @@ export function weeklyPrompt(w: WeeklyInput): string {
 }
 
 /** The assistant's standing instructions, with everything it knows about the student right now. */
-export function assistantSystem(a: AssistantInput): string {
+export function assistantSystem(a: AssistantInput, cap = LIMITS.material): string {
   const { ctx, timer, tasks, material, heard, now, library } = a;
   const notes = (ctx.notes || '').trim().slice(0, 8000);
-  const doc = materialText(material);
+  const doc = materialText(material, cap);
   const spoken = (heard || '').trim().slice(-LIMITS.heard);
   return [
     'You are PomoGator, the friendly study assistant inside a Pomodoro study website. The student talks to you in a chat panel.',

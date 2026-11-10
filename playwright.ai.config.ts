@@ -19,6 +19,8 @@ export default defineConfig({
       reuseExistingServer: false,
       timeout: 240_000,
       env: {
+        // Claude answers first; Gemini is the fallback (a prompt with CLAUDE_OUT makes the stand-in Claude run out of credit).
+        ANTHROPIC_API_KEY: 'test-claude', ANTHROPIC_BASE_URL: 'http://localhost:4010',
         GEMINI_API_KEY: 'test-key', GEMINI_BASE_URL: 'http://localhost:4010',
         UNSPLASH_ACCESS_KEY: 'test-unsplash', UNSPLASH_BASE_URL: 'http://localhost:4010',
         SPOTIFY_CLIENT_ID: 'test-spotify',

@@ -4,11 +4,11 @@ import path from 'node:path';
 const fixture = (name: string) => path.join(__dirname, '..', 'fixtures', name);
 const GEMINI = 'http://localhost:4010';
 
-interface Sent { model: string; body: { systemInstruction?: { parts: { text: string }[] }; contents: { role: string; parts: { text: string }[] }[] } }
+interface Sent { api: 'claude' | 'gemini'; model: string; body: { systemInstruction?: { parts: { text: string }[] }; contents: { role: string; parts: { text: string }[] }[] } }
 const sent = async (page: Page): Promise<Sent[]> => (await page.request.get(`${GEMINI}/__requests`)).json();
 const textOf = (s: Sent) => s.body.contents.at(-1)!.parts.map((p) => p.text).join('');
 
-test.beforeEach(async ({ page }) => { await page.request.post(`${GEMINI}/__reset`); });
+test.beforeEach(async ({ page }) => { await page.request.post(`${GEMINI}/__reset?what=ai`); });
 
 test('the quiz is written from the slides covered, and a plan follows', async ({ page }) => {
   await page.clock.install();
@@ -27,6 +27,10 @@ test('the quiz is written from the slides covered, and a plan follows', async ({
   expect(textOf(quizCall)).toContain('[Slide 5]');
   expect(textOf(quizCall)).not.toContain('[Slide 6]');
   expect(textOf(quizCall)).toContain('from "lecture.pptx"');
+  // It went to Claude's small model, with a cap on the answer's length (what keeps it cheap).
+  expect(quizCall.api).toBe('claude');
+  expect(quizCall.model).toMatch(/haiku/);
+  expect((quizCall.body as unknown as { max_tokens: number }).max_tokens).toBeLessThanOrEqual(2200);
 
   await page.clock.fastForward('25:02');
   await page.getByRole('button', { name: 'Start quiz' }).click();
@@ -77,10 +81,17 @@ test('the assistant answers questions about the document and plans a to-do list'
   await page.keyboard.press('Enter');
   await expect(panel.locator('.bubble.bot').last()).toContainText('Turns so far: 3');
 
-  // When the free limit is hit (on both models), it says so plainly.
+  // If Claude's credit runs out, Gemini answers instead and the student never notices.
+  await page.request.post(`${GEMINI}/__reset?what=ai`);
+  await page.locator('#assistantBox').fill('CLAUDE_OUT: are you still there?');
+  await page.keyboard.press('Enter');
+  await expect(panel.locator('.bubble.bot').last()).toContainText('are you still there?');
+  expect((await sent(page)).map((s) => s.api)).toEqual(['claude', 'gemini']);
+
+  // When the limit is hit on both, it says so plainly.
   await page.locator('#assistantBox').fill('LIMIT_TEST');
   await page.keyboard.press('Enter');
-  await expect(panel.locator('.bubble.err')).toContainText('free AI limit');
+  await expect(panel.locator('.bubble.err')).toContainText('AI limit was reached');
 
   // Keys typed in the chat don't trigger timer shortcuts, and Escape closes it.
   await page.locator('#assistantBox').fill('r s d');

@@ -1,10 +1,14 @@
 import type { Metadata } from 'next';
 import { SITE } from '@/lib/site';
+import { providers, type Provider } from '@/lib/ai/provider';
+
+const NAMES: Record<Provider, string> = { claude: 'Anthropic\'s Claude API', gemini: 'Google\'s Gemini API' };
 
 export const metadata: Metadata = { title: `Privacy · ${SITE.name}`, description: `What ${SITE.name} stores, where it goes, and who can see it.` };
 
 /** A plain-words privacy note: what is kept, where, and which outside services see what. */
 export default function Privacy() {
+  const ai = providers(); // which AI this site is set up with
   return (
     <main className="doc-page">
       <p><a href="/">← Back to the timer</a></p>
@@ -30,12 +34,15 @@ export default function Privacy() {
         friends.</p>
 
       <h2>AI features</h2>
-      <p>Quizzes, plans, document summaries and the study assistant are written by Google&apos;s Gemini API. When you use them, this
-        site&apos;s server sends Gemini what the request needs: your topic, the pages you covered, your chat messages and any photos you attach to them, any lecture
-        notes captured from a shared tab, and your week's study numbers for the weekly report. The site uses Gemini&apos;s free tier, under which Google may use what it receives to improve
-        its products, so don&apos;t upload anything private or sensitive. The API key stays on the server. Photos you attach in the assistant
-        are shrunk on your device before they&apos;re sent; this browser keeps only small thumbnails of them with the chat, and they
-        aren&apos;t synced.</p>
+      <p>Quizzes, plans, document summaries and the study assistant are written by {ai.length ? ai.map((p) => NAMES[p]).join(', or, if that one can&apos;t answer, ') : 'an AI service'}.
+        When you use them, this site&apos;s server sends the AI what the request needs: your topic, the pages you covered, your chat
+        messages and any photos you attach to them, text and a few snapshots from a screen you chose to share, any lecture notes
+        captured from a shared tab, and your week&apos;s study numbers for the weekly report.
+        {ai.includes('claude') && <> Anthropic says it doesn&apos;t use what is sent through its API to train its models.</>}
+        {ai.includes('gemini') && <> Gemini is used on its free tier, under which Google may use what it receives to improve its products.</>}
+        {' '}Either way, don&apos;t upload anything private or sensitive. The API keys stay on the server. Photos you attach in the
+        assistant are shrunk on your device before they&apos;re sent; this browser keeps only small thumbnails of them with the chat,
+        and they aren&apos;t synced.</p>
 
       <h2>Screen sharing and lecture sound</h2>
       <p>Screen tracking reads the window you share on your device. To write that session&apos;s quiz (and a plan, if you ask for

@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '../pw';
 
 const FAKE = 'http://localhost:4010';
-test.beforeEach(async ({ page }) => { await page.request.post(`${FAKE}/__reset`); });
+test.beforeEach(async ({ page }) => { await page.request.post(`${FAKE}/__reset?what=extras`); });
 
 const openLook = async (page: Page) => {
   await page.getByRole('button', { name: 'Appearance', exact: true }).click();

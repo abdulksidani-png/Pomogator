@@ -1,6 +1,8 @@
-// Stand-ins for Google's Gemini API and Unsplash, for the browser tests in playwright.ai.config.ts.
-// Gemini: answers generateContent with canned JSON for each kind of prompt, and remembers what it was sent
-// (GET /__requests returns every request body, so tests can check what reached the AI).
+// Stand-ins for the AI APIs (Anthropic's Claude and Google's Gemini), Unsplash and Last.fm, for the browser tests in
+// playwright.ai.config.ts. Both AIs answer with the same canned JSON for each kind of prompt, and remember what they
+// were sent: GET /__requests returns every request ({ api, model, body }), so tests can check what reached the AI.
+// A Claude request is recorded in Gemini's shape (systemInstruction, contents[].parts) so one set of checks fits both.
+// A prompt containing CLAUDE_OUT makes Claude say its credit ran out, to test the fallback to Gemini.
 // Unsplash: /search/photos, /photos/random, /photos/:id/download, and tiny colored images under /img/.
 import http from 'node:http';
 
@@ -8,7 +10,22 @@ const PORT = Number(process.env.FAKE_GEMINI_PORT || 4010);
 const requests = [];
 
 const reply = (res, status, body) => { res.writeHead(status, { 'content-type': 'application/json' }); res.end(JSON.stringify(body)); };
-const answer = (res, obj) => reply(res, 200, { candidates: [{ content: { role: 'model', parts: [{ text: JSON.stringify(obj) }] }, finishReason: 'STOP' }] });
+const geminiAnswer = (res, obj) => reply(res, 200, { candidates: [{ content: { role: 'model', parts: [{ text: JSON.stringify(obj) }] }, finishReason: 'STOP' }] });
+const claudeAnswer = (res, obj) => reply(res, 200, { id: 'msg_test', type: 'message', role: 'assistant', content: [{ type: 'text', text: JSON.stringify(obj) }], stop_reason: 'end_turn', usage: { input_tokens: 10, output_tokens: 10 } });
+
+/** An Anthropic Messages request, reshaped like a Gemini one. */
+function fromClaude(b) {
+  const sys = Array.isArray(b.system) ? b.system.map((x) => x.text).join('\n') : String(b.system ?? '');
+  return {
+    systemInstruction: { parts: [{ text: sys }] },
+    contents: (b.messages ?? []).map((m) => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: (Array.isArray(m.content) ? m.content : [{ type: 'text', text: String(m.content) }])
+        .map((c) => (c.type === 'image' ? { inlineData: { mimeType: c.source?.media_type, data: c.source?.data } } : { text: c.text })),
+    })),
+    max_tokens: b.max_tokens,
+  };
+}
 
 function quiz(prompt) {
   const n = Number(prompt.match(/Write exactly (\d+)/)?.[1] || 3);
@@ -36,7 +53,7 @@ function quiz(prompt) {
 }
 
 function assistant(system, turns) {
-  const last = turns.at(-1)?.parts?.map((p) => p.text).join('') ?? '';
+  const last = turns.at(-1)?.parts?.map((p) => p.text ?? '').join('') ?? '';
   if (/LIMIT_TEST/.test(last)) return null;
   if (/to-do|todo|plan/i.test(last)) {
     return {
@@ -103,20 +120,42 @@ http.createServer((req, res) => {
   if (req.method === 'GET' && /^\/(img|search|photos)\//.test(req.url)) return unsplash(req, res);
   if (req.method === 'GET' && req.url.startsWith('/2.0/')) return lastfm(req, res);
   if (req.method === 'GET' && req.url === '/__lastfm') return reply(res, 200, lastfmCalls);
-  if (req.method === 'POST' && req.url === '/__reset') { requests.length = 0; unsplashCalls.length = 0; lastfmCalls.length = 0; return reply(res, 200, {}); }
+  // The two spec files run side by side, so each clears only its own log: ?what=ai or ?what=extras.
+  if (req.method === 'POST' && req.url.startsWith('/__reset')) {
+    const what = new URL(req.url, `http://localhost:${PORT}`).searchParams.get('what');
+    if (what !== 'extras') requests.length = 0;
+    if (what !== 'ai') { unsplashCalls.length = 0; lastfmCalls.length = 0; }
+    return reply(res, 200, {});
+  }
   let raw = '';
   req.on('data', (c) => { raw += c; });
   req.on('end', () => {
-    const m = req.url.match(/^\/v1beta\/models\/([^/:]+):generateContent$/);
-    if (!m || req.method !== 'POST') return reply(res, 404, { error: { code: 404, message: 'Not found' } });
-    if (req.headers['x-goog-api-key'] !== 'test-key') return reply(res, 400, { error: { code: 400, message: 'API key not valid.', status: 'INVALID_ARGUMENT' } });
-    const body = JSON.parse(raw || '{}');
-    requests.push({ model: m[1], body });
+    let body, answer, limit, model;
+    if (req.method === 'POST' && req.url === '/v1/messages') {
+      if (req.headers['x-api-key'] !== 'test-claude' || !req.headers['anthropic-version']) return reply(res, 401, { type: 'error', error: { type: 'authentication_error', message: 'invalid x-api-key' } });
+      const sentBody = JSON.parse(raw || '{}');
+      if (!sentBody.max_tokens || !Array.isArray(sentBody.messages) || sentBody.messages[0]?.role !== 'user') return reply(res, 400, { type: 'error', error: { type: 'invalid_request_error', message: 'messages: bad shape' } });
+      model = sentBody.model;
+      body = fromClaude(sentBody);
+      requests.push({ api: 'claude', model, body });
+      if (raw.includes('CLAUDE_OUT')) return reply(res, 400, { type: 'error', error: { type: 'invalid_request_error', message: 'Your credit balance is too low to access the Anthropic API.' } });
+      answer = claudeAnswer;
+      limit = () => reply(res, 429, { type: 'error', error: { type: 'rate_limit_error', message: 'Rate limited' } });
+    } else {
+      const m = req.url.match(/^\/v1beta\/models\/([^/:]+):generateContent$/);
+      if (!m || req.method !== 'POST') return reply(res, 404, { error: { code: 404, message: 'Not found' } });
+      if (req.headers['x-goog-api-key'] !== 'test-key') return reply(res, 400, { error: { code: 400, message: 'API key not valid.', status: 'INVALID_ARGUMENT' } });
+      model = m[1];
+      body = JSON.parse(raw || '{}');
+      requests.push({ api: 'gemini', model, body });
+      answer = geminiAnswer;
+      limit = () => reply(res, 429, { error: { code: 429, message: 'Quota exceeded', status: 'RESOURCE_EXHAUSTED' } });
+    }
     const system = body.systemInstruction?.parts?.map((p) => p.text).join('') ?? '';
-    const prompt = body.contents?.at(-1)?.parts?.map((p) => p.text).join('') ?? '';
+    const prompt = body.contents?.at(-1)?.parts?.map((p) => p.text ?? '').join('') ?? '';
     if (system.includes('You are PomoGator')) {
       const a = assistant(system, body.contents);
-      return a ? answer(res, a) : reply(res, 429, { error: { code: 429, message: 'Quota exceeded', status: 'RESOURCE_EXHAUSTED' } });
+      return a ? answer(res, a) : limit();
     }
     if (prompt.includes('write compact study notes')) {
       const n = Number(prompt.match(/\((\d+) slides\)/)?.[1] || 1);
@@ -138,4 +177,4 @@ http.createServer((req, res) => {
     if (prompt.includes('end-of-day summary')) return answer(res, { headline: 'A good day.', wins: ['Studied'], gaps: ['Virtue'], tomorrow: ['Review'] });
     return reply(res, 400, { error: { code: 400, message: 'Unknown prompt' } });
   });
-}).listen(PORT, () => console.log(`fake Gemini on ${PORT}`));
+}).listen(PORT, () => console.log(`fake AI (Claude + Gemini), Unsplash and Last.fm on ${PORT}`));
