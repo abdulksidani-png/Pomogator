@@ -52,16 +52,22 @@ export function toLastfmPlayback(j: unknown, now = Date.now()): Playback | null 
 const sameSong = (a: Playback, b: Playback) => a.title === b.title && a.artist === b.artist;
 /** How long a song that stopped playing is still shown as "Paused". */
 export const PAUSE_MS = 30 * 60_000;
+/** A saved play older than this isn't shown as "Last played": it is usually not what the person last listened to. */
+export const RECENT_MS = 10 * 60_000;
 
 /**
  * Last.fm only knows the song that is playing right now and the songs already scrobbled. When you pause, "playing now"
  * disappears, and the newest *scrobbled* song is an older one. So the song that was playing is kept (as paused) for a
- * while, instead of switching to that older song. `held` is the last song seen playing on this page.
+ * while, instead of switching to that older song. `held` is the last song seen playing in this browser (it is
+ * remembered across reloads). And Last.fm only saves a song once about half of it has played, so its newest saved song
+ * can be hours old and not the last thing heard: an old one is not shown at all (`idle`: "nothing playing right now").
  */
-export function withPause(held: Playback | null, polled: Playback | null, now = Date.now()): { show: Playback | null; held: Playback | null } {
-  if (polled?.isPlaying) return { show: polled, held: { ...polled, at: now } };
-  if (held && now - held.at < PAUSE_MS && !(polled && sameSong(held, polled))) return { show: { ...held, isPlaying: false, paused: true }, held };
-  return { show: polled, held: null }; // it finished and was saved to Last.fm, or it has been a long while
+export function withPause(held: Playback | null, polled: Playback | null, now = Date.now()): { show: Playback | null; held: Playback | null; idle: boolean } {
+  if (polled?.isPlaying) return { show: polled, held: { ...polled, at: now }, idle: false };
+  if (held && now - held.at < PAUSE_MS && !(polled && sameSong(held, polled))) return { show: { ...held, isPlaying: false, paused: true }, held, idle: false };
+  // It finished and was saved to Last.fm, or it has been a long while.
+  const recent = !!polled?.playedAt && now - polled.playedAt < RECENT_MS;
+  return { show: recent ? polled : null, held: null, idle: !!polled && !recent };
 }
 
 /** "just now", "5 min ago", "3 hours ago", "2 days ago". */

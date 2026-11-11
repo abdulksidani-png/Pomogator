@@ -127,7 +127,7 @@ The site needs one Last.fm key:
 4. In Vercel, open your project → **Settings → Environment Variables**, add `LASTFM_API_KEY` with that key for all
    environments, click **Save**, then **Deployments → ⋯ → Redeploy**.
 
-The key stays on the server. Each person's "now playing" is fetched at most every 5 seconds and shared between
+The key stays on the server. Each person's "now playing" is fetched at most every 3 seconds and shared between
 everyone looking at them, well within Last.fm's limits. If someone's songs don't appear, their Last.fm profile may
 hide its listening: last.fm → Settings → Privacy → turn off **Hide recent listening**.
 
@@ -194,7 +194,7 @@ The free plans are sized for a class, not a campus. In the order they run out:
 4. **The AI.** Gemini's free tier stops after a set number of requests a day for the whole site. With billing on
    (or Claude), cost grows with use: the per-account limit (`AI_DAILY_LIMIT_USER`) and the site ceiling
    (`AI_DAILY_LIMIT_SITE`, migration 7) are what keep a bill predictable. Migration 3 must be run for either.
-5. **Music.** Each person with a song playing costs one Last.fm request every 8 seconds, and Last.fm allows about
+5. **Music.** Each person with a song playing costs one Last.fm request every 4 seconds, and Last.fm allows about
    5 a second per site: fine for a few dozen people listening at once, not for hundreds.
 6. **Vercel.** The Hobby plan is for personal, non-commercial sites. A site with ads or subscriptions needs Pro.
 7. **Unsplash.** Apply for production (section 4) to go from 50 to 5,000 requests an hour.

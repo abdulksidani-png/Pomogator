@@ -19,21 +19,23 @@ export function MusicCard() {
   const user = useStudy((s) => s.settings.lastfmUser);
   const art = useStudy((s) => s.settings.musicArt);
   const [on, setOn] = useState(false);
-  const { playback, checked, error } = useLastfm();
+  const { playback, checked, error, idle } = useLastfm();
   const { updateSettings } = useStudy.getState();
 
   useEffect(() => { void siteConfig().then((c) => setOn(c.lastfm)); }, []);
 
-  // While a song is playing, check every 8 seconds (the server caches each answer for 5); while nothing is, every 30,
-  // so idle tabs don't use up Last.fm's allowance. Only while the page is visible, and at once on coming back.
-  const playing = !!playback?.isPlaying;
+  // While a song is playing or paused, check every 4 seconds (the server caches each answer for 3), so pausing and
+  // playing again show quickly; with nothing going on, every 15, so idle tabs don't use up Last.fm's allowance.
+  // Only while the page is visible, and at once on coming back to the tab or the window.
+  const active = !!playback && (playback.isPlaying || !!playback.paused);
   useEffect(() => {
     if (!on || !user || !show) return;
     const check = () => { if (document.visibilityState === 'visible') void refreshLastfm(user); };
-    const id = setInterval(check, playing ? 8_000 : 30_000);
+    const id = setInterval(check, active ? 4_000 : 15_000);
     document.addEventListener('visibilitychange', check);
-    return () => { clearInterval(id); document.removeEventListener('visibilitychange', check); };
-  }, [on, show, user, playing]);
+    window.addEventListener('focus', check);
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', check); window.removeEventListener('focus', check); };
+  }, [on, show, user, active]);
   useEffect(() => { if (on && user && show) void refreshLastfm(user); }, [on, show, user]);
 
   if (!show || !on) return null;
@@ -61,14 +63,14 @@ export function MusicCard() {
       <div className="music-row">
         <Disc p={playback} art={art} />
         <div className="music-info">
-          <span className="music-label">{playback ? (playback.isPlaying ? <><Bars />Now playing</> : playback.paused ? 'Paused' : `Last played${playback.playedAt ? ` · ${timeAgo(playback.playedAt)}` : ''}`) : 'Last.fm'}</span>
+          <span className="music-label">{playback ? (playback.isPlaying ? <><Bars />Now playing</> : playback.paused ? 'Paused' : `Last played${playback.playedAt ? ` · ${timeAgo(playback.playedAt)}` : ''}`) : idle ? 'Waiting for music' : 'Last.fm'}</span>
           {playback ? (
             <>
               <motion.strong key={playback.title} className="music-title" title={playback.title} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={SOFT}>{playback.title}</motion.strong>
               <span className="music-artist" title={playback.artist}>{playback.artist}</span>
             </>
           ) : (
-            <span className="music-artist">{!checked ? 'Checking…' : 'Nothing yet. Songs show up once your music app is connected to Last.fm.'}</span>
+            <span className="music-artist">{!checked ? 'Checking…' : idle ? 'Nothing playing right now. Play a song and it shows up here.' : 'Nothing yet. Songs show up once your music app is connected to Last.fm.'}</span>
           )}
         </div>
       </div>

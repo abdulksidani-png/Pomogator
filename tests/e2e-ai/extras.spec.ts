@@ -89,10 +89,18 @@ test('Last.fm: anyone can show what they play by username, from any music app', 
   await dlg.getByRole('button', { name: 'Save', exact: true }).click();
   await dlg.getByRole('button', { name: 'Done' }).click();
   await expect(card.locator('.music-title')).toHaveText('Yesterday Tune');
-  await expect(card).toContainText('Last played');
+  await expect(card).toContainText(/Last played · \d min ago/);
+
+  // A song saved long ago is usually not what was last heard, so it isn't shown: the card waits for music instead.
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await dlg.locator('#lastfmUser').fill('longago');
+  await dlg.getByRole('button', { name: 'Save', exact: true }).click();
+  await dlg.getByRole('button', { name: 'Done' }).click();
+  await expect(card).toContainText('Nothing playing right now');
+  await expect(card.locator('.music-title')).toHaveCount(0);
 
   // A pause: Last.fm stops saying "playing" and its newest saved song is an older one. The card keeps the song that
-  // was playing (as paused) instead of jumping to that older song; a past play says how long ago.
+  // was playing (as paused) instead of jumping to that older song, also after closing and reopening the site.
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await dlg.locator('#lastfmUser').fill('flipper');
   await dlg.getByRole('button', { name: 'Save', exact: true }).click();
@@ -102,10 +110,13 @@ test('Last.fm: anyone can show what they play by username, from any music app', 
   await page.request.get(`${FAKE}/__flip?playing=0`);
   await expect(card).toContainText('Paused', { timeout: 20_000 });
   await expect(card.locator('.music-title')).toHaveText('Gator Groove');
-  await page.reload(); // a fresh page only has Last.fm's word: the older song, and when it was played
-  await expect(card.locator('.music-title')).toHaveText('Older Song');
-  await expect(card).toContainText(/Last played · \d+ days? ago/);
+  await page.reload();
+  await expect(card.locator('.music-title')).toHaveText('Gator Groove');
+  await expect(card).toContainText('Paused');
+  await expect(card).not.toContainText('Older Song');
+  // Playing again shows within a few seconds.
   await page.request.get(`${FAKE}/__flip?playing=1`);
+  await expect(card).toContainText('Now playing', { timeout: 8_000 });
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await dlg.locator('#lastfmUser').fill('quietone');
   await dlg.getByRole('button', { name: 'Save', exact: true }).click();

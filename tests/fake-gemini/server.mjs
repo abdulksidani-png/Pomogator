@@ -98,7 +98,7 @@ function unsplash(req, res) {
   return reply(res, 404, { errors: ['Not found'] });
 }
 
-// Last.fm's user.getRecentTracks: "nowplayer" is listening, "quietone" played something earlier, "nobody" doesn't exist.
+// Last.fm's user.getRecentTracks: "nowplayer" is listening, "quietone" played something two minutes ago, "longago" last played months ago, "nobody" doesn't exist.
 const lastfmCalls = [];
 let flipPlaying = true; // "flipper" is playing until /__flip?playing=0 (a pause), then only has the older song
 
@@ -108,13 +108,14 @@ function lastfm(req, res) {
   lastfmCalls.push(user);
   if (url.searchParams.get('api_key') !== 'test-lastfm') return reply(res, 403, { error: 10, message: 'Invalid API key' });
   if (user === 'nobody') return reply(res, 404, { error: 6, message: 'User not found' });
-  const track = (name, artist, playing) => ({
+  const track = (name, artist, playing, uts = '1760000000') => ({
     name, artist: { '#text': artist }, album: { '#text': 'Swamp Sessions' }, url: `https://www.last.fm/music/${encodeURIComponent(artist)}/_/${encodeURIComponent(name)}`,
-    image: [{ size: 'large', '#text': `http://localhost:${PORT}/img/art-1.svg` }], ...(playing ? { '@attr': { nowplaying: 'true' } } : { date: { uts: '1760000000' } }),
+    image: [{ size: 'large', '#text': `http://localhost:${PORT}/img/art-1.svg` }], ...(playing ? { '@attr': { nowplaying: 'true' } } : { date: { uts } }),
   });
   if (user === 'flipper') return reply(res, 200, { recenttracks: { track: flipPlaying ? [track('Gator Groove', 'The Swamp Band', true), track('Older Song', 'Someone', false)] : [track('Older Song', 'Someone', false)] } });
   if (user === 'nowplayer') return reply(res, 200, { recenttracks: { track: [track('Gator Groove', 'The Swamp Band', true), track('Older Song', 'Someone', false)] } });
-  return reply(res, 200, { recenttracks: { track: track('Yesterday Tune', 'Quiet Artist', false) } });
+  if (user === 'longago') return reply(res, 200, { recenttracks: { track: track('Ancient Tune', 'Old Artist', false) } });
+  return reply(res, 200, { recenttracks: { track: track('Yesterday Tune', 'Quiet Artist', false, String(Math.floor(Date.now() / 1000) - 120)) } });
 }
 
 http.createServer((req, res) => {

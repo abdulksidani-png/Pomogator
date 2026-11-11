@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PAUSE_MS, cleanLastfmUser, lastfmError, timeAgo, toLastfmPlayback, withPause } from '@/lib/lastfm-core';
+import { PAUSE_MS, RECENT_MS, cleanLastfmUser, lastfmError, timeAgo, toLastfmPlayback, withPause } from '@/lib/lastfm-core';
 
 const track = (extra: Record<string, unknown>) => ({
   name: 'Gator Groove', artist: { '#text': 'The Swamp Band' }, album: { '#text': 'Swamp Sessions' }, url: 'https://www.last.fm/x',
@@ -55,17 +55,22 @@ describe('pausing a song', () => {
     expect(b.held?.title).toBe('Gator Groove');
   });
 
-  it('shows Last.fm\'s own answer once the song was saved, after a long pause, or on a fresh page', () => {
-    const now = 1_000_000;
+  it('shows Last.fm\'s own answer once the song was saved, but never a song saved long ago', () => {
+    const now = 1_000_000_000;
     const held = { ...playing('Gator Groove'), at: now };
-    const saved = withPause(held, { ...song('Gator Groove'), at: now + 1000 }, now + 1000);
+    const justSaved = { ...song('Gator Groove', { date: { uts: String(now / 1000) } }), at: now + 1000 };
+    const saved = withPause(held, justSaved, now + 1000);
     expect(saved.show?.title).toBe('Gator Groove');
     expect(saved.show?.paused).toBeUndefined();
     expect(saved.held).toBeNull();
+    // After a long pause, or on a fresh page with nothing remembered: a recent play shows, an old one doesn't.
     const late = now + PAUSE_MS + 1;
-    expect(withPause(held, { ...song('Older Song'), at: late }, late).show?.title).toBe('Older Song');
-    expect(withPause(null, song('Older Song'), now).show?.title).toBe('Older Song');
-    expect(withPause(null, null, now).show).toBeNull();
+    const old = song('Older Song', { date: { uts: String((late - RECENT_MS - 60_000) / 1000) } });
+    expect(withPause(held, old, late)).toEqual({ show: null, held: null, idle: true });
+    expect(withPause(null, old, late)).toEqual({ show: null, held: null, idle: true });
+    const recent = song('Fresh Song', { date: { uts: String(Math.floor((late - 120_000) / 1000)) } });
+    expect(withPause(null, recent, late)).toMatchObject({ show: { title: 'Fresh Song' }, idle: false });
+    expect(withPause(null, null, now)).toEqual({ show: null, held: null, idle: false }); // nothing on Last.fm at all
   });
 
   it('says how long ago in plain words', () => {

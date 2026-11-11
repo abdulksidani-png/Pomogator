@@ -343,6 +343,15 @@ playing on this page as `paused: true` ("Paused") for 30 min (`PAUSE_MS`) unless
 (`playedAt` from `date.uts`, `timeAgo`), so a stale scrobble is obvious. The stand-in has user `flipper` (`/__flip?playing=0|1`).
 If a song is missing from his Last.fm profile page, the problem is Spotify→Last.fm scrobbling, not PomoGator.
 
+**Music, round 3 (2026-11-11, his report: pause/play still slow; reopening showed a 2-hour-old song that wasn't his last):**
+polling is 4 s while a song is playing *or paused* (it was 30 s once paused, which is why playing again took so long),
+15 s when idle, plus on window focus; the route caches 3 s. `held` (the song last seen playing) is saved in localStorage
+`studybuddy.music` per username, so reopening within 30 min still shows it as "Paused". A saved play older than
+`RECENT_MS` (10 min) is never shown: `withPause` returns `idle` and the card says "Waiting for music / Nothing playing
+right now. Play a song and it shows up here." (Last.fm only saves a song after about half of it, so its newest save is often
+not the last thing heard.) What's left is Spotify → Last.fm's own delay, which the site can't shorten; the in-site
+player (proposed, not built) is the only way to instant controls. Stand-in users: `quietone` (2 min ago), `longago`.
+
 **Quizzes from the shared screen (2026-10-15, his report: a Python session got a quiz on yesterday's philosophy deck):**
 screen tracking used OCR only to match slides, so off-document work was ignored. Now `capture()` in `lib/docs/screen.ts`
 puts every read frame's text on the live session (`addScreenText` → `session.screen`, ≤24k chars, dropped from history like
