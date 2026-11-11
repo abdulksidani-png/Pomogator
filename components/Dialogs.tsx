@@ -320,6 +320,7 @@ export function HelpDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialogEleme
 /** Settings → Music: the "now playing" card and the Last.fm username behind it. Hidden when the site has no Last.fm key. */
 function MusicSettings() {
   const show = useStudy((s) => s.settings.musicWidget);
+  const art = useStudy((s) => s.settings.musicArt);
   const [on, setOn] = useState(false);
   useEffect(() => { void siteConfig().then((c) => setOn(c.lastfm)); }, []);
   if (!on) return null;
@@ -329,6 +330,15 @@ function MusicSettings() {
       <div className="set-row">
         <label htmlFor="musicToggle">Music widget<span className="sub">Shows the song you&apos;re playing, from any music app, through Last.fm</span></label>
         <input type="checkbox" className="switch" id="musicToggle" checked={show} onChange={(e) => { const v = e.target.checked; useStudy.getState().updateSettings((x) => { x.musicWidget = v; }); }} />
+      </div>
+      <div className="set-row">
+        <span className="field-label" id="musicArtLabel">Album art<span className="sub">A square, or a record that spins while a song plays</span></span>
+        <div className="shop-who" role="group" aria-labelledby="musicArtLabel">
+          {([['square', 'Square'], ['disc', 'Spinning disc']] as const).map(([id, label]) => (
+            <button key={id} type="button" className="chip-btn" id={`musicArt-${id}`} aria-pressed={art === id}
+              onClick={() => useStudy.getState().updateSettings((x) => { x.musicArt = id; })}>{label}</button>
+          ))}
+        </div>
       </div>
       <LastfmSetting />
     </fieldset>

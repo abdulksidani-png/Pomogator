@@ -104,6 +104,8 @@ export interface Settings {
   look: number;
   /** Show the "now playing" music card (Last.fm). */
   musicWidget: boolean;
+  /** The album art on the music card: a rounded square (default) or a spinning record. */
+  musicArt: 'square' | 'disc';
   corners: Corners;
   density: 'comfortable' | 'compact';
   // screen tracking

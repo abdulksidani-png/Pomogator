@@ -329,6 +329,12 @@ copy look newer). The settings already overwritten on the server are not recover
 anything another device still holds is lost too once it pulls. Points, stats, friends and check-ins were never at risk
 (union-merged or server tables).
 
+**Music album art choice (2026-11-11, his request):** `settings.musicArt` ('square' default | 'disc'), Settings → Music →
+"Album art" (`#musicArt-square` / `#musicArt-disc`). The redesign layer had turned the old spinning record into a rounded
+square (no spin, hole hidden); `.music-disc[data-art="disc"]` (end of globals.css) brings the circle, the 9 s spin
+(`.spinning`, off with reduced motion) and the centre hole back. Focus mode keeps its own smaller size (id selector wins).
+The equaliser bars next to "Now playing" are the same in both. Tested in the Last.fm test in `extras.spec.ts`.
+
 **Quizzes from the shared screen (2026-10-15, his report: a Python session got a quiz on yesterday's philosophy deck):**
 screen tracking used OCR only to match slides, so off-document work was ignored. Now `capture()` in `lib/docs/screen.ts`
 puts every read frame's text on the live session (`addScreenText` → `session.screen`, ≤24k chars, dropped from history like

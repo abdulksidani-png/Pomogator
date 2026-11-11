@@ -17,6 +17,7 @@ import { SOFT } from './motion';
 export function MusicCard() {
   const show = useStudy((s) => s.settings.musicWidget);
   const user = useStudy((s) => s.settings.lastfmUser);
+  const art = useStudy((s) => s.settings.musicArt);
   const [on, setOn] = useState(false);
   const { playback, checked, error } = useLastfm();
   const { updateSettings } = useStudy.getState();
@@ -58,7 +59,7 @@ export function MusicCard() {
       summary={playback ? `${playback.title.slice(0, 28)}${playback.title.length > 28 ? '…' : ''}` : undefined}>
       {playback?.art && <div className="music-glow" style={{ backgroundImage: `url("${playback.art}")` }} aria-hidden="true" />}
       <div className="music-row">
-        <Disc p={playback} />
+        <Disc p={playback} art={art} />
         <div className="music-info">
           <span className="music-label">{playback ? (playback.isPlaying ? <><Bars />Now playing</> : 'Last played') : 'Last.fm'}</span>
           {playback ? (
@@ -104,10 +105,10 @@ function LastfmForm() {
   );
 }
 
-/** Album art on a little record that spins while the music plays. */
-function Disc({ p }: { p: Playback | null }) {
+/** Album art: a rounded square by default, or (Settings → Music) a little record that spins while the music plays. */
+function Disc({ p, art }: { p: Playback | null; art: 'square' | 'disc' }) {
   return (
-    <div className={`music-disc${p?.isPlaying ? ' spinning' : ''}`} aria-hidden="true">
+    <div className={`music-disc${p?.isPlaying ? ' spinning' : ''}`} data-art={art === 'disc' ? 'disc' : 'square'} aria-hidden="true">
       {p?.art ? <img src={p.art} alt="" /> : <span className="music-disc-empty"><Icon name="music" /></span>}
       <span className="music-hole" />
     </div>

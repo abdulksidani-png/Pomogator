@@ -1858,3 +1858,9 @@ html:root[data-cards="glass"] .desk .card:not(.result) { animation: none; }
 /* "Make a free account to …" (guests reaching for an AI feature). */
 #needAccountDlg { width: min(460px, calc(100vw - 24px)); }
 #needAccountDlg .dlg-body p { margin: 0 0 10px; }
+
+/* Music card: the old spinning record, as a choice (Settings → Music → Album art). The square stays the default. */
+.music-disc[data-art="disc"] { width: 74px; height: 74px; border-radius: 50%; box-shadow: 0 8px 22px -10px rgba(0,0,0,.55), 0 0 0 3px color-mix(in srgb, #000 70%, transparent); }
+.music-disc[data-art="disc"].spinning { animation: disc-spin 9s linear infinite; }
+.music-disc[data-art="disc"] .music-hole { display: block; }
+@media (prefers-reduced-motion: reduce) { .music-disc[data-art="disc"].spinning { animation: none; } }

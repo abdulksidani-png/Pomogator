@@ -63,6 +63,19 @@ test('Last.fm: anyone can show what they play by username, from any music app', 
   await expect(card.getByRole('link', { name: 'Open on Last.fm' })).toHaveAttribute('href', /last\.fm\/music/);
   expect(await (await page.request.get(`${FAKE}/__lastfm`)).json()).toContain('nowplayer');
 
+  // Album art: a square by default; the spinning record is a choice in Settings → Music.
+  await expect(card.locator('.music-disc')).toHaveAttribute('data-art', 'square');
+  await expect(card.locator('.music-hole')).toBeHidden();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.locator('#settingsDlg').locator('#musicArt-disc').click();
+  await page.locator('#settingsDlg').getByRole('button', { name: 'Done' }).click();
+  await expect(card.locator('.music-disc')).toHaveAttribute('data-art', 'disc');
+  await expect(card.locator('.music-hole')).toBeVisible();
+  await expect(card.locator('.music-disc')).toHaveCSS('border-radius', '50%');
+  await expect(card.locator('.music-disc.spinning')).toHaveCSS('animation-name', 'disc-spin');
+  await page.reload();
+  await expect(card.locator('.music-disc')).toHaveAttribute('data-art', 'disc'); // remembered
+
   // Settings → Music: change the username. A missing user says so plainly; a past play shows as "Last played".
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   const dlg = page.locator('#settingsDlg');

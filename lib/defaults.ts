@@ -37,6 +37,7 @@ export const DEFAULT_SETTINGS: Settings = {
   cardStyle: 'ruled',
   look: 2,
   musicWidget: true,
+  musicArt: 'square',
   corners: 'theme',
   density: 'comfortable',
   screenTrack: false,
