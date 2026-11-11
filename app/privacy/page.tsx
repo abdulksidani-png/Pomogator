@@ -54,6 +54,11 @@ export default function Privacy() {
       <p>Without an account you can use the timer, the to-do list and the themes. Anything that uses the AI (quizzes, plans, the study
         assistant, uploads and screen sharing) needs a free account, so nothing a guest does is sent to the AI.</p>
 
+      <h2>Bot check</h2>
+      <p>When a new visitor or a sign-in email needs proving human, the page asks <a href="https://www.cloudflare.com/products/turnstile/">Cloudflare
+        Turnstile</a>, which looks at how the browser behaves (no pictures to pick) and hands back a one-time token. Cloudflare sees
+        your IP address and browser details for that check.</p>
+
       <h2>Photos and music</h2>
       <p>Background photos load directly from <a href="https://unsplash.com">Unsplash</a>. The music card
         uses <a href="https://www.last.fm">Last.fm</a>: the Last.fm username you type is saved with your settings

@@ -150,6 +150,9 @@ const server = http.createServer(async (req, res) => {
     const body = req.method === 'GET' ? {} : await readBody(req);
     const redirectTo = url.searchParams.get('redirect_to');
 
+    // FAKE_CAPTCHA=1: like Supabase with CAPTCHA switched on, new guests and sign-in emails need a token.
+    const noCaptcha = process.env.FAKE_CAPTCHA && (p === '/auth/v1/signup' || p === '/auth/v1/otp') && req.method === 'POST' && body?.gotrue_meta_security?.captcha_token !== 'stub-token';
+    if (noCaptcha) return send(res, 400, { code: 400, error_code: 'captcha_failed', msg: 'captcha protection: request disallowed (not-provided)' });
     if (p === '/auth/v1/signup' && req.method === 'POST') {
       if (body.email) return send(res, 400, { code: 400, error_code: 'not_supported', msg: 'Only guests in this fake' });
       return send(res, 200, session(await createUser('', true)));

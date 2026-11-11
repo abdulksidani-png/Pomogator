@@ -149,6 +149,8 @@ browser (lib/ai-client.ts) → POST /api/ai/{action} → sign-in + daily allowan
   which is safe by design because of row-level security.
 - **AI**: only signed-in accounts (never guests) reach `/api/ai/*`; each call is counted per account and per site,
   and every input is trimmed (`tame()` in the route, per-provider budgets in the prompts) before it becomes a prompt.
+- **Bots**: optional Cloudflare Turnstile (`lib/captcha.ts`) supplies the token Supabase's CAPTCHA wants for new guests and
+  sign-in emails; off unless `NEXT_PUBLIC_TURNSTILE_SITE_KEY` is set.
 - **Headers**: no framing, no MIME sniffing, HSTS, and a small content policy (`next.config.ts`).
 - **Middleware** refreshes the sign-in cookie for pages, the sign-in callback and the AI routes only, so files and
   the cached or polled routes (`/api/lastfm`, `/api/unsplash`, `/api/config`) cost no extra request.

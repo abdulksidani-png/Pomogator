@@ -1,6 +1,7 @@
 'use client';
 import { getSupabase } from './supabase/client';
 import { useStudy } from './store';
+import { CAPTCHA_HELP, captchaToken } from './captcha';
 
 const callbackUrl = () => `${window.location.origin}/auth/callback`;
 const isGuest = () => useStudy.getState().account.status === 'guest';
@@ -10,6 +11,7 @@ function explain(e: { message?: string; code?: string } | null): string {
   if (/provider is not enabled|Unsupported provider/i.test(m)) return 'Google sign-in isn\'t switched on for this site yet. Use the email link instead.';
   if (/rate limit|too many/i.test(m)) return 'Too many emails sent. Wait a few minutes, then try again.';
   if (/invalid.*email|valid email/i.test(m)) return 'That email address doesn\'t look right.';
+  if (e?.code === 'captcha_failed' || /captcha/i.test(m)) return CAPTCHA_HELP;
   return m || 'Sign-in didn\'t work. Try again.';
 }
 
@@ -45,7 +47,9 @@ export async function sendEmailLink(email: string): Promise<'confirm' | 'link'> 
     if (!error) return 'confirm';
     if (!(error.code === 'email_exists' || /already|exists|registered/i.test(error.message))) throw new Error(explain(error));
   }
-  const { error } = await sb.auth.signInWithOtp({ email: addr, options: { emailRedirectTo: callbackUrl(), shouldCreateUser: true } });
+  // A sign-in email is the other place Supabase's CAPTCHA applies (adding an email to a guest, above, is not).
+  const token = await captchaToken().catch(() => { throw new Error(CAPTCHA_HELP); });
+  const { error } = await sb.auth.signInWithOtp({ email: addr, options: { emailRedirectTo: callbackUrl(), shouldCreateUser: true, ...(token ? { captchaToken: token } : {}) } });
   if (error) throw new Error(explain(error));
   return 'link';
 }

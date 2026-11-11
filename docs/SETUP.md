@@ -184,9 +184,8 @@ The free plans are sized for a class, not a campus. In the order they run out:
 1. **Sign-in emails.** Supabase's built-in email sender allows only a few emails an hour. Before a launch, connect
    your own sender: Supabase → **Authentication → Emails → SMTP Settings** (Resend and Brevo have free tiers).
    Google sign-in has no such limit.
-2. **Guest sign-ups.** Every new visitor becomes an anonymous Supabase user. Turn on the CAPTCHA
-   (Supabase → **Authentication → Attack Protection**, Cloudflare Turnstile is free) so scripts can't create
-   thousands, and remove old guests now and then by running this in the SQL Editor:
+2. **Guest sign-ups.** Every new visitor becomes an anonymous Supabase user. Turn on the bot check (next section) so
+   scripts can't create thousands, and remove old guests now and then by running this in the SQL Editor:
    `delete from auth.users where is_anonymous and created_at < now() - interval '30 days';`
 3. **The database.** Each signed-in tab makes a few small requests a minute (about 3 with no friends, about 20
    with friends: chat, invites, who's online). The free database is fine for roughly a hundred people online at
@@ -199,6 +198,23 @@ The free plans are sized for a class, not a campus. In the order they run out:
    5 a second per site: fine for a few dozen people listening at once, not for hundreds.
 6. **Vercel.** The Hobby plan is for personal, non-commercial sites. A site with ads or subscriptions needs Pro.
 7. **Unsplash.** Apply for production (section 4) to go from 50 to 5,000 requests an hour.
+
+### The bot check (Cloudflare Turnstile)
+
+Do these in order. Turning on CAPTCHA in Supabase before the site has its key locks everyone out of sign-in.
+
+1. Go to **dash.cloudflare.com → Turnstile → Add widget** (a free Cloudflare account is enough). Name it `PomoGator`,
+   add the hostnames `pomo-gator.vercel.app` and `studybuddy-bay.vercel.app`, choose **Managed**, and create it.
+2. Copy the **Site key** into Vercel as `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (Production and Preview) and **redeploy**.
+   The site already works with it set: Supabase isn't asking for a token yet, so it is simply ignored.
+3. In Supabase → **Authentication → Attack Protection**, switch on **Enable Captcha protection**, pick
+   **Cloudflare Turnstile**, paste the widget's **Secret key**, and click **Save changes**.
+4. Open the site in a private window: you should start as a guest as usual. If you ever need to undo it, switch
+   Captcha protection off in Supabase.
+
+PomoGator asks Turnstile for a token before each new guest and each sign-in email. For nearly everyone this is
+invisible; a small box shows at the bottom of the page only if Cloudflare wants a click. If a visitor's ad blocker
+stops the check, they can still study (progress stays on their device) and the sign-in box says why.
 
 ## Run it on your own computer
 

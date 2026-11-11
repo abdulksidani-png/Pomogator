@@ -12,8 +12,37 @@ const footer = (page: Page) => page.locator('.sync-status');
 async function device(browser: Browser, celebrate = false) {
   const ctx = await browser.newContext();
   await quietCelebrations(ctx, { celebrate });
+  await standInForTurnstile(ctx);
   return ctx.newPage();
 }
+
+/**
+ * The sync build has the bot check switched on and the fake Auth refuses a guest or a sign-in email without a token
+ * (like Supabase with CAPTCHA on). This stands in for Cloudflare's script: it hands out the token the fake accepts.
+ */
+async function standInForTurnstile(ctx: import('@playwright/test').BrowserContext) {
+  await ctx.route('https://challenges.cloudflare.com/turnstile/v0/api.js**', (r) => r.fulfill({
+    contentType: 'text/javascript',
+    body: `window.turnstile = { n: 0, opts: {}, render(el, o) { const id = 'w' + (++this.n); this.opts[id] = o; el.dataset.widget = id; return id; },
+      execute(id) { setTimeout(() => this.opts[id].callback('stub-token'), 30); }, reset() {} };`,
+  }));
+}
+
+test('the bot check: a blocked check never locks anyone out of studying, and sign-in explains it', async ({ browser }) => {
+  const ctx = await browser.newContext();
+  await quietCelebrations(ctx);
+  await ctx.route('https://challenges.cloudflare.com/**', (r) => r.abort()); // an ad blocker, say
+  const page = await ctx.newPage();
+  await page.goto('/');
+  await expect(footer(page)).toContainText('safety check couldn\'t run', { timeout: 15_000 });
+  await page.fill('#ctxTopic', 'Still works offline');
+  await expect(page.locator('#startBtn')).toBeEnabled();
+  await page.getByRole('button', { name: 'Sign in', exact: false }).first().click();
+  await page.fill('#signinEmail', 'blocked@test.dev');
+  await page.getByRole('button', { name: 'Email me a link' }).click();
+  await expect(page.locator('#signinDlg .note.err')).toContainText('safety check couldn\'t run');
+  await ctx.close();
+});
 
 async function addTask(page: Page, text: string) {
   await page.fill('#taskInput', text);

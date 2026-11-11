@@ -11,6 +11,7 @@
  *   same user, so their data simply stays. If the login already belongs to another
  *   account, the guest's data is merged into that account instead.
  */
+import { CAPTCHA_HELP, captchaToken as captchaToken_, preloadCaptcha } from './captcha';
 import type { SupabaseClient, User } from '@supabase/supabase-js';
 import { getSupabase } from './supabase/client';
 import { normalizeData, useStudy, type Data } from './store';
@@ -85,6 +86,7 @@ export function startSync() {
   sb = getSupabase();
   if (!sb) { setAccount({ status: 'local' }); return; }
   setAccount({ status: 'connecting' });
+  preloadCaptcha();
   watchLocalChanges();
 
   sb.auth.onAuthStateChange((event, session) => {
@@ -128,9 +130,14 @@ export async function recheckAccount() {
 }
 
 async function startGuest(): Promise<User | null> {
-  const { data, error } = await sb!.auth.signInAnonymously();
+  // With CAPTCHA on, Supabase wants a token with every new guest. If the check can't run (an ad blocker, say), the
+  // person still studies: progress stays on this device until they sign in.
+  let captchaToken: string | undefined;
+  let blocked = false;
+  try { captchaToken = await captchaToken_(); } catch { blocked = true; }
+  const { data, error } = blocked ? { data: { user: null }, error: new Error('captcha') } : await sb!.auth.signInAnonymously(captchaToken ? { options: { captchaToken } } : undefined);
   if (error || !data.user) {
-    setAccount({ status: 'local', syncing: false, error: 'Guest saving to the cloud is off. Your progress stays on this device until you sign in.' });
+    setAccount({ status: 'local', syncing: false, error: blocked ? CAPTCHA_HELP : 'Guest saving to the cloud is off. Your progress stays on this device until you sign in.' });
     return null;
   }
   return data.user;

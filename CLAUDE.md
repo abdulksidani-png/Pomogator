@@ -52,6 +52,7 @@ optional screen tracking, sign-in with cloud sync, and appearance customization.
 | + | Pick a username after signing in (what friends see instead of "Study buddy") | Built, waiting on his test (no migration) |
 | + | Private nicknames for friends | Built, waiting on his test (migration 6 for nicknames on messages and invites) |
 | + | Guests get no AI (asked to make an account); Spotify removed, Last.fm is the only music source | Built, live, waiting on his test (no migration; `LASTFM_API_KEY` in Vercel for music) |
+| + | Bot check (Turnstile) for guest sign-ups and sign-in emails | Built, waiting on his keys + test (`NEXT_PUBLIC_TURNSTILE_SITE_KEY`, then Supabase CAPTCHA) |
 | + | Audit fixes: Next security update, middleware scope, headers, AI input caps, lighter polling; storage limits | Live, waiting on his test (migration 8 for the storage limits) |
 | + | Redesign ("the sheet"), Claude API, friend chat + Do Not Disturb, old material put away | **LIVE since 2026-11-10 at his request, waiting on his test** (before it, `main` was `1f29c2d`, commit `1f29c2d`; needs migration 7 for chat/DND and `ANTHROPIC_API_KEY` for Claude) |
 
@@ -304,6 +305,17 @@ per table (`pg_cap_rows` statement trigger) and size checks (`not valid`). Found
 re-reads everything on tab focus (30 s floor; an "anything changed?" check first would save most of it),
 Last.fm ~5 req/s per site, Vercel Hobby is non-commercial. Checked and fine: RLS on every table, security-definer
 functions all pin `search_path` and are revoked from anon, no secrets in the repo or its history, no HTML sinks.
+
+**Bot check (2026-11-11, his request, waiting on his test):** `lib/captcha.ts` (Cloudflare Turnstile, only when
+`NEXT_PUBLIC_TURNSTILE_SITE_KEY` is set, build-time; `captchaToken()` is queued, one single-use token per call,
+`appearance: 'interaction-only'` in a fixed `#captchaBox`, 60 s wait; `preloadCaptcha()` from `startSync`). Used by
+`startGuest` (`signInAnonymously({ options: { captchaToken } })`; if the check can't run the status becomes `local`
+with `CAPTCHA_HELP`, so studying still works) and `sendEmailLink`'s `signInWithOtp`. Not needed for `updateUser`,
+`linkIdentity`/OAuth, `verifyOtp` or `exchangeCodeForSession` (Supabase doesn't check them). **Order matters when
+turning it on** (SETUP.md "The bot check"): key in Vercel + redeploy first, then Supabase → Attack Protection → CAPTCHA
+with the Secret; the reverse locks everyone out. Tests: the sync build sets the site key, `FAKE_CAPTCHA=1` makes the
+fake Auth refuse a token-less guest start or OTP, and `device()` stands in for Cloudflare's script
+(`standInForTurnstile`); one test checks a blocked script. Privacy page has a "Bot check" paragraph.
 
 **Quizzes from the shared screen (2026-10-15, his report: a Python session got a quiz on yesterday's philosophy deck):**
 screen tracking used OCR only to match slides, so off-document work was ignored. Now `capture()` in `lib/docs/screen.ts`

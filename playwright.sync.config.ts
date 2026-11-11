@@ -21,7 +21,7 @@ export default defineConfig({
     {
       command: 'node tests/fake-supabase/server.mjs',
       url: 'http://localhost:54321/health',
-      env: { FAKE_JWT_SECRET: SECRET, POSTGREST_BIN: process.env.POSTGREST_BIN ?? 'postgrest' },
+      env: { FAKE_JWT_SECRET: SECRET, FAKE_CAPTCHA: '1', POSTGREST_BIN: process.env.POSTGREST_BIN ?? 'postgrest' },
       timeout: 60_000,
       reuseExistingServer: false,
     },
@@ -29,6 +29,8 @@ export default defineConfig({
       command: 'npm run build && npx next start -p 3101',
       url: 'http://localhost:3101',
       env: { NEXT_DIST_DIR: '.next-sync', NEXT_PUBLIC_SUPABASE_URL: 'http://localhost:54321', NEXT_PUBLIC_SUPABASE_ANON_KEY: ANON_KEY,
+        // Turns the bot check on (the tests stand in for Cloudflare's script); the fake Auth then insists on a token.
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: '1x00000000000000000000AA',
         // An AI key with nowhere to go: enough for the AI routes to check who is asking (guests are refused first).
         GEMINI_API_KEY: 'test-key', GEMINI_BASE_URL: 'http://127.0.0.1:9' },
       timeout: 300_000,
