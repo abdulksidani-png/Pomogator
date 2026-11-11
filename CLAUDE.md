@@ -223,10 +223,10 @@ running the same SQL, used in the sync test). He asked for the propeller on his 
 
 **Last.fm music (2026-10-16, his request after Spotify's 5-user dev-mode cap):** `settings.lastfmUser` (synced,
 `cleanLastfmUser`), `/api/lastfm?user=` (`lib/lastfm-server.ts`, `LASTFM_API_KEY`, `LASTFM_BASE_URL` for tests;
-`s-maxage=15`), pure parser `lib/lastfm-core.ts` (`toLastfmPlayback`, grey-star art dropped, `lastfmError`: 6 no_user,
+`s-maxage=5`, no stale-while-revalidate since 2026-11-11: it made songs up to a minute late), pure parser `lib/lastfm-core.ts` (`toLastfmPlayback`, grey-star art dropped, `lastfmError`: 6 no_user,
 17 private, 29 rate_limited), browser `lib/lastfm.ts` (`useLastfm`, `refreshLastfm`). MusicCard: source = Spotify if
 linked on this device, else Last.fm if a username is set and the site has the key (`/api/config` `lastfm`); polls every
-20 s; no controls/progress, "via Last.fm · user", "Last played" for a past track; the not-connected card has
+8 s; no controls/progress, "via Last.fm · user", "Last played" for a past track; the not-connected card has
 `LastfmForm` ("Use Last.fm instead"). Settings → Music `LastfmSetting` (`#lastfmUser`). `myMusic()` in social.ts falls
 back to Last.fm, so friends see it through the same heartbeat. Spotify 403/sign-in failures point to Last.fm when it's
 on. Stand-in in `tests/fake-gemini/server.mjs` (`/2.0/`: nowplayer / quietone / nobody); test in

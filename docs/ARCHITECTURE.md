@@ -31,7 +31,7 @@ flowchart TB
 Music comes from Last.fm only (Spotify's own API was removed: a development-mode Spotify app allows 5 accounts, and
 Last.fm works with any app that scrobbles). A username on the music card or in Settings → Music (`settings.lastfmUser`, synced) is
 looked up by `/api/lastfm` (`lib/lastfm-server.ts`, key `LASTFM_API_KEY` on the server; `user.getRecentTracks`, parsed
-by `lib/lastfm-core.ts`, cached 15 s per username). Friends
+by `lib/lastfm-core.ts`, cached 5 s per username, polled every 8 s). Friends
 see only a title and artist, sent with the presence heartbeat (`myMusic()` in `lib/social.ts`), so friends need no
 music account of their own.
 

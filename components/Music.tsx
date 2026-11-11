@@ -23,12 +23,12 @@ export function MusicCard() {
 
   useEffect(() => { void siteConfig().then((c) => setOn(c.lastfm)); }, []);
 
-  // Check every 20 seconds while the page is visible (the server caches each answer for 15), and on coming back.
+  // Check every 8 seconds while the page is visible (the server caches each answer for 5), and on coming back.
   useEffect(() => {
     if (!on || !user || !show) return;
     void refreshLastfm(user);
     const check = () => { if (document.visibilityState === 'visible') void refreshLastfm(user); };
-    const id = setInterval(check, 20_000);
+    const id = setInterval(check, 8_000);
     document.addEventListener('visibilitychange', check);
     return () => { clearInterval(id); document.removeEventListener('visibilitychange', check); };
   }, [on, show, user]);

@@ -125,7 +125,7 @@ The site needs one Last.fm key:
 4. In Vercel, open your project → **Settings → Environment Variables**, add `LASTFM_API_KEY` with that key for all
    environments, click **Save**, then **Deployments → ⋯ → Redeploy**.
 
-The key stays on the server. Each person's "now playing" is fetched at most every 15 seconds and shared between
+The key stays on the server. Each person's "now playing" is fetched at most every 5 seconds and shared between
 everyone looking at them, well within Last.fm's limits. If someone's songs don't appear, their Last.fm profile may
 hide its listening: last.fm → Settings → Privacy → turn off **Hide recent listening**.
 
