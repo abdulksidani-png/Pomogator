@@ -26,7 +26,10 @@ async function fakeClaude(page: Page) {
 
 test('a guest studies, takes the quiz and earns a break that matches the score', async ({ page }) => {
   await fakeClaude(page);
-  await page.clock.install();
+  // Start at midday: a session counts for the day it started, so one that runs past midnight (a test run at 23:50)
+  // would not be in "today" any more.
+  const noon = new Date(); noon.setHours(12, 0, 0, 0);
+  await page.clock.install({ time: noon });
   await page.goto('/');
   await page.fill('#ctxTopic', 'Krebs cycle');
   await page.getByRole('button', { name: /Start studying/ }).click();
