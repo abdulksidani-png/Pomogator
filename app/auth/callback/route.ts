@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = url;
   const home = new URL('/', url.origin);
   const fail = (msg: string, extra?: Record<string, string>) => {
-    home.searchParams.set('auth_error', msg);
+    home.searchParams.set('auth_error', msg.slice(0, 200)); // shown as a notice: keep it short, whatever the link said
     for (const [k, v] of Object.entries(extra ?? {})) home.searchParams.set(k, v);
     return NextResponse.redirect(home);
   };

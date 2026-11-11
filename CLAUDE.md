@@ -52,6 +52,7 @@ optional screen tracking, sign-in with cloud sync, and appearance customization.
 | + | Pick a username after signing in (what friends see instead of "Study buddy") | Built, waiting on his test (no migration) |
 | + | Private nicknames for friends | Built, waiting on his test (migration 6 for nicknames on messages and invites) |
 | + | Guests get no AI (asked to make an account); Spotify removed, Last.fm is the only music source | Built, live, waiting on his test (no migration; `LASTFM_API_KEY` in Vercel for music) |
+| + | Audit fixes: Next security update, middleware scope, headers, AI input caps, lighter polling; storage limits | Live, waiting on his test (migration 8 for the storage limits) |
 | + | Redesign ("the sheet"), Claude API, friend chat + Do Not Disturb, old material put away | **LIVE since 2026-11-10 at his request, waiting on his test** (before it, `main` was `1f29c2d`, commit `1f29c2d`; needs migration 7 for chat/DND and `ANTHROPIC_API_KEY` for Claude) |
 
 Phase 3 also added the **study assistant** he asked for (`components/Assistant.tsx`, `lib/assistant.ts`): a corner
@@ -287,6 +288,23 @@ bar): `Playback` lives in `lib/lastfm-core.ts`, the not-connected music card sho
 (`#lastfmCardUser`, "Connect"), `lib/lastfm.ts` clears old `studybuddy.spotify` keys. Older notes below that mention
 Spotify describe what used to exist. He should delete `SPOTIFY_CLIENT_ID` in Vercel (harmless if left).
 
+**Audit (2026-11-11, his request: errors, security, load):** fixed in code: Next 15.5.26 → 15.5.29 (security
+releases; the leftover `npm audit` note is PostCSS inside Next, build-time only); `middleware.ts` now runs only for
+pages, `/auth` and `/api/ai/*` (it asks Supabase who the visitor is on every run: it was firing for every vendor
+file and every music poll, and must never ride on a publicly cached reply); HSTS + a small CSP (`frame-ancestors`,
+`object-src`, `base-uri`, `form-action`; a full script CSP is not done: inline theme script, wasm, jsDelivr, blob
+workers); `tame()` in the AI route trims every string/list before prompts (an account could send a huge topic or
+to-do list); `auth_error` capped at 200 chars; friends polling skips chat/invites/inbox when the person has no
+friends or requests (`hasFriend` in `startSocial`: must be `friends.length > 0`, not accepted-only, or the
+study-together test misses an invite); Last.fm polls every 8 s only while a song plays, else 30 s; sync push
+retries back off 15 s → 5 min. **Migration 8** (`20261111000000_limits.sql`, waiting on him): rows per account
+per table (`pg_cap_rows` statement trigger) and size checks (`not valid`). Found, not changed (told him; SETUP.md
+→ "Growing to thousands of people"): Supabase built-in email limit, CAPTCHA + cleanup for anonymous users,
+~20 small requests/min per tab with friends (Realtime or one combined RPC would be the next step), `pull()`
+re-reads everything on tab focus (30 s floor; an "anything changed?" check first would save most of it),
+Last.fm ~5 req/s per site, Vercel Hobby is non-commercial. Checked and fine: RLS on every table, security-definer
+functions all pin `search_path` and are revoked from anon, no secrets in the repo or its history, no HTML sinks.
+
 **Quizzes from the shared screen (2026-10-15, his report: a Python session got a quiz on yesterday's philosophy deck):**
 screen tracking used OCR only to match slides, so off-document work was ignored. Now `capture()` in `lib/docs/screen.ts`
 puts every read frame's text on the live session (`addScreenText` → `session.screen`, ≤24k chars, dropped from history like
@@ -389,7 +407,7 @@ Earlier requests, all done and confirmed:
   - `Dialogs.tsx`: settings, help
   - `Account.tsx`
   - `Assistant.tsx`: chat panel, corner button, reply formatting
-  - `Music.tsx` (Spotify widget), `PhotoPicker.tsx` (Unsplash), `Mascot.tsx` (all buddies), `Stats.tsx` (Stats page)
+  - `Music.tsx` (Last.fm "now playing" card), `PhotoPicker.tsx` (Unsplash), `Mascot.tsx` (all buddies), `Stats.tsx` (Stats page)
   - `TimerMenu.tsx` (saved timers menu), `Weekly.tsx` (weekly report, review banner), `Splash.tsx` (loading screen)
   - `Shop.tsx` (buddy shop, points chip, `MyBuddy`)
 - `supabase/migrations/`: `…000000_core.sql`, `…010000_documents.sql`, `20261015000000_ai_usage.sql`,
@@ -404,7 +422,7 @@ npm run typecheck
 npm test             # Vitest unit tests (145)
 npm run test:e2e     # Playwright: loop, documents, goals, screen tracking, tab sound, sounds, appearance, buddies, stats,
                      # saved timers, full screen, plan fold, weekly report, loading screen
-npm run test:ai      # Playwright: AI, Unsplash and Spotify against stand-ins (tests/fake-gemini; Spotify faked in-test)
+npm run test:ai      # Playwright: AI, Unsplash and Last.fm against stand-ins (tests/fake-gemini)
 npm run test:sync    # two-device sync: needs local Postgres + PostgREST (PGHOST/PGPORT/PGUSER, POSTGREST_BIN)
 ```
 `tests/fake-supabase/server.mjs` runs the real migrations on Postgres behind PostgREST, with a fake auth server.

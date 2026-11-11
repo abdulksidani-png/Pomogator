@@ -23,15 +23,17 @@ export function MusicCard() {
 
   useEffect(() => { void siteConfig().then((c) => setOn(c.lastfm)); }, []);
 
-  // Check every 8 seconds while the page is visible (the server caches each answer for 5), and on coming back.
+  // While a song is playing, check every 8 seconds (the server caches each answer for 5); while nothing is, every 30,
+  // so idle tabs don't use up Last.fm's allowance. Only while the page is visible, and at once on coming back.
+  const playing = !!playback?.isPlaying;
   useEffect(() => {
     if (!on || !user || !show) return;
-    void refreshLastfm(user);
     const check = () => { if (document.visibilityState === 'visible') void refreshLastfm(user); };
-    const id = setInterval(check, 8_000);
+    const id = setInterval(check, playing ? 8_000 : 30_000);
     document.addEventListener('visibilitychange', check);
     return () => { clearInterval(id); document.removeEventListener('visibilitychange', check); };
-  }, [on, show, user]);
+  }, [on, show, user, playing]);
+  useEffect(() => { if (on && user && show) void refreshLastfm(user); }, [on, show, user]);
 
   if (!show || !on) return null;
 

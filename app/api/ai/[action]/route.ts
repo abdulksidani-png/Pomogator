@@ -25,11 +25,34 @@ function validImages(v: unknown, max = 6): QuizImage[] {
     .slice(0, max).map((im) => ({ mimeType: im.mimeType as string, data: im.data as string }));
 }
 
+/**
+ * Cut a request down to size before any of it reaches a prompt: long strings and long lists are trimmed, so a signed-in
+ * person can't run up the AI bill with one enormous topic or to-do list. Photos and the document excerpt have their
+ * own limits (validImages, and the per-provider budget in materialText), so they are left alone here.
+ */
+function tame(v: unknown, key = '', depth = 0): unknown {
+  if (typeof v === 'string') return v.length > 14_000 ? v.slice(key === 'heard' || key === 'screen' ? -14_000 : 0, key === 'heard' || key === 'screen' ? undefined : 14_000) : v;
+  if (depth > 6) return null;
+  if (Array.isArray(v)) return key === 'images' || key === 'pages' ? v : v.slice(key === 'messages' ? -40 : 0, key === 'messages' ? undefined : 80).map((x) => tame(x, key, depth + 1));
+  if (isObj(v)) {
+    const out: Record<string, unknown> = {};
+    for (const [k, x] of Object.entries(v).slice(0, 60)) out[k] = k === 'ctx' && isObj(x) ? tameCtx(x) : tame(x, k, depth + 1);
+    return out;
+  }
+  return v;
+}
+/** The study panel: short fields stay short (only the notes may be long). */
+function tameCtx(ctx: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, x] of Object.entries(ctx).slice(0, 30)) out[k] = typeof x === 'string' ? x.slice(0, k === 'notes' ? 12_000 : 400) : typeof x === 'number' || typeof x === 'boolean' ? x : null;
+  return out;
+}
+
 export async function POST(req: Request, { params }: { params: Promise<{ action: string }> }) {
   const { action } = await params;
   if (!['quiz', 'plan', 'plan-now', 'day-summary', 'assistant', 'digest', 'weekly'].includes(action)) return fail({ code: 'not_found' });
   if (!aiConfigured()) return fail({ code: 'not_configured', message: 'AI features are not set up on this site yet.' });
-  const body = await req.json().catch(() => null);
+  const body = tame(await req.json().catch(() => null));
   const needsCtx = action === 'quiz' || action === 'plan' || action === 'plan-now' || action === 'assistant';
   if (!isObj(body) || (needsCtx && !isObj(body.ctx)) || (action === 'digest' && !(isObj(body.material) && Array.isArray(body.material.pages)))) return fail({ code: 'bad_request' });
   const order = providers();

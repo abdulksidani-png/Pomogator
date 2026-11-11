@@ -34,6 +34,7 @@ let userId = '';
 let started = false;
 let applyingRemote = false;
 let pushTimer: ReturnType<typeof setTimeout> | undefined;
+let pushFails = 0;
 let pushing: Promise<void> | null = null;
 let pushAgain = false;
 let queue: Promise<unknown> = Promise.resolve();
@@ -305,10 +306,14 @@ async function push(): Promise<void> {
           d.sync.docsDeleted = d.sync.docsDeleted.filter((id) => !docsDeletedSent.includes(id));
         });
       } finally { applyingRemote = false; }
+      pushFails = 0;
       setAccount({ syncing: false, error: undefined, lastSynced: Date.now() });
     } catch (e) {
       setAccount({ syncing: false, error: friendly(e) });
-      schedulePush(15_000); // try again later
+      // Try again later, waiting longer each time (15 s, 30 s, … up to 5 min), so an outage isn't met by every
+      // open tab knocking every few seconds.
+      pushFails += 1;
+      schedulePush(Math.min(300_000, 15_000 * 2 ** (pushFails - 1)));
     }
   })();
   try { await pushing; } finally {

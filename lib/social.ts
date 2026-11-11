@@ -133,11 +133,15 @@ export function startSocial(status: string) {
   void (async () => {
     if (!(await loadMe())) return;
     const visible = () => document.visibilityState === 'visible';
+    // Messages, invites and support notes can only come from a friend, so someone with no friends and no friend
+    // requests doesn't ask for them (most people, on a big site: it cuts their background requests from about
+    // 21 a minute to 3). A request counts: it can be accepted at any moment.
+    const hasFriend = () => useSocial.getState().friends.length > 0;
     timers = [
       setInterval(() => { if (visible()) void heartbeat(true); }, 60_000),
-      setInterval(() => { if (visible()) { void refreshFriends(); void refreshInbox(); } }, 30_000),
-      setInterval(() => { if (visible()) void refreshInvites(); }, 10_000),
-      setInterval(() => { if (visible()) void refreshUnread(); }, 6_000),
+      setInterval(() => { if (visible()) { void refreshFriends(); if (hasFriend()) void refreshInbox(); } }, 30_000),
+      setInterval(() => { if (visible() && hasFriend()) void refreshInvites(); }, 10_000),
+      setInterval(() => { if (visible() && hasFriend()) void refreshUnread(); }, 6_000),
       setInterval(() => void heartbeat(false), 5_000), // only sends when what I'm doing changed
     ];
     await Promise.allSettled([refreshFriends(), refreshInbox(), heartbeat(true), publishStats(), resumeRoom(), refreshInvites(), refreshUnread()]);

@@ -20,6 +20,10 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
+// Only pages, the sign-in callback and the AI routes need it. Everything else (files, the vendor scripts, and the
+// music / photo / config routes, which are polled or cached for everyone) skips it: each run asks Supabase who the
+// visitor is, which would be one extra request per file and per music check, and a refreshed cookie must never ride
+// on a reply that is cached for other people.
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff2?)$).*)'],
+  matcher: ['/((?!_next/|vendor/|api/lastfm|api/unsplash|api/config|api/ai/status|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?|js|mjs|css|json|wasm|map|txt|xml|gz|traineddata)$).*)'],
 };

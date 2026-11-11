@@ -140,6 +140,22 @@ browser (lib/ai-client.ts) → POST /api/ai/{action} → sign-in + daily allowan
 - Every table uses row-level security (`user_id = (select auth.uid())`), and Storage policies restrict each user to
   their own folder. `tests/db/rls-check.sql` and `tests/db/friends-check.sql` check it.
 
+## Security and load
+
+- **Data**: every table has row-level security (`user_id = auth.uid()`); other people's data is reached only through
+  security-definer functions that check the friendship and the sharing switches, with `search_path` pinned and no
+  access for signed-out visitors. Migration 8 adds ceilings per account (rows per table, size of each field).
+- **Keys**: AI, Unsplash and Last.fm keys live only in server routes. The browser holds the Supabase publishable key,
+  which is safe by design because of row-level security.
+- **AI**: only signed-in accounts (never guests) reach `/api/ai/*`; each call is counted per account and per site,
+  and every input is trimmed (`tame()` in the route, per-provider budgets in the prompts) before it becomes a prompt.
+- **Headers**: no framing, no MIME sniffing, HSTS, and a small content policy (`next.config.ts`).
+- **Middleware** refreshes the sign-in cookie for pages, the sign-in callback and the AI routes only, so files and
+  the cached or polled routes (`/api/lastfm`, `/api/unsplash`, `/api/config`) cost no extra request.
+- **Background requests** stop while a tab is hidden. With no friends a tab sends about 3 small requests a minute;
+  with friends about 20 (chat, invites, who's online). Failed saves retry with a growing wait (15 s to 5 min).
+- What runs out first as the site grows is listed in [SETUP.md](SETUP.md#growing-to-thousands-of-people).
+
 ## Appearance and brand
 
 Look settings (theme, accent, clock font, timer style, background, cards, corners, spacing, study buddy) are applied

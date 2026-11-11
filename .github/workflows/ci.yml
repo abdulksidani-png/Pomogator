@@ -38,7 +38,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Study loop, documents, screen tracking, appearance, stats
         run: npm run test:e2e
-      - name: AI, Unsplash and Spotify (against local stand-ins)
+      - name: AI, Unsplash and Last.fm (against local stand-ins)
         run: npm run test:ai
       - if: failure()
         uses: actions/upload-artifact@v4

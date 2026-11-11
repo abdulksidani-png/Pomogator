@@ -131,7 +131,7 @@ export default function PomoGatorApp({ initialView = 'timer' }: { initialView?: 
       window.history.replaceState(null, '', url.pathname + (p.size ? `?${p}` : '') + url.hash);
     }
     const { showToast } = useStudy.getState();
-    if (err) showToast(err);
+    if (err) showToast(err.slice(0, 200));
     if (ok) showToast('Signed in. Your progress is synced.');
     if (next === 'google') {
       showToast('That Google account already has PomoGator. Signing you in to it…');

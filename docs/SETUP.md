@@ -9,6 +9,7 @@ everything in the visitor's browser. Steps are written click by click.
 - [4. Photo backgrounds with Unsplash](#4-photo-backgrounds-with-unsplash)
 - [5. Music, through Last.fm](#5-music-through-lastfm)
 - [What it costs](#what-it-costs)
+- [Growing to thousands of people](#growing-to-thousands-of-people)
 - [Run it on your own computer](#run-it-on-your-own-computer)
 - [Troubleshooting](#troubleshooting)
 
@@ -41,6 +42,7 @@ Every push to the main branch redeploys the site. After adding or changing an en
    5. [`supabase/migrations/20261017000000_support_replies.sql`](../supabase/migrations/20261017000000_support_replies.sql): replies to friends' support messages
    6. [`supabase/migrations/20261018000000_sender_ids.sql`](../supabase/migrations/20261018000000_sender_ids.sql): your nicknames for friends also show on their messages and study invites
    7. [`supabase/migrations/20261110000000_chat.sql`](../supabase/migrations/20261110000000_chat.sql): chat between friends (kept 24 hours), Do Not Disturb, and a daily AI ceiling for the whole site
+   8. [`supabase/migrations/20261111000000_limits.sql`](../supabase/migrations/20261111000000_limits.sql): ceilings on how much one account can store, so nobody can fill the database
 
    Each file is safe to run again. If a feature says it "isn't switched on for this site yet", the file it needs
    hasn't been run.
@@ -174,6 +176,29 @@ uploaded document, each message to the study assistant, "Plan my next session", 
 report (once a week). Divide your daily free requests (AI Studio → **Usage**) by about 3 to see roughly how many
 sessions a day the whole site can serve; the per-person allowance from migration 3 stops one visitor from using it all.
 When the free limit is reached, quizzes politely skip and the timer keeps working.
+
+## Growing to thousands of people
+
+The free plans are sized for a class, not a campus. In the order they run out:
+
+1. **Sign-in emails.** Supabase's built-in email sender allows only a few emails an hour. Before a launch, connect
+   your own sender: Supabase → **Authentication → Emails → SMTP Settings** (Resend and Brevo have free tiers).
+   Google sign-in has no such limit.
+2. **Guest sign-ups.** Every new visitor becomes an anonymous Supabase user. Turn on the CAPTCHA
+   (Supabase → **Authentication → Attack Protection**, Cloudflare Turnstile is free) so scripts can't create
+   thousands, and remove old guests now and then by running this in the SQL Editor:
+   `delete from auth.users where is_anonymous and created_at < now() - interval '30 days';`
+3. **The database.** Each signed-in tab makes a few small requests a minute (about 3 with no friends, about 20
+   with friends: chat, invites, who's online). The free database is fine for roughly a hundred people online at
+   once; past that, move to Supabase Pro and a larger compute size. Run migration 8 so no single account can
+   fill the storage.
+4. **The AI.** Gemini's free tier stops after a set number of requests a day for the whole site. With billing on
+   (or Claude), cost grows with use: the per-account limit (`AI_DAILY_LIMIT_USER`) and the site ceiling
+   (`AI_DAILY_LIMIT_SITE`, migration 7) are what keep a bill predictable. Migration 3 must be run for either.
+5. **Music.** Each person with a song playing costs one Last.fm request every 8 seconds, and Last.fm allows about
+   5 a second per site: fine for a few dozen people listening at once, not for hundreds.
+6. **Vercel.** The Hobby plan is for personal, non-commercial sites. A site with ads or subscriptions needs Pro.
+7. **Unsplash.** Apply for production (section 4) to go from 50 to 5,000 requests an hour.
 
 ## Run it on your own computer
 
