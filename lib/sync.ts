@@ -175,7 +175,7 @@ async function adoptUser(user: User) {
   });
   setAccount({ ...info, syncing: true, error: undefined });
   try {
-    await pull({ adopt });
+    await pull({ adopt, fresh: adopt || replace });
     await push();
   } catch (e) {
     setAccount({ syncing: false, error: friendly(e) });
@@ -346,8 +346,12 @@ async function maybePull() {
  * Bring in whatever other devices saved since we last looked.
  * `adopt`: this device's data is joining the account (a guest signing in), so to-do
  * lists are combined instead of the newer one replacing the older.
+ * `fresh`: this device is only now meeting this account (a guest signing in to it, or a switch from another account).
+ * An account that already has saved settings (its look, saved timers, Last.fm name) keeps them: the settings this
+ * device happens to hold are just defaults or a guest's tweaks, and "newest wins" must not let them overwrite the account.
+ * (It used to: filling in the display name made them look newer, and they were then saved over the account's.)
  */
-async function pull({ adopt = false }: { adopt?: boolean } = {}) {
+async function pull({ adopt = false, fresh = false }: { adopt?: boolean; fresh?: boolean } = {}) {
   if (!sb || !userId) return;
   let pushAfter = false;
   const [p, t, ss, aa, ev, dd] = await Promise.all([
@@ -383,8 +387,14 @@ async function pull({ adopt = false }: { adopt?: boolean } = {}) {
     state().mutate((d) => {
       if (prof) {
         const sv = { settings: Number(prof.settings_v), context: Number(prof.context_v), app: Number(prof.app_state_v), tasks: Number(prof.tasks_v) };
-        if (sv.settings > d.sync.v.settings) d.settings = normalizeData({ settings: prof.settings as never }).settings; // same cleanup as loading (keeps nicknames)
-        if (sv.context > d.sync.v.context) d.context = mergeDeep(DEFAULT_CONTEXT, prof.context);
+        if (sv.settings > d.sync.v.settings || (fresh && sv.settings > 0)) {
+          d.settings = normalizeData({ settings: prof.settings as never }).settings; // same cleanup as loading (keeps nicknames)
+          d.sync.v.settings = sv.settings;
+        }
+        if (sv.context > d.sync.v.context || (fresh && sv.context > 0)) {
+          d.context = mergeDeep(DEFAULT_CONTEXT, prof.context);
+          d.sync.v.context = sv.context;
+        }
         if (sv.app > d.sync.v.app && prof.app_state) {
           const a = normalizeData({ ...prof.app_state, settings: d.settings });
           d.timer = a.timer; d.quiz = a.quiz; d.plan = a.plan; d.day = a.day; d.asked = a.asked;

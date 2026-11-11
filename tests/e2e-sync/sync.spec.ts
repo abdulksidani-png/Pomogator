@@ -28,6 +28,33 @@ async function standInForTurnstile(ctx: import('@playwright/test').BrowserContex
   }));
 }
 
+test('signing in to an existing account keeps its saved settings, even when this device changed settings more recently', async ({ browser }) => {
+  // An account with a saved timer (its look, saved timers and Last.fm name all live in the settings).
+  const a = await device(browser);
+  await a.goto('/');
+  await expect(footer(a)).toContainText('studying as a guest', { timeout: 15_000 });
+  await emailSignIn(a, 'dee@test.dev', /click the link to finish/);
+  await saveTimer(a, 'Exam cram');
+  await expect.poll(async () => (await rows('profiles')).map((p) => JSON.stringify(p.settings)).join(), { timeout: 15_000 }).toContain('Exam cram');
+
+  // Another browser: a brand-new guest who changes a setting (so its copy looks newer), then signs in to that account.
+  const b = await device(browser);
+  await b.goto('/');
+  await expect(footer(b)).toContainText('studying as a guest', { timeout: 15_000 });
+  await saveTimer(b, 'Guest look');
+  await emailSignIn(b, 'dee@test.dev', /sign-in link/);
+  await b.locator('#timerMenuBtn').click();
+  await expect(b.locator('#timerMenu')).toContainText('Exam cram');
+  await expect(b.locator('#timerMenu')).not.toContainText('Guest look');
+  await b.keyboard.press('Escape');
+
+  // And the account still has it on the server, so the next device gets it too.
+  await new Promise((r) => setTimeout(r, 3000));
+  const saved = (await rows('profiles')).map((p) => JSON.stringify(p.settings)).join();
+  expect(saved).toContain('Exam cram');
+  expect(saved).not.toContain('Guest look');
+});
+
 test('the bot check: a blocked check never locks anyone out of studying, and sign-in explains it', async ({ browser }) => {
   const ctx = await browser.newContext();
   await quietCelebrations(ctx);
@@ -43,6 +70,13 @@ test('the bot check: a blocked check never locks anyone out of studying, and sig
   await expect(page.locator('#signinDlg .note.err')).toContainText('safety check couldn\'t run');
   await ctx.close();
 });
+
+async function saveTimer(page: Page, name: string) {
+  await page.locator('#timerMenuBtn').click();
+  await page.fill('#tmName', name);
+  await page.locator('#timerMenu').getByRole('button', { name: 'Save', exact: true }).click();
+  await page.keyboard.press('Escape');
+}
 
 async function addTask(page: Page, text: string) {
   await page.fill('#taskInput', text);
@@ -136,6 +170,7 @@ test('guest progress survives sign-in, follows you to a second device, and stays
   await b.goto('/');
   await expect(footer(b)).toContainText('studying as a guest', { timeout: 15_000 });
   await addTask(b, 'Make flashcards');
+
   await expect.poll(async () => (await rows('tasks')).length, { timeout: 15_000 }).toBe(2);
 
   await emailSignIn(b, 'ana@test.dev', /sign-in link/);

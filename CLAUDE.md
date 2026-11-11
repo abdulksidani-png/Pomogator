@@ -317,6 +317,18 @@ with the Secret; the reverse locks everyone out. Tests: the sync build sets the 
 fake Auth refuse a token-less guest start or OTP, and `device()` stands in for Cloudflare's script
 (`standInForTurnstile`); one test checks a blocked script. Privacy page has a "Bot check" paragraph.
 
+**Sign-in clobbered an account's settings (2026-11-11, his report: after making a second account and signing back in with
+Google, his friends/points/stats were there but his look, saved timers and Last.fm name were gone):** in `adoptUser` the
+display-name fill (`d.settings.displayName = info.name`, only for Google users, since email users' name is their email)
+ran with `userId` already set, so `watchLocalChanges` bumped `sync.v.settings` to now; `pull()`'s "newest wins" then kept
+this device's *default* settings over the account's older ones and `push()` saved them to the server. Fixed with
+`pull({ fresh })` (true when `adopt || replace`): an account that already has settings (`settings_v > 0`) or a context
+keeps them, and `sync.v` is set to the server's so nothing is pushed back. Regression test: "signing in to an existing
+account keeps its saved settings…" (clock-free on purpose: the first sync test fakes the clock, which made the account's
+copy look newer). The settings already overwritten on the server are not recoverable (Supabase free has no backups);
+anything another device still holds is lost too once it pulls. Points, stats, friends and check-ins were never at risk
+(union-merged or server tables).
+
 **Quizzes from the shared screen (2026-10-15, his report: a Python session got a quiz on yesterday's philosophy deck):**
 screen tracking used OCR only to match slides, so off-document work was ignored. Now `capture()` in `lib/docs/screen.ts`
 puts every read frame's text on the live session (`addScreenText` → `session.screen`, ≤24k chars, dropped from history like
