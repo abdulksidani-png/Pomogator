@@ -91,6 +91,27 @@ test('Last.fm: anyone can show what they play by username, from any music app', 
   await expect(card.locator('.music-title')).toHaveText('Yesterday Tune');
   await expect(card).toContainText('Last played');
 
+  // A pause: Last.fm stops saying "playing" and its newest saved song is an older one. The card keeps the song that
+  // was playing (as paused) instead of jumping to that older song; a past play says how long ago.
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await dlg.locator('#lastfmUser').fill('flipper');
+  await dlg.getByRole('button', { name: 'Save', exact: true }).click();
+  await dlg.getByRole('button', { name: 'Done' }).click();
+  await expect(card.locator('.music-title')).toHaveText('Gator Groove');
+  await expect(card).toContainText('Now playing');
+  await page.request.get(`${FAKE}/__flip?playing=0`);
+  await expect(card).toContainText('Paused', { timeout: 20_000 });
+  await expect(card.locator('.music-title')).toHaveText('Gator Groove');
+  await page.reload(); // a fresh page only has Last.fm's word: the older song, and when it was played
+  await expect(card.locator('.music-title')).toHaveText('Older Song');
+  await expect(card).toContainText(/Last played · \d+ days? ago/);
+  await page.request.get(`${FAKE}/__flip?playing=1`);
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await dlg.locator('#lastfmUser').fill('quietone');
+  await dlg.getByRole('button', { name: 'Save', exact: true }).click();
+  await dlg.getByRole('button', { name: 'Done' }).click();
+  await expect(card.locator('.music-title')).toHaveText('Yesterday Tune');
+
   // The route only accepts real usernames; Remove goes back to the connect card.
   expect((await page.request.get('/api/lastfm?user=../etc')).status()).toBe(400);
   await page.getByRole('button', { name: 'Settings', exact: true }).click();

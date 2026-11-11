@@ -4,7 +4,7 @@ import { motion } from 'motion/react';
 import { useStudy } from '@/lib/store';
 import { siteConfig } from '@/lib/config';
 import { refreshLastfm, useLastfm } from '@/lib/lastfm';
-import { cleanLastfmUser, type Playback } from '@/lib/lastfm-core';
+import { cleanLastfmUser, timeAgo, type Playback } from '@/lib/lastfm-core';
 import { Icon } from './Icon';
 import { FoldCard } from './Panels';
 import { SOFT } from './motion';
@@ -61,7 +61,7 @@ export function MusicCard() {
       <div className="music-row">
         <Disc p={playback} art={art} />
         <div className="music-info">
-          <span className="music-label">{playback ? (playback.isPlaying ? <><Bars />Now playing</> : 'Last played') : 'Last.fm'}</span>
+          <span className="music-label">{playback ? (playback.isPlaying ? <><Bars />Now playing</> : playback.paused ? 'Paused' : `Last played${playback.playedAt ? ` · ${timeAgo(playback.playedAt)}` : ''}`) : 'Last.fm'}</span>
           {playback ? (
             <>
               <motion.strong key={playback.title} className="music-title" title={playback.title} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={SOFT}>{playback.title}</motion.strong>

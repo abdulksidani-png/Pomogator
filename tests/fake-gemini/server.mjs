@@ -100,6 +100,8 @@ function unsplash(req, res) {
 
 // Last.fm's user.getRecentTracks: "nowplayer" is listening, "quietone" played something earlier, "nobody" doesn't exist.
 const lastfmCalls = [];
+let flipPlaying = true; // "flipper" is playing until /__flip?playing=0 (a pause), then only has the older song
+
 function lastfm(req, res) {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const user = url.searchParams.get('user');
@@ -110,6 +112,7 @@ function lastfm(req, res) {
     name, artist: { '#text': artist }, album: { '#text': 'Swamp Sessions' }, url: `https://www.last.fm/music/${encodeURIComponent(artist)}/_/${encodeURIComponent(name)}`,
     image: [{ size: 'large', '#text': `http://localhost:${PORT}/img/art-1.svg` }], ...(playing ? { '@attr': { nowplaying: 'true' } } : { date: { uts: '1760000000' } }),
   });
+  if (user === 'flipper') return reply(res, 200, { recenttracks: { track: flipPlaying ? [track('Gator Groove', 'The Swamp Band', true), track('Older Song', 'Someone', false)] : [track('Older Song', 'Someone', false)] } });
   if (user === 'nowplayer') return reply(res, 200, { recenttracks: { track: [track('Gator Groove', 'The Swamp Band', true), track('Older Song', 'Someone', false)] } });
   return reply(res, 200, { recenttracks: { track: track('Yesterday Tune', 'Quiet Artist', false) } });
 }
@@ -119,12 +122,13 @@ http.createServer((req, res) => {
   if (req.method === 'GET' && req.url === '/__unsplash') return reply(res, 200, unsplashCalls);
   if (req.method === 'GET' && /^\/(img|search|photos)\//.test(req.url)) return unsplash(req, res);
   if (req.method === 'GET' && req.url.startsWith('/2.0/')) return lastfm(req, res);
+  if (req.method === 'GET' && req.url.startsWith('/__flip')) { flipPlaying = new URL(req.url, 'http://x').searchParams.get('playing') !== '0'; return reply(res, 200, { flipPlaying }); }
   if (req.method === 'GET' && req.url === '/__lastfm') return reply(res, 200, lastfmCalls);
   // The two spec files run side by side, so each clears only its own log: ?what=ai or ?what=extras.
   if (req.method === 'POST' && req.url.startsWith('/__reset')) {
     const what = new URL(req.url, `http://localhost:${PORT}`).searchParams.get('what');
     if (what !== 'extras') requests.length = 0;
-    if (what !== 'ai') { unsplashCalls.length = 0; lastfmCalls.length = 0; }
+    if (what !== 'ai') { unsplashCalls.length = 0; lastfmCalls.length = 0; flipPlaying = true; }
     return reply(res, 200, {});
   }
   let raw = '';

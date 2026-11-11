@@ -14,6 +14,10 @@ export interface Playback {
   isPlaying: boolean;
   /** When this was read. */
   at: number;
+  /** For a song that isn't playing now: when Last.fm says it was played (ms). */
+  playedAt?: number;
+  /** This is the song that was playing when it stopped (see `withPause`), not Last.fm's newest play. */
+  paused?: boolean;
 }
 
 /** Last.fm usernames: 2–15 characters, starting with a letter; letters, numbers, - and _. */
@@ -36,10 +40,39 @@ export function toLastfmPlayback(j: unknown, now = Date.now()): Playback | null 
   const images = (Array.isArray(t.image) ? t.image : []) as Obj[];
   const pick = (size: string) => str(images.find((i) => i.size === size)?.['#text']);
   const art = [pick('extralarge'), pick('large'), pick('medium')].find((u) => u && !u.includes(PLACEHOLDER)) || '';
+  const isPlaying = str(o(t['@attr']).nowplaying) === 'true';
+  const uts = Number(str(o(t.date).uts));
   return {
     title, artist: str(o(t.artist)['#text']) || str(o(t.artist).name), album: str(o(t.album)['#text']), art,
-    url: str(t.url), isPlaying: str(o(t['@attr']).nowplaying) === 'true', at: now,
+    url: str(t.url), isPlaying, at: now,
+    ...(!isPlaying && uts > 0 ? { playedAt: uts * 1000 } : {}),
   };
+}
+
+const sameSong = (a: Playback, b: Playback) => a.title === b.title && a.artist === b.artist;
+/** How long a song that stopped playing is still shown as "Paused". */
+export const PAUSE_MS = 30 * 60_000;
+
+/**
+ * Last.fm only knows the song that is playing right now and the songs already scrobbled. When you pause, "playing now"
+ * disappears, and the newest *scrobbled* song is an older one. So the song that was playing is kept (as paused) for a
+ * while, instead of switching to that older song. `held` is the last song seen playing on this page.
+ */
+export function withPause(held: Playback | null, polled: Playback | null, now = Date.now()): { show: Playback | null; held: Playback | null } {
+  if (polled?.isPlaying) return { show: polled, held: { ...polled, at: now } };
+  if (held && now - held.at < PAUSE_MS && !(polled && sameSong(held, polled))) return { show: { ...held, isPlaying: false, paused: true }, held };
+  return { show: polled, held: null }; // it finished and was saved to Last.fm, or it has been a long while
+}
+
+/** "just now", "5 min ago", "3 hours ago", "2 days ago". */
+export function timeAgo(ms: number, now = Date.now()): string {
+  const m = Math.max(0, Math.round((now - ms) / 60_000));
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m} min ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} hour${h === 1 ? '' : 's'} ago`;
+  const d = Math.round(h / 24);
+  return `${d} day${d === 1 ? '' : 's'} ago`;
 }
 
 /** Last.fm's error numbers → what the route answers. */

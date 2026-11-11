@@ -335,6 +335,14 @@ square (no spin, hole hidden); `.music-disc[data-art="disc"]` (end of globals.cs
 (`.spinning`, off with reduced motion) and the centre hole back. Focus mode keeps its own smaller size (id selector wins).
 The equaliser bars next to "Now playing" are the same in both. Tested in the Last.fm test in `extras.spec.ts`.
 
+**Music: paused and old songs (2026-11-11, his report: pausing showed "Last played" with a song that wasn't his last, and a fresh
+load showed it too):** Last.fm only has "playing now" and already-saved scrobbles, so a pause makes the newest scrobble
+(an older song, or none from today if scrobbling lags) the answer. `withPause` in `lib/lastfm-core.ts` keeps the song last seen
+playing on this page as `paused: true` ("Paused") for 30 min (`PAUSE_MS`) unless Last.fm's newest scrobble is that same song
+(then it's "Last played"); `held` lives in `lib/lastfm.ts` (memory only). A past song now shows `Last played · N days ago`
+(`playedAt` from `date.uts`, `timeAgo`), so a stale scrobble is obvious. The stand-in has user `flipper` (`/__flip?playing=0|1`).
+If a song is missing from his Last.fm profile page, the problem is Spotify→Last.fm scrobbling, not PomoGator.
+
 **Quizzes from the shared screen (2026-10-15, his report: a Python session got a quiz on yesterday's philosophy deck):**
 screen tracking used OCR only to match slides, so off-document work was ignored. Now `capture()` in `lib/docs/screen.ts`
 puts every read frame's text on the live session (`addScreenText` → `session.screen`, ≤24k chars, dropped from history like
