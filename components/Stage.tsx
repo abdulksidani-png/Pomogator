@@ -14,8 +14,8 @@ import { MyBuddy } from './Shop';
 import { DocProgress, ScreenTracker, openLibrary } from './Documents';
 import { EASE, SOFT, SPRING } from './motion';
 import { TimerMenu } from './TimerMenu';
+import { needAccount } from '@/lib/gate';
 import { enterFocus, exitFocus, useFocusMode } from '@/lib/focus';
-import { useSpotify } from '@/lib/spotify';
 
 export function Stage({ onToggle, onScreenConsent }: { onToggle: () => void; onScreenConsent: () => void }) {
   const phase = useStudy((s) => s.timer.phase);
@@ -39,8 +39,7 @@ export function Stage({ onToggle, onScreenConsent }: { onToggle: () => void; onS
 function FocusBar() {
   const showMusic = useStudy((s) => s.settings.focusMusic);
   const widget = useStudy((s) => s.settings.musicWidget);
-  const linked = useSpotify((s) => s.linked);
-  const hasMusic = widget && linked;
+  const hasMusic = useStudy((s) => !!s.settings.lastfmUser) && widget;
   const { updateSettings } = useStudy.getState();
   return (
     <motion.div className="focus-bar" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={SOFT}>
@@ -241,6 +240,7 @@ function StageFoot() {
   const context = useStudy((s) => s.context);
   const Q = useStudy((s) => s.quiz);
   const aiStatus = useStudy((s) => s.aiStatus);
+  const guest = useStudy((s) => s.account.status === 'guest');
   const N = settings.longEvery;
   const topic = hasTopic(context);
 
@@ -252,7 +252,8 @@ function StageFoot() {
   let chip: React.ReactNode = null;
   if (T.phase === 'study') {
     const key = ctxKey(context, settings);
-    if (!topic) chip = <span className="qchip">No quiz without a topic</span>;
+    if (guest) chip = <span className="qchip">Quizzes need a free account <button className="btn-link" type="button" onClick={() => needAccount('get quizzes')}>Sign in</button></span>;
+    else if (!topic) chip = <span className="qchip">No quiz without a topic</span>;
     else if (aiStatus === 'off') chip = <span className="qchip warn">Quizzes aren&apos;t switched on yet</span>;
     else if (Q.gen === 'loading') chip = <span className="qchip"><span className="spin" aria-hidden="true" />Writing your quiz…</span>;
     else if (Q.gen === 'ready' && !Q.used && Q.ctxKey === key) chip = <span className="qchip good"><Icon name="check" />Quiz ready · {Q.questions.length} question{Q.questions.length === 1 ? '' : 's'}</span>;
@@ -371,6 +372,7 @@ function QuizFace() {
   const together = useStudy((s) => s.collab);
   const context = useStudy((s) => s.context);
   const aiStatus = useStudy((s) => s.aiStatus);
+  const guest = useStudy((s) => s.account.status === 'guest');
   const act = useStudy.getState();
 
   // Move focus to the next thing to press, unless the person is typing somewhere else.
@@ -396,7 +398,12 @@ function QuizFace() {
 
   if (!quizReadyForTaking(Q)) {
     let body: React.ReactNode;
-    if (!hasTopic(context)) {
+    if (guest) {
+      body = (<div className="q-intro" id="quizNeedsAccount"><h2>Quizzes need a free account</h2>
+        <p>Sign in and PomoGator quizzes you on what you studied, and a good score earns a longer break. Your progress as a guest stays with you.</p>
+        <div className="btn-row"><button className="btn btn-primary" type="button" onClick={() => needAccount('get quizzes')}>Sign in</button>
+          <button className="btn" type="button" id="qBegin" onClick={act.skipQuiz}>Take a {breakNone}-min {kindWord}</button></div></div>);
+    } else if (!hasTopic(context)) {
       body = (<div className="q-intro"><h2>What did you study?</h2><p>Add a subject or topic and PomoGator writes your quiz now.</p>
         <div className="btn-row"><button className="btn btn-primary" type="button" onClick={() => focusContext(false)}>Add a topic</button>{skipBtn}</div></div>);
     } else if (Q.gen === 'loading') {

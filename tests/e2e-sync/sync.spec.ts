@@ -50,12 +50,36 @@ test('guest progress survives sign-in, follows you to a second device, and stays
   await a.clock.install();
   await a.goto('/');
   await expect(footer(a)).toContainText('studying as a guest', { timeout: 15_000 });
+
+  // A guest can't use anything that reaches the AI: each of those asks for a free account instead.
+  const ask = a.locator('#needAccountDlg');
+  await a.locator('.assistant-fab').click();
+  await expect(ask).toContainText('Make a free account to use the study assistant');
+  await ask.getByRole('button', { name: 'Not now' }).click();
+  await expect(a.locator('aside.assistant')).toHaveAttribute('aria-hidden', 'true');
+  await a.getByRole('button', { name: 'Upload slides or notes' }).click();
+  await expect(ask).toContainText('Make a free account to upload study material');
+  await ask.getByRole('button', { name: 'Not now' }).click();
+  await a.locator('#shareScreenBtn').click();
+  await expect(ask).toContainText('Make a free account to share your screen');
+  await ask.getByRole('button', { name: 'Not now' }).click();
+  await a.getByRole('button', { name: /Plan with AI/ }).click();
+  await expect(ask).toContainText('Make a free account to plan with AI');
+  await ask.getByRole('button', { name: 'Sign in or make an account' }).click();
+  await expect(a.locator('#signinEmail')).toBeVisible();
+  await a.keyboard.press('Escape');
+  // The server holds the same line, whatever the page does.
+  const refused = await a.request.post('/api/ai/quiz', { data: { ctx: { topic: 'x' }, n: 1 } });
+  expect(refused.status()).toBe(401);
+  expect((await refused.json()).code).toBe('sign_in');
+
   await a.fill('#ctxTopic', 'Philosophy · Plato and Aristotle');
   await addTask(a, 'Read lecture 3');
 
   await a.getByRole('button', { name: /Start studying/ }).click();
   await a.clock.fastForward('13:00');
   await a.getByRole('button', { name: /Finish session now/ }).click();
+  await expect(a.locator('#quizNeedsAccount')).toContainText('Quizzes need a free account');
   await a.getByRole('button', { name: /Take a 5-min break/ }).click();
   await a.getByRole('button', { name: 'Stats', exact: true }).click();
   await expect(a.locator('#todayCard .log')).toContainText('Philosophy · Plato and Aristotle');

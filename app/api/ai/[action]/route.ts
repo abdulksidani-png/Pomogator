@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 const STATUS: Record<string, number> = {
-  not_found: 404, not_configured: 503, unauthorized: 401, daily_limit: 429, site_limit: 429, rate_limited: 429, bad_request: 400,
+  not_found: 404, not_configured: 503, unauthorized: 401, sign_in: 401, daily_limit: 429, site_limit: 429, rate_limited: 429, bad_request: 400,
   prompt_too_large: 413, timeout: 504, refused: 422, bad_key: 502, model_missing: 502, invalid_json: 502, empty_completion: 502,
 };
 

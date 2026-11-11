@@ -43,94 +43,16 @@ test('Unsplash: pick a background by mood, credit the photographer, and get a ne
   await expect.poll(() => bgImage(page)).toContain('/img/rain-on-window-99.svg');
 });
 
-test('Spotify: connect, see what is playing, pause and skip', async ({ page }) => {
-  let state = { name: 'Weightless', artist: 'Marconi Union', playing: true };
-  const calls: string[] = [];
-  await page.route('https://i.scdn.co/**', (r) => r.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="#6a5acd"/></svg>' }));
-  await page.route('https://accounts.spotify.com/authorize**', (r) => {
-    const u = new URL(r.request().url());
-    expect(u.searchParams.get('client_id')).toBe('test-spotify');
-    expect(u.searchParams.get('code_challenge_method')).toBe('S256');
-    expect(u.searchParams.get('redirect_uri')).toBe('http://localhost:3102/spotify');
-    return r.fulfill({ status: 302, headers: { location: `http://localhost:3102/spotify?code=abc&state=${u.searchParams.get('state')}` } });
-  });
-  await page.route('https://accounts.spotify.com/api/token', (r) => {
-    const body = new URLSearchParams(r.request().postData() ?? '');
-    expect(body.get('code')).toBe('abc');
-    expect(body.get('code_verifier')).toHaveLength(64);
-    return r.fulfill({ json: { access_token: 'at', refresh_token: 'rt', expires_in: 3600 } });
-  });
-  await page.route('https://api.spotify.com/v1/me/player**', (r) => {
-    const req = r.request();
-    const path = new URL(req.url()).pathname;
-    expect(req.headers().authorization).toBe('Bearer at');
-    if (req.method() !== 'GET') {
-      calls.push(`${req.method()} ${path}`);
-      if (path.endsWith('/pause')) state = { ...state, playing: false };
-      if (path.endsWith('/play')) return r.fulfill({ status: 403, json: { error: { status: 403, message: 'Premium required', reason: 'PREMIUM_REQUIRED' } } });
-      if (path.endsWith('/next')) state = { name: 'Electra', artist: 'Airstream', playing: true };
-      return r.fulfill({ status: 204 });
-    }
-    return r.fulfill({ json: {
-      is_playing: state.playing, progress_ms: 61_000, device: { name: 'MacBook' },
-      item: { name: state.name, duration_ms: 480_000, artists: [{ name: state.artist }], album: { name: 'Album', images: [{ url: 'https://i.scdn.co/image/a', width: 300 }] }, external_urls: { spotify: 'https://open.spotify.com/track/x' } },
-    } });
-  });
-
+test('Last.fm: anyone can show what they play by username, from any music app', async ({ page }) => {
   await page.goto('/');
   const card = page.locator('#musicCard');
-  await card.getByRole('button', { name: 'Connect Spotify' }).click();
-  await expect(page).toHaveURL('http://localhost:3102/');
-  await expect(page.locator('.toast')).toContainText('Spotify connected');
-  await expect(card.locator('.music-title')).toHaveText('Weightless');
-  await expect(card.locator('.music-artist')).toHaveText('Marconi Union');
-  await expect(card).toContainText('Now playing');
-  await expect(card).toContainText('Playing on MacBook');
-  await expect(card.locator('.music-disc')).toHaveClass(/spinning/);
-
-  await card.getByRole('button', { name: 'Pause music' }).click();
-  await expect(card).toContainText('Paused');
-  await card.getByRole('button', { name: 'Next song' }).click();
-  await expect(card.locator('.music-title')).toHaveText('Electra');
-  expect(calls).toEqual(['PUT /v1/me/player/pause', 'POST /v1/me/player/next']);
-
-  // Without Premium, Spotify refuses the controls: say so plainly.
-  await card.getByRole('button', { name: 'Pause music' }).click();
-  await card.getByRole('button', { name: 'Play music' }).click();
-  await expect(card).toContainText('Premium');
-
-  // The connection stays after a reload, and can be removed in Settings.
-  await page.reload();
-  await expect(card.locator('.music-title')).toHaveText('Electra');
-
-  // Full-screen timer: the player moves to a corner, and can be hidden and brought back.
-  await page.getByRole('button', { name: 'Full screen timer' }).click();
-  await expect(page.locator('html')).toHaveAttribute('data-focus', 'on');
-  await expect(card).toBeVisible();
-  expect(await card.evaluate((el) => getComputedStyle(el).position)).toBe('fixed');
-  await page.getByRole('button', { name: 'Hide music' }).click();
-  await expect(card).toBeHidden();
-  await page.getByRole('button', { name: 'Show music' }).click();
-  await expect(card).toBeVisible();
-  await page.getByRole('button', { name: 'Exit full screen' }).click();
-  await expect(page.locator('html')).not.toHaveAttribute('data-focus', 'on');
-  expect(await card.evaluate((el) => getComputedStyle(el).position)).not.toBe('fixed');
-
-  await page.getByRole('button', { name: 'Settings', exact: true }).click();
-  await page.locator('#settingsDlg').getByRole('button', { name: 'Disconnect' }).click();
-  await page.locator('#settingsDlg').getByRole('button', { name: 'Done' }).click();
-  await expect(card.getByRole('button', { name: 'Connect Spotify' })).toBeVisible();
-});
-
-test('Last.fm: anyone can show what they play by username, with no Spotify sign-in', async ({ page }) => {
-  await page.goto('/');
-  const card = page.locator('#musicCard');
-  await card.getByRole('button', { name: 'Use Last.fm instead' }).click();
+  await expect(card.locator('.music-steps li')).toHaveCount(3);
+  await expect(card.getByRole('button', { name: /Spotify/ })).toHaveCount(0);
   const field = card.getByLabel(/Your Last.fm username/);
   await field.fill('has space');
-  await expect(card.getByRole('button', { name: 'Use Last.fm' })).toBeDisabled();
+  await expect(card.getByRole('button', { name: 'Connect', exact: true })).toBeDisabled();
   await field.fill('nowplayer');
-  await card.getByRole('button', { name: 'Use Last.fm' }).click();
+  await card.getByRole('button', { name: 'Connect', exact: true }).click();
 
   // The song and art come through the site's /api/lastfm route; Last.fm can't control playback, so no buttons.
   await expect(card.locator('.music-title')).toHaveText('Gator Groove');
@@ -161,5 +83,5 @@ test('Last.fm: anyone can show what they play by username, with no Spotify sign-
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await dlg.getByRole('button', { name: 'Remove' }).click();
   await dlg.getByRole('button', { name: 'Done' }).click();
-  await expect(card.getByRole('button', { name: 'Connect Spotify' })).toBeVisible();
+  await expect(card.getByLabel(/Your Last.fm username/)).toBeVisible();
 });

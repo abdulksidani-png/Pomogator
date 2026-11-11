@@ -598,7 +598,7 @@ html:root[data-cards="glass"] .card .modes, html:root[data-cards="glass"] .card 
 .buddy-prev .mascot { width: 64px; max-height: 64px; }
 @media (max-width: 560px) { .buddy-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
-/* ---------- Spotify widget ---------- */
+/* ---------- Music widget ---------- */
 .music { position: relative; overflow: hidden; display: grid; gap: 12px; }
 .music-glow { position: absolute; inset: -40px; background-size: cover; background-position: center; filter: blur(42px) saturate(1.5); opacity: .32; pointer-events: none; transition: background-image .6s; }
 .music > *:not(.music-glow) { position: relative; }
@@ -1850,3 +1850,11 @@ html:root[data-cards="glass"] .card {
 /* Over a photo: no live blur either (it was the last thing costing frames). A stronger tint keeps text readable. */
 html:root[data-cards="glass"][data-bg="image"] .card { background: color-mix(in srgb, var(--card) 80%, transparent); }
 html:root[data-cards="glass"] .desk .card:not(.result) { animation: none; }
+
+/* Music: the three Last.fm steps on the not-connected card. */
+.music-steps { margin: 0 0 4px; padding-left: 1.2em; display: grid; gap: 3px; font-size: 12.5px; color: var(--fg-2); }
+.music-steps a { color: var(--accent); }
+
+/* "Make a free account to …" (guests reaching for an AI feature). */
+#needAccountDlg { width: min(460px, calc(100vw - 24px)); }
+#needAccountDlg .dlg-body p { margin: 0 0 10px; }

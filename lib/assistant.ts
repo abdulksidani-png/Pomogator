@@ -4,6 +4,7 @@
  * device only (localStorage). It sees the study panel, the timer, the to-do list, the selected
  * document and any lecture transcript, and it can propose tasks, which are added only on a click.
  */
+import { needAccount } from './gate';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { useStudy, remainingAt } from './store';
@@ -39,7 +40,7 @@ export const useChat = create<ChatState>()(
 
 let ctl: AbortController | null = null;
 
-export function openAssistant(draft = '') { closeChat(); useChat.setState({ open: true, ...(draft ? { draft } : {}) }); } // a friend's chat uses the same side of the screen
+export function openAssistant(draft = '') { if (needAccount(draft ? 'plan with AI' : 'use the study assistant')) return; closeChat(); useChat.setState({ open: true, ...(draft ? { draft } : {}) }); } // a friend's chat uses the same side of the screen
 export function closeAssistant() { useChat.setState({ open: false }); }
 export function clearChat() { ctl?.abort(); useChat.setState({ messages: [], busy: false, pending: [] }); }
 

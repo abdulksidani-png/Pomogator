@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type RefObject, useMemo } from 'react';
 import { useStudy, unitWord } from '@/lib/store';
 import { ACCEPT } from '@/lib/docs/parse';
 import { deleteDocument, getPages, importDocument } from '@/lib/docs/library';
+import { needAccount } from '@/lib/gate';
 import { resolveGoal } from '@/lib/docs/match';
 import { rememberConsent, screenSupported, startWatching, stopWatching, useScreen, type ScreenState } from '@/lib/docs/screen';
 import { docDownloadUrl } from '@/lib/sync';
@@ -53,7 +54,7 @@ export function StudyMaterial({ onManage }: { onManage: () => void }) {
   const onFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     e.target.value = '';
-    if (!files.length) return;
+    if (!files.length || needAccount('upload study material')) return;
     setErr(''); setBusy('Opening…');
     try { await importDocument(files, setBusy); }
     catch (x) { setErr((x as Error).message); }
@@ -76,7 +77,7 @@ export function StudyMaterial({ onManage }: { onManage: () => void }) {
             </select>
           </>
         )}
-        <button className="btn" type="button" disabled={!!busy} title="PDF, PowerPoint, Word, text or photos of your notes" onClick={() => fileRef.current?.click()}>
+        <button className="btn" type="button" disabled={!!busy} title="PDF, PowerPoint, Word, text or photos of your notes" onClick={() => { if (!needAccount('upload study material')) fileRef.current?.click(); }}>
           <Icon name="upload" />{docs.length ? 'Upload' : 'Upload slides or notes'}
         </button>
         {docs.length > 0 && <button className="icon-btn" type="button" aria-label="Manage documents" title="Manage documents" onClick={onManage}><Icon name="file" /></button>}
@@ -113,6 +114,7 @@ export function openScreenConsent() {
 
 /** Start screen tracking from a click: turn it on, then explain first or go straight to the share picker. */
 export function beginScreenShare() {
+  if (needAccount('share your screen')) return;
   const s = useStudy.getState();
   if (!s.settings.screenTrack) s.updateSettings((x) => { x.screenTrack = true; });
   let agreed = false;

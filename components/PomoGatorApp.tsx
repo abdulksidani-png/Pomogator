@@ -8,7 +8,7 @@ import { Icon, IconSprite } from './Icon';
 import { Stage, TitleSync } from './Stage';
 import { ContextCard, PlanCard, ResultBanner, TasksCard } from './Panels';
 import { HelpDialog, SettingsDialog } from './Dialogs';
-import { AccountButton, ProfileDialog, SignInDialog, SyncStatus } from './Account';
+import { AccountButton, NeedAccountDialog, ProfileDialog, SignInDialog, SyncStatus } from './Account';
 import { recheckAccount, startSync } from '@/lib/sync';
 import { stopWatching } from '@/lib/docs/screen';
 import { AppearanceDialog, useAppearance } from './Appearance';
@@ -280,6 +280,7 @@ export default function PomoGatorApp({ initialView = 'timer' }: { initialView?: 
       <ScreenConsentDialog dialogRef={screenRef} />
       <HelpDialog dialogRef={helpRef} />
       <SignInDialog dialogRef={signInRef} />
+      <NeedAccountDialog onSignIn={() => signInRef.current?.showModal()} />
       <FriendsDialog dialogRef={friendsRef} code={friendCode} />
       <SocialHost onOpenFriends={(c) => openFriends(c)} />
       <UsernamePrompt />

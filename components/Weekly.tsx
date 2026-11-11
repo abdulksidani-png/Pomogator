@@ -6,6 +6,7 @@ import { todayFor } from '@/lib/dates';
 import { DEFINITIONS, WEEKDAYS, addDays, weekStartOf } from '@/lib/stats';
 import { plainSummary, reportSig, unseenLastWeek, weekReport, weeklyInput, weeksWithStudy, type WeekReport } from '@/lib/weekly';
 import { AI } from '@/lib/ai-client';
+import { isGuest } from '@/lib/gate';
 import { aiErrorText } from '@/lib/quiz';
 import { saveShareCard } from '@/lib/share-card';
 import type { WeeklyAi } from '@/lib/types';
@@ -64,7 +65,7 @@ export function WeeklyView({ onBack, onStats }: { onBack: () => void; onStats: (
   };
   useEffect(() => {
     setAi({ status: 'idle' });
-    if (aiStatus !== 'on' || r.empty) return;
+    if (aiStatus !== 'on' || r.empty || isGuest()) return;
     if (!mine || (!r.inProgress && mine.sig !== sig)) void write();
     return () => ctl.current?.abort();
   }, [r.start, aiStatus]); // eslint-disable-line react-hooks/exhaustive-deps

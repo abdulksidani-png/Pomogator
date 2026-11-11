@@ -1,7 +1,10 @@
 'use client';
 /** Browser side of Last.fm "now playing": asks /api/lastfm about the username saved in Settings → Music. */
 import { create } from 'zustand';
-import type { Playback } from './spotify';
+import type { Playback } from './lastfm-core';
+
+// Spotify sign-ins from before the move to Last.fm: nothing reads them any more.
+try { localStorage.removeItem('studybuddy.spotify'); sessionStorage.removeItem('studybuddy.spotify.pkce'); localStorage.removeItem('studybuddy.spotify.pkce'); } catch { /* private window */ }
 
 interface LastfmState { playback: Playback | null; checked: boolean; error: string; user: string }
 export const useLastfm = create<LastfmState>(() => ({ playback: null, checked: false, error: '', user: '' }));

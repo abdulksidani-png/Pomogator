@@ -12,7 +12,6 @@ import { Icon } from './Icon';
 import { celebrationsOn, setCelebrationsOn } from './Streaks';
 import { useArmed } from './Panels';
 import { siteConfig } from '@/lib/config';
-import { connectSpotify, disconnectSpotify, useSpotify } from '@/lib/spotify';
 import { useDialogOpen } from '@/lib/use-dialog-open';
 import { cleanLastfmUser } from '@/lib/lastfm-core';
 
@@ -318,36 +317,26 @@ export function HelpDialog({ dialogRef }: { dialogRef: RefObject<HTMLDialogEleme
   );
 }
 
-/** Settings → Music: the Spotify widget and the connection. Hidden when the site has no Spotify app. */
+/** Settings → Music: the "now playing" card and the Last.fm username behind it. Hidden when the site has no Last.fm key. */
 function MusicSettings() {
   const show = useStudy((s) => s.settings.musicWidget);
-  const linked = useSpotify((s) => s.linked);
-  const [svc, setSvc] = useState({ spotify: false, lastfm: false });
-  useEffect(() => { void siteConfig().then((c) => setSvc({ spotify: !!c.spotifyClientId, lastfm: c.lastfm })); }, []);
-  if (!svc.spotify && !svc.lastfm) return null;
+  const [on, setOn] = useState(false);
+  useEffect(() => { void siteConfig().then((c) => setOn(c.lastfm)); }, []);
+  if (!on) return null;
   return (
     <fieldset>
       <legend>Music</legend>
       <div className="set-row">
-        <label htmlFor="musicToggle">Music widget<span className="sub">Shows what&apos;s playing{svc.spotify ? ', with back, play-pause and next for Spotify' : ''}</span></label>
+        <label htmlFor="musicToggle">Music widget<span className="sub">Shows the song you&apos;re playing, from any music app, through Last.fm</span></label>
         <input type="checkbox" className="switch" id="musicToggle" checked={show} onChange={(e) => { const v = e.target.checked; useStudy.getState().updateSettings((x) => { x.musicWidget = v; }); }} />
       </div>
-      {svc.spotify && (
-        <div className="set-row">
-          <span className="field-label">Spotify account<span className="sub">{linked ? 'Connected on this device' : 'Not connected. Controls need Spotify Premium.'}</span></span>
-          {linked
-            ? <button className="btn" type="button" onClick={disconnectSpotify}>Disconnect</button>
-            : <button className="btn" type="button" onClick={() => { void connectSpotify(); }}>Connect Spotify</button>}
-        </div>
-      )}
-      {svc.lastfm && <LastfmSetting spotifyLinked={linked} />}
-      {svc.spotify && !linked && <RedirectUri />}
+      <LastfmSetting />
     </fieldset>
   );
 }
 
-/** Last.fm username: works for everyone (Spotify only allows 5 accounts per app), no playback controls. */
-function LastfmSetting({ spotifyLinked }: { spotifyLinked: boolean }) {
+/** Last.fm username: works for everyone and with any music app that scrobbles. */
+function LastfmSetting() {
   const saved = useStudy((s) => s.settings.lastfmUser);
   const [name, setName] = useState(saved);
   useEffect(() => setName(saved), [saved]);
@@ -356,28 +345,15 @@ function LastfmSetting({ spotifyLinked }: { spotifyLinked: boolean }) {
   return (
     <div className="set-row stack">
       <label className="field-label" htmlFor="lastfmUser">Last.fm username<span className="sub">
-        Anyone can use this. Link your music app to Last.fm once at <a href="https://www.last.fm/settings/applications" target="_blank" rel="noreferrer">last.fm → Settings → Applications</a>,
-        and what you play shows here and to friends who can see your music.{spotifyLinked ? ' Spotify on this device is used first while it\'s connected.' : ''}
+        Make a free account at <a href="https://www.last.fm/join" target="_blank" rel="noreferrer">last.fm</a> and connect your music app to it once
+        (Spotify: <a href="https://www.last.fm/settings/applications" target="_blank" rel="noreferrer">last.fm → Settings → Applications</a>;
+        other apps: see <a href="https://www.last.fm/about/trackmymusic" target="_blank" rel="noreferrer">Track My Music</a>).
+        What you play then shows here and to friends who can see your music.
       </span></label>
       <span className="inline copy-row">
         <input id="lastfmUser" type="text" autoComplete="off" spellCheck={false} maxLength={15} value={name} placeholder="username" onChange={(e) => setName(e.target.value)} />
         <button className="btn" type="button" disabled={!valid || name.trim() === saved} onClick={() => save(name.trim())}>Save</button>
         {saved && <button className="btn-quiet" type="button" onClick={() => { save(''); setName(''); }}>Remove</button>}
-      </span>
-    </div>
-  );
-}
-
-/** The exact address to paste into the Spotify app's "Redirect URIs" (it must match character for character). */
-function RedirectUri() {
-  const uri = typeof window === 'undefined' ? '' : `${window.location.origin}/spotify`;
-  const [copied, setCopied] = useState(false);
-  return (
-    <div className="set-row stack">
-      <span className="field-label">Redirect URI for your Spotify app<span className="sub">If Spotify says &ldquo;redirect_uri: Not matching configuration&rdquo;, paste this into your app&apos;s Redirect URIs.</span></span>
-      <span className="inline copy-row">
-        <code id="spotifyRedirect">{uri}</code>
-        <button className="btn" type="button" onClick={() => { void navigator.clipboard?.writeText(uri).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1800); }); }}>{copied ? 'Copied' : 'Copy'}</button>
       </span>
     </div>
   );

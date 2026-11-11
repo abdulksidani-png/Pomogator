@@ -89,7 +89,7 @@ export interface Settings {
   mascotKind: MascotKind;
   /** Cosmetics the buddy is wearing (ids from lib/cosmetics.ts, bought in the shop), one per slot. */
   wear: string[];
-  /** Last.fm username for the music card and friends (no Spotify user limit); '' = not used. */
+  /** Last.fm username for the music card and friends (any music app that scrobbles); '' = not used. */
   lastfmUser: string;
   /** Private nicknames for friends, by their account id (only you see them). */
   nicknames: Record<string, string>;
@@ -102,7 +102,7 @@ export interface Settings {
   cardStyle: 'ruled' | 'solid' | 'glass';
   /** Which version of the default look these settings were last brought up to (see normalizeData). */
   look: number;
-  /** Show the Spotify "now playing" widget. */
+  /** Show the "now playing" music card (Last.fm). */
   musicWidget: boolean;
   corners: Corners;
   density: 'comfortable' | 'compact';

@@ -29,7 +29,7 @@ export default function Privacy() {
       <h2>Friends</h2>
       <p>Friends are only for signed-in accounts. A friend sees your name and study buddy, and only what you switch on in the
         friends settings: whether you&apos;re online and what you&apos;re doing (studying, on a break, taking a quiz, and for how
-        long), the song playing in your Spotify widget, and your stats and streaks. Chat messages between friends are kept for 24 hours and then deleted. Do Not Disturb shows friends a small moon by your name. Support messages (and replies to them) and study-together
+        long), the song on your music card, and your stats and streaks. Chat messages between friends are kept for 24 hours and then deleted. Do Not Disturb shows friends a small moon by your name. Support messages (and replies to them) and study-together
         sessions are stored so they can be delivered, and are deleted with your account. Your email is never shown to
         friends.</p>
 
@@ -50,10 +50,13 @@ export default function Privacy() {
         transcription runs entirely on your device. Neither the screen text, the snapshots nor the transcript is saved after the
         session: only slide numbers and titles stay in your history.</p>
 
+      <h2>Guests and the AI</h2>
+      <p>Without an account you can use the timer, the to-do list and the themes. Anything that uses the AI (quizzes, plans, the study
+        assistant, uploads and screen sharing) needs a free account, so nothing a guest does is sent to the AI.</p>
+
       <h2>Photos and music</h2>
-      <p>Background photos load directly from <a href="https://unsplash.com">Unsplash</a>. If you connect
-        Spotify, your Spotify sign-in stays in this browser and the page talks to Spotify directly; {SITE.name}&apos;s server never sees it.
-        If you use <a href="https://www.last.fm">Last.fm</a> instead, the Last.fm username you type is saved with your settings
+      <p>Background photos load directly from <a href="https://unsplash.com">Unsplash</a>. The music card
+        uses <a href="https://www.last.fm">Last.fm</a>: the Last.fm username you type is saved with your settings
         and passed through {SITE.name}&apos;s server to Last.fm to see what you&apos;re playing; that profile&apos;s recent listening is
         public on Last.fm anyway.</p>
 

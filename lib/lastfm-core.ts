@@ -1,9 +1,20 @@
 /**
  * Last.fm "now playing", shared by the server route and the browser (pure, tested in tests/unit/lastfm.test.ts).
- * Last.fm has no per-app user limit: anyone who links Spotify (or Apple Music, YouTube Music…) to their Last.fm
- * account can share what they're playing, which gets around Spotify's 5-user cap for development-mode apps.
+ * Last.fm is the only music source: it has no per-app user limit and works with any music app that can
+ * "scrobble" (Spotify, Apple Music, YouTube Music, Tidal, Deezer…), so nobody needs a Spotify developer app.
  */
-import type { Playback } from './spotify';
+
+/** The song on the music card. */
+export interface Playback {
+  title: string;
+  artist: string;
+  album: string;
+  art: string;
+  url: string;
+  isPlaying: boolean;
+  /** When this was read. */
+  at: number;
+}
 
 /** Last.fm usernames: 2–15 characters, starting with a letter; letters, numbers, - and _. */
 export const LASTFM_USER = /^[A-Za-z][A-Za-z0-9_-]{1,14}$/;
@@ -27,7 +38,7 @@ export function toLastfmPlayback(j: unknown, now = Date.now()): Playback | null 
   const art = [pick('extralarge'), pick('large'), pick('medium')].find((u) => u && !u.includes(PLACEHOLDER)) || '';
   return {
     title, artist: str(o(t.artist)['#text']) || str(o(t.artist).name), album: str(o(t.album)['#text']), art,
-    url: str(t.url), device: '', isPlaying: str(o(t['@attr']).nowplaying) === 'true', progressMs: 0, durationMs: 0, at: now,
+    url: str(t.url), isPlaying: str(o(t['@attr']).nowplaying) === 'true', at: now,
   };
 }
 

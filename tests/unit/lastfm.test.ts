@@ -9,7 +9,7 @@ const track = (extra: Record<string, unknown>) => ({
 describe('Last.fm now playing', () => {
   it('reads the newest track and whether it is playing now', () => {
     const p = toLastfmPlayback({ recenttracks: { track: [track({ '@attr': { nowplaying: 'true' } }), track({ name: 'Older' })] } }, 5);
-    expect(p).toEqual({ title: 'Gator Groove', artist: 'The Swamp Band', album: 'Swamp Sessions', art: 'xl.png', url: 'https://www.last.fm/x', device: '', isPlaying: true, progressMs: 0, durationMs: 0, at: 5 });
+    expect(p).toEqual({ title: 'Gator Groove', artist: 'The Swamp Band', album: 'Swamp Sessions', art: 'xl.png', url: 'https://www.last.fm/x', isPlaying: true, at: 5 });
   });
 
   it('a single track (not a list) and a past play both work; the grey star is not album art', () => {

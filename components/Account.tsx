@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { useStudy } from '@/lib/store';
 import { signInWithGoogle, sendEmailLink } from '@/lib/auth';
 import { signOut } from '@/lib/sync';
+import { NEED_ACCOUNT } from '@/lib/gate';
 import { supabaseConfigured } from '@/lib/supabase/env';
 import { detectTimeZone, timeZoneList } from '@/lib/dates';
 import { Icon } from './Icon';
@@ -182,4 +183,36 @@ export function SyncStatus() {
   else if (a.status === 'guest') { dot = 'ok'; text = 'You\'re studying as a guest. Sign in to keep your progress on every device.'; }
   else { dot = 'ok'; text = `Synced to ${a.email || a.name || 'your account'}.`; }
   return <span className="sync-status" role="status">{dot && <span className={`sync-dot ${dot}`} aria-hidden="true" />}{text}</span>;
+}
+
+/**
+ * "Make a free account to …": shown when a guest reaches for something that uses the AI (lib/gate.ts).
+ * Listens for the event so any button, store action or keyboard shortcut can raise it.
+ */
+export function NeedAccountDialog({ onSignIn }: { onSignIn: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const [what, setWhat] = useState('');
+  const close = () => ref.current?.close();
+  useEffect(() => {
+    const ask = (e: Event) => {
+      setWhat(String((e as CustomEvent).detail || 'use this'));
+      if (ref.current && !ref.current.open) ref.current.showModal();
+    };
+    window.addEventListener(NEED_ACCOUNT, ask);
+    return () => window.removeEventListener(NEED_ACCOUNT, ask);
+  }, []);
+  return (
+    <dialog ref={ref} id="needAccountDlg" aria-labelledby="needAccountTitle" onClick={(e) => { if (e.target === e.currentTarget) close(); }}>
+      <div className="dlg-head"><h2 id="needAccountTitle">Make a free account to {what}</h2>
+        <button className="icon-btn" type="button" aria-label="Close" onClick={close}><Icon name="x" /></button></div>
+      <div className="dlg-body">
+        <p>Quizzes, plans, the study assistant, uploads and screen sharing all use AI, so they need an account. It&apos;s free and takes a few seconds.</p>
+        <p className="hint">The timer, to-do list and themes work without one, and everything you&apos;ve done as a guest stays with you when you sign in.</p>
+      </div>
+      <div className="dlg-foot">
+        <button className="btn-quiet" type="button" onClick={close}>Not now</button>
+        <button className="btn btn-primary" type="button" id="needAccountGo" onClick={() => { close(); onSignIn(); }}>Sign in or make an account</button>
+      </div>
+    </dialog>
+  );
 }

@@ -1,7 +1,7 @@
 /**
  * Server-only: a daily allowance of AI calls per person, so a stranger can't use up the site's AI
- * (Gemini's free quota, or paid Claude credit). Guests (anonymous sign-ins) get fewer calls than accounts,
- * and the allowances are smaller when the answers come from paid Claude. With migration 7 there is also a
+ * (Gemini's quota, or paid Claude credit). Guests (anonymous sign-ins) get no AI at all: every call belongs to an
+ * account, so usage can be counted per person. The allowance is smaller when the answers come from paid Claude. With migration 7 there is also a
  * ceiling for the whole site per day (AI_DAILY_LIMIT_SITE), the backstop against a flood of new guests.
  * Without Supabase (local runs, tests), or before migration 3 is run, there's no allowance.
  */
@@ -18,7 +18,8 @@ export async function spendAiCall(paid = false): Promise<AiError | null> {
   const { data } = await sb.auth.getUser().catch(() => ({ data: { user: null } }));
   const user = data.user;
   if (!user) return { code: 'unauthorized' };
-  const max = user.is_anonymous ? limit('AI_DAILY_LIMIT_GUEST', paid ? 12 : 40) : limit('AI_DAILY_LIMIT_USER', paid ? 60 : 150);
+  if (user.is_anonymous) return { code: 'sign_in' };
+  const max = limit('AI_DAILY_LIMIT_USER', paid ? 60 : 150);
   const { data: used, error } = await sb.rpc('use_ai');
   if (error) return null; // migration 3 not run yet, or a database hiccup: don't block studying
   if (Number(used) > max) return { code: 'daily_limit' };

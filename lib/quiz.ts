@@ -115,6 +115,7 @@ export function aiErrorText(e: unknown): string {
     case 'daily_limit': return 'You\'ve used today\'s AI allowance. The timer keeps working, and the AI comes back tomorrow.';
     case 'rate_limited': return 'The AI limit was reached for now. Wait a minute and try again; if it keeps happening, it resets tomorrow.';
     case 'site_limit': return 'The site has used today\'s AI allowance. The timer keeps working, and the AI comes back tomorrow.';
+    case 'sign_in': return 'This uses AI, which needs a free account. Sign in (top right), then try again.';
     case 'unauthorized': return 'Your sign-in expired. Sign in again, then try again.';
     case 'refused': return 'The AI declined this request. Try rewording it.';
     case 'bad_key': case 'model_missing': return 'The AI isn\'t working on this site right now. The timer works without it; try again later.';

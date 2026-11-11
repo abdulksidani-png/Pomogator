@@ -51,6 +51,7 @@ optional screen tracking, sign-in with cloud sync, and appearance customization.
 | + | Last.fm music for everyone (gets around Spotify's 5-user cap) | Built, waiting on his test (needs `LASTFM_API_KEY` in Vercel; no migration) |
 | + | Pick a username after signing in (what friends see instead of "Study buddy") | Built, waiting on his test (no migration) |
 | + | Private nicknames for friends | Built, waiting on his test (migration 6 for nicknames on messages and invites) |
+| + | Guests get no AI (asked to make an account); Spotify removed, Last.fm is the only music source | Built, live, waiting on his test (no migration; `LASTFM_API_KEY` in Vercel for music) |
 | + | Redesign ("the sheet"), Claude API, friend chat + Do Not Disturb, old material put away | **LIVE since 2026-11-10 at his request, waiting on his test** (before it, `main` was `1f29c2d`, commit `1f29c2d`; needs migration 7 for chat/DND and `ANTHROPIC_API_KEY` for Claude) |
 
 Phase 3 also added the **study assistant** he asked for (`components/Assistant.tsx`, `lib/assistant.ts`): a corner
@@ -272,6 +273,19 @@ emptied; `normalizeData` reads `nicknames` from the raw settings, and sync pull 
   over photos), `clockFont: 'editorial'`, `settings.look` (2) with a one-time move of old looks in `normalizeData`.
   `data-cards` is always set (also by the early script in layout.tsx). Rules that set columns must stay inside
   `min-width: 921px` (the phone layout is one column).
+
+**Guests + music (2026-11-11, his request, waiting on his test):** `lib/gate.ts` (`isGuest`, `needAccount(what)` →
+event → `NeedAccountDialog` `#needAccountDlg` in Account.tsx, "Make a free account to …" → sign-in dialog; the store
+registers the check with `setGuestCheck`, so nobody is a guest on a copy without Supabase and plain e2e tests are
+unaffected). Gated for `account.status === 'guest'`: `openAssistant` (also "Plan with AI" and the `A` key), Upload
+(button and `onFiles`), `beginScreenShare`, `planFromWork`, `summarizeDay`, `retryQuiz`; `prefetchQuiz` does nothing and
+the quiz face shows `#quizNeedsAccount` (Sign in / take the break); the weekly report keeps its plain summary;
+`lib/ai-client.ts` throws `sign_in` before any request. Server: `spendAiCall` returns `sign_in` (401) for anonymous
+users; `AI_DAILY_LIMIT_GUEST` is gone. Tested in the first sync test (the sync config has a dummy `GEMINI_API_KEY`
+pointing nowhere). **Spotify is removed** (`lib/spotify.ts`, `/spotify` page, `SPOTIFY_CLIENT_ID`, controls, progress
+bar): `Playback` lives in `lib/lastfm-core.ts`, the not-connected music card shows three steps + the username box
+(`#lastfmCardUser`, "Connect"), `lib/lastfm.ts` clears old `studybuddy.spotify` keys. Older notes below that mention
+Spotify describe what used to exist. He should delete `SPOTIFY_CLIENT_ID` in Vercel (harmless if left).
 
 **Quizzes from the shared screen (2026-10-15, his report: a Python session got a quiz on yesterday's philosophy deck):**
 screen tracking used OCR only to match slides, so off-document work was ignored. Now `capture()` in `lib/docs/screen.ts`

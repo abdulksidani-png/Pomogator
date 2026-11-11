@@ -10,7 +10,6 @@
  */
 import { create } from 'zustand';
 import { useStudy, remainingAt } from './store';
-import { useSpotify } from './spotify';
 import { syncClient } from './sync';
 import { isCounted } from './sync-map';
 import { computeStats } from './stats';
@@ -93,11 +92,10 @@ export function myActivity(): Activity {
   return { state, ...(sessionMin !== undefined ? { sessionMin } : {}), todayMin: Math.round(done + (sessionMin ?? 0)), ...(s.collab ? { together: true } : {}) };
 }
 
-/** What I'm playing: Spotify on this device if connected, else Last.fm (any number of people can use that). */
+/** What I'm playing, from Last.fm. */
 function myMusic(): Music | null {
-  const sp = useSpotify.getState().playback;
   const lf = useStudy.getState().settings.lastfmUser ? useLastfm.getState().playback : null;
-  const p = sp?.isPlaying && sp.title ? sp : lf?.isPlaying && lf.title ? lf : null;
+  const p = lf?.isPlaying && lf.title ? lf : null;
   return p ? { title: p.title.slice(0, 120), artist: p.artist.slice(0, 120) } : null;
 }
 

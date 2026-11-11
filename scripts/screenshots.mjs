@@ -1,5 +1,5 @@
 // Screenshots for the README (docs/screenshots), the link preview (app/opengraph-image.png) and the home-screen icon
-// (app/apple-icon.png), taken from the real app with sample study data and stand-in AI and Spotify replies.
+// (app/apple-icon.png), taken from the real app with sample study data and stand-in AI and Last.fm replies.
 // No account, key or personal data is involved.
 //
 //   npm run build && npx next start -p 3100     # in one terminal
@@ -66,7 +66,7 @@ const assistant = {
 async function newPage({ w = 1440, h = 900, dpr = 1.5, settings = {}, tasks = [], withHistory = true, withDoc = false, mobile = false } = {}) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: dpr, isMobile: mobile, hasTouch: mobile });
   const page = await ctx.newPage();
-  await page.route('**/api/config', (r) => r.fulfill({ json: { ai: true, unsplash: false, spotifyClientId: 'demo' } }));
+  await page.route('**/api/config', (r) => r.fulfill({ json: { ai: true, unsplash: false, lastfm: true } }));
   await page.route('**/api/ai/status', (r) => r.fulfill({ json: { configured: true } }));
   await page.route('**/api/ai/digest', async (r) => { await wait(900); return r.fulfill({ json: digest }); });
   await page.route('**/api/ai/quiz', (r) => r.fulfill({ json: quiz }));
@@ -74,8 +74,7 @@ async function newPage({ w = 1440, h = 900, dpr = 1.5, settings = {}, tasks = []
   await page.route('**/api/ai/day-summary', (r) => r.fulfill({ json: { headline: 'A focused day.', wins: ['Forms'], gaps: ['Golden mean'], tomorrow: ['Slides 6–7'] } }));
   await page.route('**/api/ai/weekly', (r) => r.fulfill({ json: weekly }));
   await page.route('**/api/ai/assistant', async (r) => { await wait(600); return r.fulfill({ json: assistant }); });
-  await page.route('https://api.spotify.com/v1/me/player**', (r) => r.fulfill({ json: { is_playing: true, progress_ms: 98000, device: { name: 'MacBook Air' },
-    item: { name: 'Sunset Lover', duration_ms: 202000, artists: [{ name: 'Petit Biscuit' }], album: { name: 'Presence', images: [{ url: 'https://i.scdn.co/image/a', width: 300 }] }, external_urls: { spotify: 'https://open.spotify.com/' } } } }));
+  await page.route('**/api/lastfm**', (r) => r.fulfill({ json: { playback: { title: 'Sunset Lover', artist: 'Petit Biscuit', album: 'Presence', art: 'https://i.scdn.co/image/a', url: 'https://www.last.fm/music/Petit+Biscuit/_/Sunset+Lover', isPlaying: true, at: 0 } } }));
   await page.route('https://i.scdn.co/**', (r) => r.fulfill({ body: art, contentType: 'image/svg+xml' }));
   await page.addInitScript(() => {
     const real = Date.now.bind(Date); let off = 0;
@@ -86,7 +85,6 @@ async function newPage({ w = 1440, h = 900, dpr = 1.5, settings = {}, tasks = []
   });
   await page.addInitScript(({ settings, tasks, withHistory, withDoc }) => {
     if (localStorage.getItem('studybuddy.v1')) return;
-    localStorage.setItem('studybuddy.spotify', JSON.stringify({ access: 'at', refresh: 'rt', expiresAt: Date.now() + 3600e3 }));
     let seed = 7; const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
     const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const topics = [
@@ -128,7 +126,7 @@ const skip = (page, mins) => page.evaluate((ms) => window.__skip(ms), mins * 600
 const shot = (page, name, opts = {}) => page.screenshot({ path: `${OUT}/${name}.jpg`, type: 'jpeg', quality: 88, ...opts });
 
 if (!only || only === 'loop') {
-  const page = await newPage({ settings: { skin: 'gator', mascotKind: 'gator', mascot: 'on', musicWidget: true }, tasks: TASKS });
+  const page = await newPage({ settings: { skin: 'gator', mascotKind: 'gator', mascot: 'on', musicWidget: true, lastfmUser: 'albert' }, tasks: TASKS });
   await page.goto(BASE);
   await page.locator('.splash').waitFor({ state: 'hidden' }).catch(() => {});
   await page.locator('#docInput').setInputFiles(FIXTURE);

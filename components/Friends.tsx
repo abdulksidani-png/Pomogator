@@ -399,7 +399,7 @@ export function FriendsDialog({ dialogRef, code: prefill }: { dialogRef: RefObje
                 <input type="checkbox" className="switch" id="shareOnline" checked={me.shareOnline} onChange={(e) => void updateMe({ shareOnline: e.target.checked })} />
               </div>
               <div className="set-row">
-                <label htmlFor="shareMusic">What I&apos;m listening to<span className="sub">The song playing in the Spotify widget, while I&apos;m online</span></label>
+                <label htmlFor="shareMusic">What I&apos;m listening to<span className="sub">The song on my music card (from Last.fm), while I&apos;m online</span></label>
                 <input type="checkbox" className="switch" id="shareMusic" checked={me.shareMusic} onChange={(e) => void updateMe({ shareMusic: e.target.checked })} />
               </div>
               <div className="set-row">

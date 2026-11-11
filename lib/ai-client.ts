@@ -3,12 +3,14 @@
  * which hold the Gemini API key on the server.
  */
 import type { AiError, AiStatus, AssistantInput, AssistantReply, DayInput, DaySummary, DocDigest, Material, Plan, PlanInput, QuizInput, QuizQuestion, WeeklyAi, WeeklyInput, WorkPlanInput } from './types';
+import { isGuest } from './gate';
 import { cleanAssistant, cleanDay, cleanDigest, cleanPlan, cleanQuiz, cleanWeekly } from './quiz';
 
 let status: AiStatus = 'checking';
 let readyP: Promise<AiStatus> | null = null;
 
 async function post(path: string, body: unknown, signal?: AbortSignal): Promise<unknown> {
+  if (isGuest()) throw { code: 'sign_in' } satisfies AiError;
   let r: Response;
   try {
     r = await fetch(`/api/ai/${path}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal });

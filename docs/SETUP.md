@@ -7,7 +7,7 @@ everything in the visitor's browser. Steps are written click by click.
 - [2. Accounts and sync with Supabase](#2-accounts-and-sync-with-supabase)
 - [3. AI quizzes with Gemini](#3-ai-quizzes-with-gemini)
 - [4. Photo backgrounds with Unsplash](#4-photo-backgrounds-with-unsplash)
-- [5. The Spotify widget](#5-the-spotify-widget)
+- [5. Music, through Last.fm](#5-music-through-lastfm)
 - [What it costs](#what-it-costs)
 - [Run it on your own computer](#run-it-on-your-own-computer)
 - [Troubleshooting](#troubleshooting)
@@ -84,9 +84,9 @@ The site uses the smallest Claude model, caps the length of every answer, and se
 
 The key stays on the server and is never sent to the browser. If a Gemini key is also set, Gemini answers whenever
 Claude can't (for example when the credit runs out), so quizzes keep working. To put free Gemini first and keep Claude
-as the backup, also add `AI_PROVIDER` = `gemini`. Daily limits while Claude answers: 12 AI requests per guest, 60 per
-account, 600 for the whole site (`AI_DAILY_LIMIT_GUEST`, `AI_DAILY_LIMIT_USER`, `AI_DAILY_LIMIT_SITE`; the site-wide
-one needs migration 7).
+as the backup, also add `AI_PROVIDER` = `gemini`. Guests get no AI at all (they're asked to make a free account), so every request belongs to an account. Daily limits
+while Claude answers: 60 AI requests per account, 600 for the whole site (`AI_DAILY_LIMIT_USER`,
+`AI_DAILY_LIMIT_SITE`; the site-wide one needs migration 7).
 
 ## 3. AI quizzes with Gemini
 
@@ -95,8 +95,8 @@ one needs migration 7).
 2. In Vercel, add `GEMINI_API_KEY` with that key (server only: never prefix it with `NEXT_PUBLIC_`) and redeploy.
 
 The free tier has per-minute and per-day limits. PomoGator falls back to a lighter model when the main one is busy, and
-with migration 3 each person gets a daily allowance (`AI_DAILY_LIMIT_GUEST`, default 40; `AI_DAILY_LIMIT_USER`,
-default 150). On the free tier Google may use what it receives to improve its products, which the site's privacy page
+with migration 3 each account gets a daily allowance (`AI_DAILY_LIMIT_USER`, default 150). Guests can't use the AI:
+quizzes, plans, the assistant, uploads and screen sharing ask them to make a free account first. On the free tier Google may use what it receives to improve its products, which the site's privacy page
 tells visitors.
 
 ## 4. Photo backgrounds with Unsplash
@@ -109,20 +109,14 @@ New Unsplash apps are in demo mode (50 requests an hour; PomoGator caches result
 click **Apply for production** on the app page. PomoGator already credits photographers and reports downloads the way
 Unsplash requires.
 
-## 5. The Spotify widget
+## 5. Music, through Last.fm
 
-1. Go to **developer.spotify.com/dashboard → Create app**. Under **Redirect URIs**, add exactly
-   `https://YOUR-SITE.vercel.app/spotify` (and `http://127.0.0.1:3000/spotify` for local runs). Tick **Web API** and save.
-2. Copy the **Client ID** into Vercel as `SPOTIFY_CLIENT_ID` and redeploy. There is no secret: sign-in uses PKCE.
-
-Spotify's development mode allows only accounts added under **User Management** (up to 5), and the app owner needs
-Premium. Play, pause and skip also need Premium; showing what's playing works on any plan.
-
-## 6. Last.fm, so everyone can share their music
-
-Spotify only lets 5 accounts use a hobby app, so anyone else can show what they're playing through Last.fm instead.
-They link Spotify (or Apple Music, YouTube Music and others) to Last.fm once, then type their Last.fm username in
-**Settings → Music**. There's no user limit, but no play/pause buttons either (Last.fm can't control playback).
+The music card shows the song each person is playing, from any music app, through Last.fm. Each person makes a free
+Last.fm account, connects their music app to it once (Spotify: **last.fm → Settings → Applications**; other apps:
+**last.fm/about/trackmymusic**), then types their Last.fm username on the music card or in **Settings → Music**.
+There's no limit on how many people use it, and no play/pause buttons (Last.fm only reports what's playing).
+PomoGator used Spotify's own API before; it was removed because a hobby Spotify app only allows 5 accounts.
+The site needs one Last.fm key:
 
 1. Sign in (or sign up, free) at **last.fm**, then open **last.fm/api/account/create**.
 2. Fill in **Application name** (`PomoGator`) and a short **Application description**. Leave **Callback URL** and
@@ -172,7 +166,7 @@ Nothing, on these free plans, for a personal or class-sized site:
 | Supabase (Free) | 500 MB database, 1 GB file storage, 50,000 monthly active users | A project with no activity for 7 days is paused; open the dashboard and click **Restore**. |
 | Gemini API (free tier) | A daily number of requests per model, shown in AI Studio → **Usage** | No card needed. Google may use free-tier requests to improve its products. |
 | Unsplash | 50 requests an hour (demo), 5,000 after approval | PomoGator caches photo searches. |
-| Spotify | Free for developers | Development mode: up to 5 listed accounts. |
+| Last.fm | Free API key | No user limit. |
 
 **How much AI one study session uses:** about 2–3 Gemini requests: one to write the quiz (sometimes a second, when what
 you covered changed near the end), and one for the next-session plan. Other things that use one request each: reading an
@@ -196,7 +190,6 @@ npm run dev                  # http://localhost:3000
 | What you see | What to check |
 | --- | --- |
 | Signing in lands on an older version of the site | Supabase → Authentication → URL Configuration → **Site URL** must be your main address. |
-| Spotify says "redirect_uri: Not matching configuration" | The Redirect URI in the Spotify app must match `https://YOUR-SITE.vercel.app/spotify` exactly. PomoGator shows the exact address under Settings → Music. |
 | "Quizzes aren't switched on yet" | `GEMINI_API_KEY` is missing, or the site wasn't redeployed after adding it. |
 | The footer mentions documents not syncing | Run migration 2 (`…010000_documents.sql`). |
 | "Deleting accounts isn't switched on" or Friends says it isn't set up | Run migration 4 (`20261016000000_friends.sql`). |

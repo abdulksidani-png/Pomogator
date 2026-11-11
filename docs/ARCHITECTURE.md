@@ -23,16 +23,15 @@ flowchart TB
   Store --> AIRoute --> Gemini["Gemini API"]
   AIRoute -->|"use_ai() allowance"| Supabase
   UI --> Photos --> Unsplash["Unsplash API"]
-  UI -->|"PKCE"| Spotify["Spotify Web API"]
   UI --> Music --> LastFM["Last.fm API"]
 ```
 
 ## Music
 
-Spotify (`lib/spotify.ts`) signs in from the browser with PKCE and shows controls, but a development-mode Spotify app
-only allows 5 accounts. Everyone else can use Last.fm: a username in Settings → Music (`settings.lastfmUser`, synced),
+Music comes from Last.fm only (Spotify's own API was removed: a development-mode Spotify app allows 5 accounts, and
+Last.fm works with any app that scrobbles). A username on the music card or in Settings → Music (`settings.lastfmUser`, synced) is
 looked up by `/api/lastfm` (`lib/lastfm-server.ts`, key `LASTFM_API_KEY` on the server; `user.getRecentTracks`, parsed
-by `lib/lastfm-core.ts`, cached 15 s per username). Spotify on the device wins when both are set. Either way, friends
+by `lib/lastfm-core.ts`, cached 15 s per username). Friends
 see only a title and artist, sent with the presence heartbeat (`myMusic()` in `lib/social.ts`), so friends need no
 music account of their own.
 
@@ -175,5 +174,5 @@ script in `app/layout.tsx` applies the saved theme before the first paint, so th
 | --- | --- |
 | `npm test` (Vitest) | Break rules, quiz/plan/digest validation, prompts, Gemini error mapping and fallback, stats (time zones, 4 AM day rollover, streak freezes), sync merging, goal and slide matching, saved timers |
 | `npm run test:e2e` (Playwright) | The full study → quiz → break loop with a fake clock, documents and goals, screen tracking with a synthetic shared screen, tab audio with a stand-in speech model, appearance, study buddies, stats, streaks, saved timers, focus mode, the first-time tour, data export and delete, and axe-core accessibility checks of every view |
-| `npm run test:ai` | The real `/api/ai/*` routes against `tests/fake-gemini/server.mjs` (which also stands in for Unsplash and Last.fm); Spotify faked in the browser |
+| `npm run test:ai` | The real `/api/ai/*` routes against `tests/fake-gemini/server.mjs` (which also stands in for Unsplash and Last.fm) |
 | `npm run test:sync` | Two browsers syncing through PostgREST on a real Postgres running the actual migrations, with a fake auth server (`tests/fake-supabase/server.mjs`); includes the celebration showing once per day across two devices |

@@ -28,7 +28,9 @@ export default defineConfig({
     {
       command: 'npm run build && npx next start -p 3101',
       url: 'http://localhost:3101',
-      env: { NEXT_DIST_DIR: '.next-sync', NEXT_PUBLIC_SUPABASE_URL: 'http://localhost:54321', NEXT_PUBLIC_SUPABASE_ANON_KEY: ANON_KEY },
+      env: { NEXT_DIST_DIR: '.next-sync', NEXT_PUBLIC_SUPABASE_URL: 'http://localhost:54321', NEXT_PUBLIC_SUPABASE_ANON_KEY: ANON_KEY,
+        // An AI key with nowhere to go: enough for the AI routes to check who is asking (guests are refused first).
+        GEMINI_API_KEY: 'test-key', GEMINI_BASE_URL: 'http://127.0.0.1:9' },
       timeout: 300_000,
       reuseExistingServer: false,
     },

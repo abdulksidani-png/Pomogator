@@ -17,6 +17,7 @@ import { breakFor } from './breaks';
 import { addAsked, askedToday, ctxKey, hasTopic, recordConcepts, topicKey, topicLabel, weakConcepts } from './context';
 import { aiErrorText } from './quiz';
 import { AI } from './ai-client';
+import { isGuest, needAccount, setGuestCheck } from './gate';
 import { Sound } from './sound';
 import { MIN, clamp, mergeDeep, round1, timeOf, uid } from './util';
 import { applyPreset, cleanName, savePreset } from './presets';
@@ -694,6 +695,7 @@ export const useStudy = create<Store>()(
         /* ---------- quiz ---------- */
         async prefetchQuiz() {
           const d0 = get();
+          if (isGuest()) { quizCtl?.abort(); if (d0.quiz.gen !== 'none') set((d) => { d.quiz = { ...freshQuiz(), step: d.quiz.step }; }); return; } // quizzes need an account
           if (!hasTopic(d0.context)) { if (d0.quiz.gen !== 'loading') set((d) => { d.quiz.gen = 'none'; }); return; }
           const key = ctxKey(d0.context, d0.settings);
           if (quizReusable(d0)) return;
@@ -732,7 +734,7 @@ export const useStudy = create<Store>()(
             set((d) => { d.quiz.gen = AI.available() ? 'failed' : 'off'; d.quiz.error = aiErrorText(e); d.aiStatus = AI.status(); });
           }
         },
-        retryQuiz() { set((d) => { d.quiz.gen = 'none'; }); void get().prefetchQuiz(); },
+        retryQuiz() { if (needAccount('get quizzes')) return; set((d) => { d.quiz.gen = 'none'; }); void get().prefetchQuiz(); },
         beginQuiz() {
           if (get().timer.phase !== 'quiz') return;
           set((d) => { d.quiz.step = 'question'; d.quiz.index = 0; d.quiz.answers = []; });
@@ -809,6 +811,7 @@ export const useStudy = create<Store>()(
         },
         clearPlan() { planCtl?.abort(); set((d) => { d.plan = { status: 'none' }; }); },
         async planFromWork() {
+          if (needAccount('plan with AI')) return;
           planCtl?.abort();
           const ctl = (planCtl = new AbortController());
           const s = get();
@@ -848,6 +851,7 @@ export const useStudy = create<Store>()(
           toast(`Plan applied: ${data.suggestedMinutes}-minute session, goal set`);
         },
         async summarizeDay() {
+          if (needAccount('get an AI summary of your day')) return;
           const s = get();
           const day = todayFor(s.settings);
           const today = s.history.filter((h) => h.date === day);
@@ -1077,3 +1081,5 @@ export const useStudy = create<Store>()(
     },
   ),
 );
+
+setGuestCheck(() => useStudy.getState().account.status === 'guest');
