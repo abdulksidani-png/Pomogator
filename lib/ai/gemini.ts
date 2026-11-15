@@ -26,7 +26,7 @@ const fail = (code: string, message?: string): AiError => ({ code, message });
 /** How long one attempt may take. Two models at this length still fit inside the route's 60 seconds. */
 const ATTEMPT_MS = 22_000;
 
-async function call(model: string, body: unknown, signal?: AbortSignal): Promise<GeminiReply & { httpStatus: number }> {
+async function call(model: string, body: unknown, signal?: AbortSignal, timeoutMs = ATTEMPT_MS): Promise<GeminiReply & { httpStatus: number }> {
   let r: Response;
   try {
     r = await fetch(`${BASE()}/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
@@ -35,7 +35,7 @@ async function call(model: string, body: unknown, signal?: AbortSignal): Promise
       body: JSON.stringify(body),
       // Give up on a silent server after a while, so the next model (or the other AI) gets a turn before the
       // site's own 60-second limit.
-      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(ATTEMPT_MS)]) : AbortSignal.timeout(ATTEMPT_MS),
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs),
     });
   } catch (e) {
     if (signal?.aborted) throw fail('cancelled');
@@ -83,7 +83,7 @@ export function parseJson(text: string): unknown {
  * `system` holds standing instructions. Falls back to the backup model when the main one
  * is missing or out of free quota, and retries once when the JSON doesn't parse.
  */
-export async function askJson(opts: { system?: string; turns: Turn[]; images?: Image[]; temperature?: number; signal?: AbortSignal }): Promise<unknown> {
+export async function askJson(opts: { system?: string; turns: Turn[]; images?: Image[]; temperature?: number; timeoutMs?: number; signal?: AbortSignal }): Promise<unknown> {
   if (!geminiConfigured()) throw fail('not_configured');
   const contents = opts.turns.map((t, i) => ({
     role: t.role,
@@ -102,7 +102,7 @@ export async function askJson(opts: { system?: string; turns: Turn[]; images?: I
   for (const model of MODELS()) {
     for (let attempt = 0; attempt < 2; attempt++) {
       let j: Awaited<ReturnType<typeof call>>;
-      try { j = await call(model, body, opts.signal); }
+      try { j = await call(model, body, opts.signal, opts.timeoutMs); }
       catch (e) { lastErr = e as AiError; if (lastErr.code === 'timeout') break; throw lastErr; } // silent: try the backup model
       if (j.httpStatus !== 200) {
         lastErr = { why: `gemini ${j.httpStatus}`, ...errorFrom(j.httpStatus, j) };

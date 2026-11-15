@@ -5,7 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useStudy, remainingAt, quizReadyForTaking, quizPick, quizSources, quizPages } from '@/lib/store';
 import type { QuizPick } from '@/lib/types';
 import { useNow, focusContext } from '@/lib/now';
-import { nextBreakKind, tierRows, tierSentence } from '@/lib/breaks';
+import { nextBreakKind, tierChips, tierSentence } from '@/lib/breaks';
 import { ctxKey, hasTopic, topicLabel } from '@/lib/context';
 import { MIN, clamp, fmt } from '@/lib/util';
 import { Icon } from './Icon';
@@ -15,6 +15,7 @@ import { DocProgress, ScreenTracker, openLibrary } from './Documents';
 import { EASE, SOFT, SPRING } from './motion';
 import { TimerMenu } from './TimerMenu';
 import { needAccount } from '@/lib/gate';
+import { createPortal } from 'react-dom';
 import { enterFocus, exitFocus, useFocusMode } from '@/lib/focus';
 
 export function Stage({ onToggle, onScreenConsent }: { onToggle: () => void; onScreenConsent: () => void }) {
@@ -58,6 +59,68 @@ function FocusBar() {
 
 /* ---------------- timer face ---------------- */
 
+/**
+ * "Study session 2 of 4" as a button: pick where you are in the cycle (the count also starts over by itself after a
+ * long time away; Settings → Timer). Not offered in a group session, where the group's timer decides.
+ */
+function CycleEyebrow({ done, N }: { done: number; N: number }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+  const btn = useRef<HTMLButtonElement>(null);
+  const hours = useStudy((s) => s.settings.cycleResetHours);
+  const now = Math.min(done + 1, N);
+
+  const toggle = () => {
+    if (!open && btn.current) {
+      const r = btn.current.getBoundingClientRect();
+      const w = Math.min(280, window.innerWidth - 24);
+      setPos({ left: Math.min(Math.max(12, r.left + r.width / 2 - w / 2), window.innerWidth - w - 12), top: r.bottom + 8 });
+    }
+    setOpen((o) => !o);
+  };
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent) => {
+      const t = e.target as Node;
+      if (!btn.current?.contains(t) && !document.getElementById('cycleMenu')?.contains(t)) setOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); setOpen(false); btn.current?.focus(); } };
+    // The menu is fixed to the screen, so a resize or a real scroll of the page would leave it in the wrong place.
+    const y0 = window.scrollY;
+    const close = () => setOpen(false);
+    const scrolled = () => { if (Math.abs(window.scrollY - y0) > 24) setOpen(false); };
+    document.addEventListener('pointerdown', away);
+    document.addEventListener('keydown', esc, true);
+    window.addEventListener('resize', close);
+    window.addEventListener('scroll', scrolled);
+    return () => { document.removeEventListener('pointerdown', away); document.removeEventListener('keydown', esc, true); window.removeEventListener('resize', close); window.removeEventListener('scroll', scrolled); };
+  }, [open]);
+
+  return (
+    <>
+      <button ref={btn} type="button" className="eyebrow-btn" id="cycleBtn" aria-haspopup="dialog" aria-expanded={open}
+        title="Change where you are in the cycle" onClick={toggle}>
+        Study session {now} of {N}<Icon name="chevron" />
+      </button>
+      {open && pos && createPortal(
+        <div className="cycle-menu" id="cycleMenu" role="dialog" aria-label="Where are you in the cycle?" style={{ left: pos.left, top: pos.top }}>
+          <div className="menu-head"><b>Where are you in the cycle?</b><span>A long break comes after session {N}.</span></div>
+          <ul className="cycle-list">
+            {Array.from({ length: N }, (_, i) => i + 1).map((k) => (
+              <li key={k}>
+                <button type="button" className="cycle-pick" aria-pressed={k === now} onClick={() => { useStudy.getState().setCycle(k); setOpen(false); btn.current?.focus(); }}>
+                  <span>Session {k}{k === 1 ? ' · start fresh' : k === N ? ' · long break next' : ''}</span>
+                  {k === now && <Icon name="check" />}
+                </button>
+              </li>
+            ))}
+          </ul>
+          <p className="tm-now">{hours > 0 ? `It starts over at session 1 by itself after ${hours === 1 ? '1 hour' : `${hours} hours`} away. Change that in Settings.` : 'It never starts over by itself (Settings).'}</p>
+        </div>, document.body)}
+    </>
+  );
+}
+
 function TimerFace({ onToggle, onScreenConsent }: { onToggle: () => void; onScreenConsent: () => void }) {
   const T = useStudy((s) => s.timer);
   const together = useStudy((s) => !!s.collab);
@@ -67,10 +130,10 @@ function TimerFace({ onToggle, onScreenConsent }: { onToggle: () => void; onScre
   const N = settings.longEvery;
   const running = T.status === 'running';
 
-  let eyebrow = '';
+  let eyebrow: React.ReactNode = '';
   let sub = '';
   if (T.phase === 'study') {
-    eyebrow = `Study session ${Math.min(T.cycleDone + 1, N)} of ${N}`;
+    eyebrow = together ? `Study session ${Math.min(T.cycleDone + 1, N)} of ${N}` : <CycleEyebrow done={T.cycleDone} N={N} />;
     sub = running ? 'Focus. A quick quiz comes at the end.' : T.status === 'paused' ? 'Paused' : `${Math.round(T.totalMs / MIN)}-minute focus session`;
   } else {
     eyebrow = T.breakKind === 'long' ? 'Long break' : 'Short break';
@@ -290,7 +353,7 @@ function StageFoot() {
         ) : (
           <div className="tiers">
             <span>{kind === 'long' ? 'Long break' : 'Break'} by score</span>
-            {tierRows(n, settings.tiers[kind]).map((r) => <span key={r.score} className="tier">{r.score}/{n} → {r.mins}m</span>)}
+            {tierChips(n, settings.tiers[kind]).map((r) => <span key={r.label} className="tier">{r.label} → {r.mins}m</span>)}
           </div>
         )}
       </div>

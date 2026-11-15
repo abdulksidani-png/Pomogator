@@ -48,6 +48,9 @@ function tameCtx(ctx: Record<string, unknown>): Record<string, unknown> {
   return out;
 }
 
+/** A longer quiz takes longer to write, so each attempt gets more time (two attempts still fit in the route's 60 seconds). */
+const quizTimeout = (n: number) => (n <= 3 ? undefined : Math.min(40_000, 22_000 + (n - 3) * 2_500));
+
 export async function POST(req: Request, { params }: { params: Promise<{ action: string }> }) {
   const { action } = await params;
   if (!['quiz', 'plan', 'plan-now', 'day-summary', 'assistant', 'digest', 'weekly'].includes(action)) return fail({ code: 'not_found' });
@@ -63,11 +66,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ action:
   try {
     if (action === 'quiz') {
       const input = body as unknown as QuizInput;
-      const n = Math.min(3, Math.max(1, Number(input.n) || 3));
+      const n = Math.min(10, Math.max(1, Number(input.n) || 3));
       const images = validImages(input.images);
       const raw = await askJson((p) => {
         const shots = spread(images, BUDGET[p].images);
-        return { turns: [{ role: 'user', text: quizPrompt({ ...input, images: shots, n, weak: input.weak ?? [], asked: input.asked ?? [] }, BUDGET[p].material) }], images: shots, maxTokens: 2200, signal };
+        return { turns: [{ role: 'user', text: quizPrompt({ ...input, images: shots, n, weak: input.weak ?? [], asked: input.asked ?? [] }, BUDGET[p].material) }], images: shots, maxTokens: n <= 3 ? 2200 : Math.min(8000, 600 + n * 700), timeoutMs: quizTimeout(n), signal };
       }, order);
       const questions = cleanQuiz(raw, n);
       if (!questions.length) return fail({ code: 'invalid_json' });

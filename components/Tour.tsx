@@ -29,7 +29,7 @@ function steps(buddy: string, signedIn: boolean): Step[] {
     { id: 'hi', title: `Hi, I'm ${buddy}!`, text: 'I\'ll be your study buddy. Want a one-minute tour of how PomoGator works?', mood: 'cheer' },
     { id: 'topic', target: '#ctxCard', title: 'Tell me what you\'re studying', text: 'Type a topic, or upload your slides, notes or a photo. Set a goal like "up to slide 12" and I\'ll quiz you on just that.', mood: 'idle' },
     { id: 'start', target: '#startBtn', title: 'Start a focus session', text: '25 minutes by default. Pause any time with Space, or switch on Loop to run sessions back to back.', mood: 'focus' },
-    { id: 'quiz', target: '#stage', title: 'Earn your break', text: 'When the timer ends, answer 1–3 quick questions. 3/3 earns a 15-minute break, 2/3 earns 10, and every answer comes with a memory tip.', mood: 'quiz' },
+    { id: 'quiz', target: '#stage', title: 'Earn your break', text: 'When the timer ends, answer a few quick questions (you choose how many, 1 to 10). All right earns a 15-minute break, at least half earns 10, and every answer comes with a memory tip.', mood: 'quiz' },
     { id: 'tasks', target: '#tasksCard', title: 'Your to-do list', text: 'Add what you need to get through today, or press "Plan with AI" to turn it all into study sessions.', mood: 'idle' },
     { id: 'friends', target: '#friendsCard', title: 'Study with friends', text: 'Add friends with your friend code, see who\'s studying, send a little encouragement, or start a session together.', mood: 'happy' },
     { id: 'assistant', target: '.assistant-fab', title: 'Ask me anything', text: 'The study assistant explains things, summarizes your slides, reads photos of your notes and quizzes you.', mood: 'happy' },

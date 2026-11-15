@@ -58,6 +58,8 @@ export interface Tier { max: number; mid: number; min: number; none: number }
 export interface Settings {
   studyMin: number;
   longEvery: number;
+  /** Hours away after which "Study session N of M" starts again at 1 (0 = never by itself). */
+  cycleResetHours: number;
   loop: boolean;
   tiers: { short: Tier; long: Tier };
   questions: number;
@@ -259,6 +261,8 @@ export interface TimerState {
   breakReason: BreakReason;
   session: SessionRecord | null;
   cycleDone: number;
+  /** When the timer was last used (ms), for the away-for-a-while reset. 0 = unknown. */
+  cycleAt: number;
   lastResult: LastResult | null;
   lastSessionId: string;
   refreshTried: boolean;

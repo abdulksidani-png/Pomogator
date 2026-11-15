@@ -26,7 +26,7 @@ const fail = (code: string, message?: string): AiError => ({ code, message });
 const ATTEMPT_MS = 22_000;
 const JSON_ONLY = 'Reply with one JSON object and nothing else: no markdown, no code fence, no text before or after it.';
 
-async function call(model: string, body: Record<string, unknown>, signal?: AbortSignal): Promise<ClaudeReply & { httpStatus: number }> {
+async function call(model: string, body: Record<string, unknown>, signal?: AbortSignal, timeoutMs = ATTEMPT_MS): Promise<ClaudeReply & { httpStatus: number }> {
   let r: Response;
   try {
     r = await fetch(`${BASE()}/v1/messages`, {
@@ -35,7 +35,7 @@ async function call(model: string, body: Record<string, unknown>, signal?: Abort
       body: JSON.stringify({ ...body, model }),
       // Give up on a silent server after a while, so the next model (or the other AI) gets a turn before the
       // site's own 60-second limit.
-      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(ATTEMPT_MS)]) : AbortSignal.timeout(ATTEMPT_MS),
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs),
     });
   } catch (e) {
     if (signal?.aborted) throw fail('cancelled');
@@ -74,7 +74,7 @@ const imageBlock = (im: Image) => ({ type: 'image', source: { type: 'base64', me
  * the student's), `system` holds standing instructions. `maxTokens` caps the length (and cost) of the answer.
  * Falls back to the backup model when the first is missing, and retries once when the JSON doesn't parse.
  */
-export async function askClaude(opts: { system?: string; turns: Turn[]; images?: Image[]; maxTokens?: number; signal?: AbortSignal }): Promise<unknown> {
+export async function askClaude(opts: { system?: string; turns: Turn[]; images?: Image[]; maxTokens?: number; timeoutMs?: number; signal?: AbortSignal }): Promise<unknown> {
   if (!claudeConfigured()) throw fail('not_configured');
   // Claude wants the turns to alternate, starting with the student: join neighbours with the same role.
   const messages: { role: 'user' | 'assistant'; content: Record<string, unknown>[] }[] = [];
@@ -93,12 +93,12 @@ export async function askClaude(opts: { system?: string; turns: Turn[]; images?:
     ...(opts.system ? [{ type: 'text', text: opts.system, cache_control: { type: 'ephemeral' } }] : []),
     { type: 'text', text: JSON_ONLY },
   ];
-  const body = { max_tokens: Math.min(4000, Math.max(200, opts.maxTokens ?? 1500)), system, messages };
+  const body = { max_tokens: Math.min(8000, Math.max(200, opts.maxTokens ?? 1500)), system, messages };
 
   let lastErr: AiError = fail('upstream_error');
   for (const model of MODELS()) {
     for (let attempt = 0; attempt < 2; attempt++) {
-      const j = await call(model, body, opts.signal);
+      const j = await call(model, body, opts.signal, opts.timeoutMs);
       if (j.httpStatus !== 200) {
         lastErr = { ...claudeErrorFrom(j.httpStatus, j), why: `claude ${j.httpStatus}` };
         // A busy server (500/529) usually passes in a moment: wait briefly and ask once more.

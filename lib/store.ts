@@ -28,6 +28,7 @@ import { pointsSummary, sessionPoints } from './points';
 import { cleanLastfmUser } from './lastfm-core';
 import { putAway } from './recent';
 import { cleanNickname, cleanNicknames } from './nicknames';
+import { awayLong, cleanCycleHours, cycleDoneFor, lastActiveAt } from './cycle';
 import type { Press } from './collab-core';
 
 /**
@@ -171,6 +172,10 @@ interface Actions {
   selectDoc: (id: string) => void;
   /** Put away a selected document that hasn't been used for two days (and a topic that came from it). */
   tidyMaterial: () => void;
+  /** Set where you are in the cycle: "Study session N of M". */
+  setCycle: (session: number) => void;
+  /** After a long time away, start the cycle again at session 1 (see lib/cycle.ts). Never during a session. */
+  tidyCycle: (now?: number) => void;
   setDocGoal: (text: string, page: number) => void;
   setStartPage: (page: number) => void;
   /** During a session: the page now on screen (or picked by hand). */
@@ -310,6 +315,8 @@ export function normalizeData(p: Partial<Data> | undefined): Data {
   settings.wear = cleanWear(settings.wear);
   settings.outfits = cleanOutfits(settings.outfits);
   settings.lastfmUser = cleanLastfmUser(settings.lastfmUser);
+  settings.questions = clamp(Math.round(Number(settings.questions)) || 3, 1, 10);
+  settings.cycleResetHours = cleanCycleHours(settings.cycleResetHours);
   settings.nicknames = cleanNicknames((p.settings as Partial<Settings> | undefined)?.nicknames); // mergeDeep keeps only keys the defaults have, and the default map is empty
   const quiz: QuizState = { ...freshQuiz(), ...(p.quiz || {}) };
   if (quiz.gen === 'loading') quiz.gen = 'none'; // a reload dropped the request in flight
@@ -410,6 +417,7 @@ export const useStudy = create<Store>()(
             const overdue = Date.now() - T.endAt;
             get().complete({ quiet: overdue > 5000, auto: overdue < 2 * MIN });
           }
+          get().tidyCycle(); // a new day starts at session 1, before the first look at the timer
           const status = await AI.ready();
           set((d) => { d.aiStatus = status; });
           const d = get();
@@ -463,6 +471,33 @@ export const useStudy = create<Store>()(
         },
         // A topic the student types is theirs: it no longer belongs to a document.
         setContext(patch) { set((d) => { Object.assign(d.context, 'topic' in patch && !('topicDoc' in patch) ? { ...patch, topicDoc: '' } : patch); }); },
+        setCycle(session) {
+          if (get().collab || get().timer.phase === 'quiz') return;
+          set((d) => {
+            d.timer.cycleDone = cycleDoneFor(session, d.settings.longEvery);
+            d.timer.countedCycle = false;
+            d.timer.cycleAt = Date.now();
+          });
+        },
+        tidyCycle(now = Date.now()) {
+          const d = get();
+          const T = d.timer;
+          if (d.collab || T.status === 'running') return;
+          const breakWaiting = T.phase === 'break';
+          const counted = T.cycleDone > 0;
+          if (!counted && !breakWaiting) return;
+          if (!awayLong({ last: lastActiveAt(T.cycleAt, d.history), hours: d.settings.cycleResetHours, now, hasState: true })) return;
+          set((x) => {
+            const t = x.timer;
+            t.cycleDone = 0; t.countedCycle = false; t.cycleAt = now;
+            // A break left waiting from long ago is over: back to a fresh study session.
+            if (t.phase === 'break') {
+              const min = x.settings.studyMin;
+              Object.assign(t, { phase: 'study', status: 'idle', totalMs: min * MIN, remainingMs: min * MIN, endAt: 0, session: null, breakReason: '', lastResult: null });
+            }
+          });
+          if (counted) toast('Fresh start: it has been a while, so the count is back to study session 1.');
+        },
         tidyMaterial() {
           const s = get();
           if (s.timer.session || s.timer.phase === 'quiz') return; // never mid-session
@@ -507,6 +542,7 @@ export const useStudy = create<Store>()(
             if (T.remainingMs <= 0) T.remainingMs = T.totalMs;
             T.status = 'running';
             T.endAt = Date.now() + T.remainingMs;
+            T.cycleAt = Date.now();
           });
           if (needQuiz) void get().prefetchQuiz();
         },
@@ -606,7 +642,7 @@ export const useStudy = create<Store>()(
           set((d) => {
             const T = d.timer;
             const studiedMs = Math.max(0, T.totalMs - remainingAt(T, now));
-            T.status = 'idle'; T.remainingMs = 0; T.endAt = 0; T.studiedMs = studiedMs;
+            T.status = 'idle'; T.remainingMs = 0; T.endAt = 0; T.studiedMs = studiedMs; T.cycleAt = now;
             const c = d.context;
             const base: SessionRecord = T.session
               ? current(T.session)
@@ -666,7 +702,7 @@ export const useStudy = create<Store>()(
             const T = d.timer;
             if (kind === 'long') T.cycleDone = 0;
             Object.assign(T, {
-              phase: 'break', breakKind: kind, breakReason: reason, totalMs: mins * MIN, remainingMs: mins * MIN, status: 'idle', endAt: 0, countedCycle: false,
+              phase: 'break', breakKind: kind, breakReason: reason, totalMs: mins * MIN, remainingMs: mins * MIN, status: 'idle', endAt: 0, countedCycle: false, cycleAt: Date.now(),
               lastResult: { score: result?.score ?? null, total: result?.total ?? 0, items: result?.items ?? [], mins, kind, reason, at: Date.now(), ...(d.collab ? { together: true } : {}) },
             });
             if (T.lastSessionId && reason !== 'manual') {
@@ -683,7 +719,7 @@ export const useStudy = create<Store>()(
             const min = d.collab?.studyMin ?? d.settings.studyMin;
             Object.assign(d.timer, {
               phase: 'study', status: 'idle', totalMs: min * MIN, remainingMs: min * MIN,
-              endAt: 0, session: null, breakReason: '', lastResult: null,
+              endAt: 0, session: null, breakReason: '', lastResult: null, cycleAt: Date.now(),
             });
           });
           if (reason === 'time') signalEnd('Break is over', 'Ready for the next study session?', opts);

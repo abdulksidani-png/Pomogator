@@ -36,7 +36,7 @@ export function spread<T>(items: T[], n: number): T[] {
 
 const SWITCH = new Set(['timeout', 'rate_limited', 'out_of_credit', 'bad_key', 'model_missing', 'upstream_error', 'prompt_too_large']);
 
-export interface Ask { system?: string; turns: Turn[]; images?: Image[]; temperature?: number; maxTokens?: number; signal?: AbortSignal }
+export interface Ask { system?: string; turns: Turn[]; images?: Image[]; temperature?: number; maxTokens?: number; timeoutMs?: number; signal?: AbortSignal }
 
 /**
  * Ask for a JSON reply from the first AI that can answer. `build` makes the request for a given AI, so each

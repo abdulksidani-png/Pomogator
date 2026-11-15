@@ -4,6 +4,7 @@ import { MIN } from './util';
 export const DEFAULT_SETTINGS: Settings = {
   studyMin: 25,
   longEvery: 4,
+  cycleResetHours: 4,
   loop: false,
   tiers: { short: { max: 15, mid: 10, min: 5, none: 5 }, long: { max: 30, mid: 22, min: 15, none: 15 } },
   questions: 3,
@@ -66,7 +67,7 @@ export const PRESETS = [25, 30, 35, 40, 45];
 export function freshTimer(s: Settings): TimerState {
   return {
     phase: 'study', status: 'idle', totalMs: s.studyMin * MIN, remainingMs: s.studyMin * MIN, endAt: 0,
-    breakKind: 'short', breakReason: '', session: null, cycleDone: 0, lastResult: null, lastSessionId: '',
+    breakKind: 'short', breakReason: '', session: null, cycleDone: 0, cycleAt: 0, lastResult: null, lastSessionId: '',
     refreshTried: false, countedCycle: false, studiedMs: 0,
   };
 }

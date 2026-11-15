@@ -4,6 +4,7 @@ import { useStudy } from '@/lib/store';
 import { PRESETS, DEFAULT_SETTINGS } from '@/lib/defaults';
 import { AMBIENCE, CHIMES, Sound } from '@/lib/sound';
 import { clamp } from '@/lib/util';
+import { CYCLE_RESET_CHOICES, cleanCycleHours, cycleResetLabel } from '@/lib/cycle';
 import type { Difficulty, Level, Tier } from '@/lib/types';
 import { supabaseConfigured } from '@/lib/supabase/env';
 import { deleteAccount, signOut } from '@/lib/sync';
@@ -33,8 +34,11 @@ export function SettingsDialog({ dialogRef, onSignIn, onAppearance }: {
   const s = useStudy((st) => st.settings);
   const account = useStudy((st) => st.account);
   const ctx = useStudy((st) => st.context);
+  const cycleDone = useStudy((st) => st.timer.cycleDone);
+  const phase = useStudy((st) => st.timer.phase);
+  const collab = useStudy((st) => !!st.collab);
   const [logArmed, pressLog] = useArmed();
-  const { updateSettings, setStudyMin, setLoop, clearHistory, showToast, setContext } = useStudy.getState();
+  const { updateSettings, setStudyMin, setLoop, clearHistory, showToast, setContext, setCycle } = useStudy.getState();
   const [previewing, setPreviewing] = useState(false);
   const [notifyNote, setNotifyNote] = useState('Pop up a notice when a phase ends');
   const [armed, press] = useArmed();
@@ -102,6 +106,16 @@ export function SettingsDialog({ dialogRef, onSignIn, onAppearance }: {
             </span>
           </div>
           <div className="set-row">
+            <label htmlFor="cycleReset">New cycle after being away<span className="sub">Start again at study session 1 when you haven&apos;t used the timer for this long</span></label>
+            <select id="cycleReset" style={{ width: 'auto', minWidth: 120 }} value={s.cycleResetHours} onChange={(e) => updateSettings((x) => { x.cycleResetHours = cleanCycleHours(e.target.value); })}>
+              {CYCLE_RESET_CHOICES.map((h) => <option key={h} value={h}>{cycleResetLabel(h)}</option>)}
+            </select>
+          </div>
+          <div className="set-row">
+            <span className="field-label">Where you are now<span className="sub">Study session {Math.min(cycleDone + 1, s.longEvery)} of {s.longEvery}. You can also change it from the timer.</span></span>
+            <button className="btn" type="button" id="cycleStartOver" disabled={cycleDone === 0 || collab || phase === 'quiz'} onClick={() => setCycle(1)}>Start over at session 1</button>
+          </div>
+          <div className="set-row">
             <label htmlFor="loopToggle">Loop<span className="sub">Start the quiz, the break and the next session automatically</span></label>
             <input type="checkbox" className="switch" id="loopToggle" checked={s.loop} onChange={(e) => setLoop(e.target.checked)} />
           </div>
@@ -109,7 +123,7 @@ export function SettingsDialog({ dialogRef, onSignIn, onAppearance }: {
 
         <fieldset>
           <legend>Breaks you earn</legend>
-          <p className="hint" style={{ marginTop: -6 }}>Your quiz score sets the break, in minutes. &quot;No quiz&quot; applies when you skip the quiz, study less than half the session, or quizzes can&apos;t load.</p>
+          <p className="hint" style={{ marginTop: -6 }}>Your quiz score sets the break, in minutes: 100% is every question right, 50–99% is at least half, whatever the quiz length. &quot;No quiz&quot; applies when you skip the quiz, study less than half the session, or quizzes can&apos;t load.</p>
           <div className="tier-wrap">
             <table className="tier-table">
               <thead><tr><th scope="col" /><th scope="col">100%</th><th scope="col">50–99%</th><th scope="col">Below 50%</th><th scope="col">No quiz</th></tr></thead>
@@ -146,11 +160,12 @@ export function SettingsDialog({ dialogRef, onSignIn, onAppearance }: {
               <input type="text" id="ctxExam" style={{ width: 'auto', minWidth: 180 }} placeholder="e.g. MCAT, AP Chemistry" maxLength={60} value={ctx.exam} onChange={(e) => setContext({ exam: e.target.value })} />
             </div>
           )}
-          <div className="set-row"><span className="field-label" id="qnLabel">Questions per quiz</span>
-            <div className="seg" role="group" aria-labelledby="qnLabel">
-              {[1, 2, 3].map((q) => <button key={q} type="button" aria-pressed={s.questions === q} onClick={() => updateSettings((x) => { x.questions = q; })}>{q}</button>)}
-            </div>
+          <div className="set-row"><label htmlFor="qnSelect">Questions per quiz<span className="sub">Your break still comes from the share you get right (see Breaks you earn), so a longer quiz is more to answer for the same break scale</span></label>
+            <select id="qnSelect" style={{ width: 'auto', minWidth: 84 }} value={s.questions} onChange={(e) => updateSettings((x) => { x.questions = clamp(Math.round(Number(e.target.value)) || 3, 1, 10); })}>
+              {Array.from({ length: 10 }, (_, i) => i + 1).map((q) => <option key={q} value={q}>{q}</option>)}
+            </select>
           </div>
+          {s.questions > 5 && <p className="hint" style={{ marginTop: -6 }}>Longer quizzes take longer to write. PomoGator starts as soon as your session begins, so it&apos;s usually ready by the end.</p>}
           <div className="set-row"><span className="field-label" id="diffLabel">Difficulty</span>
             <div className="seg" role="group" aria-labelledby="diffLabel">
               {(['gentle', 'standard', 'challenging'] as Difficulty[]).map((d) => (

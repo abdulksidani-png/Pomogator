@@ -42,6 +42,12 @@ music account of their own.
   make it drift. One 250 ms ticker drives the clock and phase changes.
 - A study session ends in the quiz; `lib/breaks.ts` turns the score into a break length using the tiers in settings, and
   every fourth counted session earns a long break. "Finish session now" always goes to the quiz; skipping doesn't.
+  The quiz is 1–10 questions (`settings.questions`); breaks come from the share right (100% / 50–99% / below), so the
+  scale is the same for any length, and the break chips group scores for long quizzes (`tierChips`).
+- The cycle count (`timer.cycleDone`, "Study session N of M") belongs to a run of study: `lib/cycle.ts` decides when it
+  has been away too long (`settings.cycleResetHours`, default 4, from `timer.cycleAt` and the newest finished session),
+  the store's `tidyCycle` starts it over (on load, on coming back to the tab, every 5 minutes, never mid-session), and
+  `setCycle` sets it by hand (the "Study session N of M" button on the timer, and Settings → Timer).
 - The quiz is written ahead of time: when a session starts, the store asks for it, and a `ctxKey` (topic, settings) plus
   `sourcesKey` (pages covered, transcript size) decide whether it must be rewritten near the end because the material
   changed. After the quiz, a plan is requested from the answers plus each concept's history (`ConceptStat`).

@@ -1864,3 +1864,22 @@ html:root[data-cards="glass"] .desk .card:not(.result) { animation: none; }
 .music-disc[data-art="disc"].spinning { animation: disc-spin 9s linear infinite; }
 .music-disc[data-art="disc"] .music-hole { display: block; }
 @media (prefers-reduced-motion: reduce) { .music-disc[data-art="disc"].spinning { animation: none; } }
+
+/* "Study session 2 of 4" is a button that opens the cycle menu (Stage.tsx, CycleEyebrow). */
+.eyebrow-btn { position: relative; z-index: 3; display: inline-flex; align-items: center; gap: 4px; border: 0; background: none; padding: 2px 6px; margin: -2px -6px; border-radius: var(--r-sm); font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; cursor: pointer; }
+.eyebrow-btn:hover, .eyebrow-btn:focus-visible { color: var(--fg-2); background: var(--sunk); }
+.eyebrow-btn svg.i { width: 12px; height: 12px; transition: transform .2s; }
+.eyebrow-btn[aria-expanded="true"] svg.i { transform: rotate(180deg); }
+html:root[data-focus="on"] .eyebrow-btn { pointer-events: none; }
+html:root[data-focus="on"] .eyebrow-btn svg.i { display: none; }
+.cycle-menu {
+  position: fixed; z-index: 60; width: min(280px, calc(100vw - 24px)); background: var(--card); color: var(--fg);
+  border: 1px solid var(--rule); border-radius: var(--r-md); box-shadow: var(--shadow); padding: 6px; display: grid; gap: 4px; text-align: left;
+}
+.cycle-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; max-height: min(320px, 50vh); overflow: auto; }
+.cycle-pick { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; border: 0; background: none; padding: 9px 10px; border-radius: var(--r-sm); color: var(--fg); font-size: 14.5px; text-align: left; }
+.cycle-pick:hover, .cycle-pick:focus-visible { background: var(--sunk); }
+.cycle-pick[aria-pressed="true"] { background: var(--accent-soft); font-weight: 700; }
+.cycle-pick svg.i { width: 15px; height: 15px; color: var(--accent); flex: none; }
+.cycle-menu .menu-head span { white-space: normal; }
+html:root[data-cards] .cycle-menu { border-color: var(--fg); border-radius: var(--r-lg); }

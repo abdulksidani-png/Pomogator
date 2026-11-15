@@ -53,6 +53,7 @@ optional screen tracking, sign-in with cloud sync, and appearance customization.
 | + | Private nicknames for friends | Built, waiting on his test (migration 6 for nicknames on messages and invites) |
 | + | Guests get no AI (asked to make an account); Spotify removed, Last.fm is the only music source | Built, live, waiting on his test (no migration; `LASTFM_API_KEY` in Vercel for music) |
 | + | Bot check (Turnstile) for guest sign-ups and sign-in emails | Built, waiting on his keys + test (`NEXT_PUBLIC_TURNSTILE_SITE_KEY`, then Supabase CAPTCHA) |
+| + | Quiz length 1–10 (break by share), session count resets after time away + set by hand | Built, waiting on his test (no migration) |
 | + | Audit fixes: Next security update, middleware scope, headers, AI input caps, lighter polling; storage limits | Live, waiting on his test (migration 8 for the storage limits) |
 | + | Redesign ("the sheet"), Claude API, friend chat + Do Not Disturb, old material put away | **LIVE since 2026-11-10 at his request, waiting on his test** (before it, `main` was `1f29c2d`, commit `1f29c2d`; needs migration 7 for chat/DND and `ANTHROPIC_API_KEY` for Claude) |
 
@@ -351,6 +352,22 @@ polling is 4 s while a song is playing *or paused* (it was 30 s once paused, whi
 right now. Play a song and it shows up here." (Last.fm only saves a song after about half of it, so its newest save is often
 not the last thing heard.) What's left is Spotify → Last.fm's own delay, which the site can't shorten; the in-site
 player (proposed, not built) is the only way to instant controls. Stand-in users: `quietone` (2 min ago), `longago`.
+
+**Quiz length + cycle reset (2026-11-15, his request):** `settings.questions` is 1–10 now (Settings → Quiz, `#qnSelect`;
+clamped in `normalizeData`). Breaks were already by share (100% / 50–99% / below, `breakFor`), so any length scales;
+`tierChips`/`tierGroups` in `lib/breaks.ts` group the break chips and the quiz-screen sentence for more than 4 questions
+("5–9/10"). The AI route allows `n` up to 10 (`maxTokens` 600 + 700·n, up to 8000; Claude's cap raised to 8000) and gives
+each attempt more time (`quizTimeout(n)`: 22 s + 2.5 s per question over 3, max 40 s; `Ask.timeoutMs` in both clients).
+**Cycle** ("Study session N of M"): `lib/cycle.ts` + store `tidyCycle`/`setCycle`; `timer.cycleAt` is stamped on start,
+endStudy, startBreak and endBreak; `settings.cycleResetHours` (1/2/3/4/6/8/12/24 or 0 = never, default 4, Settings → Timer)
+resets the count to 0 when the last activity (cycleAt or newest finished session) is older, on load (`boot`), on tab focus
+and every 5 min (the `tidy` effect in `PomoGatorApp`), never while running or in a group session; a break left waiting
+that long goes back to a fresh study session; a toast says "Fresh start…" when a count was dropped. By hand: the
+"Study session N of M" eyebrow is a button (`CycleEyebrow` in Stage.tsx, a portal menu `#cycleMenu`, `z-index` lifted
+because the big clock digits overlap the eyebrow) and Settings has "Start over at session 1" (`#cycleStartOver`).
+Tests: `tests/unit/cycle.test.ts`, `tests/e2e/cycle.spec.ts` (seeds a stale timer in localStorage). **Test setup lost on
+a container refresh:** `npm ci`, the Postgres password (`su postgres -c "psql -c \"alter user postgres password 'postgres'\""`)
+and PostgREST (`postgrest-v12.2.3-linux-static-x64.tar.xz` from the GitHub release into `/tmp/claude-0/pgrst`).
 
 **Quizzes from the shared screen (2026-10-15, his report: a Python session got a quiz on yesterday's philosophy deck):**
 screen tracking used OCR only to match slides, so off-document work was ignored. Now `capture()` in `lib/docs/screen.ts`
