@@ -60,6 +60,12 @@ export function digestPrompt(m: Material, cap = LIMITS.material): string {
   ].join('\n');
 }
 
+/**
+ * Formulas are drawn by the site (KaTeX, components/MathText.tsx), so they must arrive as LaTeX in dollar signs;
+ * code goes in backticks. String.raw keeps the backslashes exactly as the model should see them.
+ */
+export const MATH_RULE = String.raw`- Write every formula, equation, fraction, Greek letter, and variable with a subscript or superscript as LaTeX between single dollar signs, like $\frac{\partial C}{\partial a}$ or $x^2$: the site draws it as a real formula. Never write math as plain text such as x^2 or dC/da, and never use \( \), double dollar signs or images. Your reply is JSON, so double every backslash inside the JSON text ("$\\frac{a}{b}$"). Put code in backticks. Write money as a dollar sign, the amount, then a space.`;
+
 export function quizPrompt({ ctx, n, difficulty, weak, asked, heard, material, digest, screen, images }: QuizInput, cap = LIMITS.material): string {
   const notes = (ctx.notes || '').trim().slice(0, LIMITS.notes);
   const doc = materialText(material, cap);
@@ -104,6 +110,7 @@ export function quizPrompt({ ctx, n, difficulty, weak, asked, heard, material, d
     '- "memoryAid": a mnemonic, vivid analogy, visual association or study tip that makes this specific fact stick. Under 40 words. No generic advice.',
     '- "optionFeedback": one sentence per option, in the same order as "options". For the correct option, reinforce why it is right. For each wrong option, name the misconception that leads someone to pick it and how to tell it apart from the right answer.',
     '- Do not put letters such as "A." in front of options.',
+    MATH_RULE,
     '',
     'Reply with only this JSON and no other text:',
     '{"questions":[{"id":"q1","concept":"...","question":"...","options":["...","...","...","..."],"correctIndex":0,"explanation":"...","memoryAid":"...","optionFeedback":["...","...","...","..."]}]}',
@@ -230,6 +237,7 @@ export function assistantSystem(a: AssistantInput, cap = LIMITS.material): strin
     '- Set "mood" for the study buddy shown next to your reply: "happy" when the student got an answer right, finished something or shared good news; "sad" (sympathetic, never blaming) when they got an answer wrong, are stuck or stressed; otherwise "neutral".',
     '',
     'STYLE',
+    MATH_RULE,
     '- Short, warm and specific. Plain text. Use "- " for bullet lists and **double asterisks** for the few words that matter most. No headings, no tables, no code blocks unless asked.',
     '- Under about 180 words unless the student asks for more detail or a full summary.',
     '',

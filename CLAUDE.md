@@ -53,6 +53,7 @@ optional screen tracking, sign-in with cloud sync, and appearance customization.
 | + | Private nicknames for friends | Built, waiting on his test (migration 6 for nicknames on messages and invites) |
 | + | Guests get no AI (asked to make an account); Spotify removed, Last.fm is the only music source | Built, live, waiting on his test (no migration; `LASTFM_API_KEY` in Vercel for music) |
 | + | Bot check (Turnstile) for guest sign-ups and sign-in emails | Built, waiting on his keys + test (`NEXT_PUBLIC_TURNSTILE_SITE_KEY`, then Supabase CAPTCHA) |
+| + | Formulas and code drawn properly in quizzes and the assistant (KaTeX) | Built, waiting on his test (no migration) |
 | + | Quiz length 1–10 (break by share), session count resets after time away + set by hand | Built, waiting on his test (no migration) |
 | + | Audit fixes: Next security update, middleware scope, headers, AI input caps, lighter polling; storage limits | Live, waiting on his test (migration 8 for the storage limits) |
 | + | Redesign ("the sheet"), Claude API, friend chat + Do Not Disturb, old material put away | **LIVE since 2026-11-10 at his request, waiting on his test** (before it, `main` was `1f29c2d`, commit `1f29c2d`; needs migration 7 for chat/DND and `ANTHROPIC_API_KEY` for Claude) |
@@ -368,6 +369,21 @@ because the big clock digits overlap the eyebrow) and Settings has "Start over a
 Tests: `tests/unit/cycle.test.ts`, `tests/e2e/cycle.spec.ts` (seeds a stale timer in localStorage). **Test setup lost on
 a container refresh:** `npm ci`, the Postgres password (`su postgres -c "psql -c \"alter user postgres password 'postgres'\""`)
 and PostgREST (`postgrest-v12.2.3-linux-static-x64.tar.xz` from the GitHub release into `/tmp/claude-0/pgrst`).
+
+**Formulas in quizzes (2026-11-16, his report: a backpropagation question showed raw LaTeX; he asked for AI-made images):**
+not images (slow, costly, unreadable by screen readers): the site draws the math. `lib/rich.ts` (pure, `tests/unit/rich.test.ts`)
+splits text into text / math / display / code / pre; a dollar sign is math only when it hugs its contents and isn't followed
+by a digit, so money stays money; `fixLatexEscapes` repairs LaTeX whose backslashes JSON ate (form feed + "rac" → "\frac").
+`components/MathText.tsx` renders the pieces; KaTeX (`katex` 0.16.22, `lib/katex-bundle.ts` with its CSS and fonts) is a
+dynamic import, so it loads only when a formula is on screen and stays out of the first page load (checked: no KaTeX in
+the page HTML). KaTeX output goes in with `dangerouslySetInnerHTML`: the one HTML sink besides the theme script, safe
+because KaTeX escapes its input (`trust: false`; unit test with an `<img onerror>`). Used for the quiz question (now a
+`div#qText`), options (their `aria-label` uses `plain()`), explanation, option feedback, memory aid, concept, and the
+assistant's `inline()`. `MATH_RULE` in `lib/ai/prompts.ts` (quiz + assistant) tells the AI to write LaTeX in single dollar
+signs and code in backticks; `parseJson` retries with lone backslashes doubled. Test: `tests/e2e/math.spec.ts` (his
+question). Quiz options are shuffled by `cleanQuiz`, so tests must not assume the letter.
+**Midnight flake:** tests that fake the clock and study across midnight fail when run around 23:45–00:00 (a session
+counts for the day it started); the loop test starts at noon and the first sync test starts 30 min earlier in that window.
 
 **Quizzes from the shared screen (2026-10-15, his report: a Python session got a quiz on yesterday's philosophy deck):**
 screen tracking used OCR only to match slides, so off-document work was ignored. Now `capture()` in `lib/docs/screen.ts`

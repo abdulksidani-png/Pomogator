@@ -69,12 +69,19 @@ export function replyText(j: GeminiReply): string {
   return text;
 }
 
+/** A backslash that doesn't start a JSON escape (and isn't the second half of a doubled one). */
+const LONE_BACKSLASH = /(?<!\\)\\(?!["\\/bfnrtu])/g;
+
 /** Parse JSON, tolerating a ```json fence or text around the object. */
 export function parseJson(text: string): unknown {
   const t = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
   try { return JSON.parse(t); } catch { /* fall through */ }
   const a = t.indexOf('{'), b = t.lastIndexOf('}');
-  if (a >= 0 && b > a) { try { return JSON.parse(t.slice(a, b + 1)); } catch { /* fall through */ } }
+  const body = a >= 0 && b > a ? t.slice(a, b + 1) : t;
+  if (body !== t) { try { return JSON.parse(body); } catch { /* fall through */ } }
+  // LaTeX written with single backslashes ("\partial", "\sigma") isn't valid JSON: double the ones that aren't an
+  // escape JSON knows, and try once more.
+  try { return JSON.parse(body.replace(LONE_BACKSLASH, '\\\\')); } catch { /* fall through */ }
   throw fail('invalid_json');
 }
 

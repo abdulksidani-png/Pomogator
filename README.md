@@ -27,7 +27,7 @@ and an AI-written plan sets up your next session.
 
 Most Pomodoro apps only count minutes. PomoGator closes the loop with **retrieval practice**, one of the
 best-supported study techniques: every session ends with a short quiz (1–10 questions, your choice) on what you actually covered, every answer
-comes with an explanation and a memory aid, and **your score earns your break** (all right → 15 min, at least half →
+comes with an explanation and a memory aid (formulas are typeset, code is shown as code), and **your score earns your break** (all right → 15 min, at least half →
 10 min, less → 5 min, whatever the quiz length). The "Study session 2 of 4" count starts over by itself after a
 long time away, and you can set it by hand. After the quiz, a plan for the next session targets exactly what you missed.
 

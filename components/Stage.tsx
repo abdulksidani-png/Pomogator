@@ -16,6 +16,8 @@ import { EASE, SOFT, SPRING } from './motion';
 import { TimerMenu } from './TimerMenu';
 import { needAccount } from '@/lib/gate';
 import { createPortal } from 'react-dom';
+import { MathText } from './MathText';
+import { plain } from '@/lib/rich';
 import { enterFocus, exitFocus, useFocusMode } from '@/lib/focus';
 
 export function Stage({ onToggle, onScreenConsent }: { onToggle: () => void; onScreenConsent: () => void }) {
@@ -514,7 +516,7 @@ function QuizFace() {
     <motion.div className="qcard" key={`q${Q.index}`} initial={{ opacity: 0, x: 28 }} animate={{ opacity: 1, x: 0 }} transition={SOFT}>
       <div className="q-head">
         <span className="q-num">Q{Q.index + 1} / {n}</span>
-        <span className="q-concept">{q.concept}</span>
+        <span className="q-concept"><MathText text={q.concept} /></span>
         <span className="q-progress" aria-hidden="true">
           {Q.questions.map((_, i) => {
             const ans = Q.answers[i];
@@ -523,7 +525,7 @@ function QuizFace() {
         </span>
       </div>
       <div className="q-main">
-        <p className="q-text" id="qText">{q.question}</p>
+        <div className="q-text" id="qText"><MathText text={q.question} /></div>
         <QuizBuddy mood={a ? (a.correct ? 'happy' : 'sad') : 'quiz'} say={a ? (a.correct ? CHEERS : COMFORT)[Q.index % 3] : undefined} />
       </div>
       <div className="opts" role="group" aria-labelledby="qText">
@@ -538,12 +540,12 @@ function QuizFace() {
           const wrong = !!a && i === a.chosen && !a.correct;
           const right = !!a && i === q.correctIndex;
           return (
-            <motion.button key={i} className={cls} type="button" disabled={!!a} aria-label={`${LETTERS[i]}: ${o}`} onClick={() => act.answer(i)}
+            <motion.button key={i} className={cls} type="button" disabled={!!a} aria-label={`${LETTERS[i]}: ${plain(o)}`} onClick={() => act.answer(i)}
               initial={{ opacity: 0, y: 10 }}
               animate={wrong ? { opacity: 1, y: 0, x: [0, -7, 7, -4, 4, 0] } : right && a ? { opacity: 1, y: 0, scale: [1, 1.025, 1] } : { opacity: 1, y: 0 }}
               transition={a ? { duration: 0.42, ease: EASE } : { ...SOFT, delay: 0.05 + i * 0.05 }}
               whileHover={a ? undefined : { x: 3 }} whileTap={a ? undefined : { scale: 0.985 }}>
-              <span className="key">{LETTERS[i]}</span><span>{o}</span>{mark}
+              <span className="key">{LETTERS[i]}</span><span><MathText text={o} /></span>{mark}
             </motion.button>
           );
         })}
@@ -551,9 +553,9 @@ function QuizFace() {
       {a && (
         <motion.div className="fb" aria-live="polite" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={SOFT}>
           <p className={`verdict ${a.correct ? 'good' : 'bad'}`}>{a.correct ? 'Correct.' : `Not quite. The answer is ${LETTERS[q.correctIndex]}.`}</p>
-          {q.explanation && <p>{q.explanation}</p>}
-          {!a.correct && q.optionFeedback[a.chosen] && <p className="why"><strong>Why not {LETTERS[a.chosen]}:</strong> {q.optionFeedback[a.chosen]}</p>}
-          {q.memoryAid && <div className="aid"><div className="aid-label">{a.correct ? 'Lock it in' : 'Memory aid'}</div>{q.memoryAid}</div>}
+          {q.explanation && <p><MathText text={q.explanation} /></p>}
+          {!a.correct && q.optionFeedback[a.chosen] && <p className="why"><strong>Why not {LETTERS[a.chosen]}:</strong> <MathText text={q.optionFeedback[a.chosen]} /></p>}
+          {q.memoryAid && <div className="aid"><div className="aid-label">{a.correct ? 'Lock it in' : 'Memory aid'}</div><MathText text={q.memoryAid} /></div>}
         </motion.div>
       )}
       <div className="q-actions">

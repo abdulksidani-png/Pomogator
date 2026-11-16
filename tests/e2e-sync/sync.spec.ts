@@ -110,7 +110,11 @@ async function emailSignIn(page: Page, email: string, expectNote: RegExp, name?:
 test('guest progress survives sign-in, follows you to a second device, and stays private on sign-out', async ({ browser }) => {
   /* ---------- device A: study as a guest ---------- */
   const a = await device(browser);
-  await a.clock.install();
+  // A session counts for the day it started. Run just before midnight, this 13-minute one would end "tomorrow" and
+  // drop out of Today, so in that window the clock starts half an hour earlier (sign-in tokens are still valid).
+  const start = new Date();
+  const toMidnight = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 1).getTime() - start.getTime();
+  await a.clock.install({ time: toMidnight < 20 * 60_000 ? new Date(start.getTime() - 30 * 60_000) : start });
   await a.goto('/');
   await expect(footer(a)).toContainText('studying as a guest', { timeout: 15_000 });
 

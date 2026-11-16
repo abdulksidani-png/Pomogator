@@ -1883,3 +1883,13 @@ html:root[data-focus="on"] .eyebrow-btn svg.i { display: none; }
 .cycle-pick svg.i { width: 15px; height: 15px; color: var(--accent); flex: none; }
 .cycle-menu .menu-head span { white-space: normal; }
 html:root[data-cards] .cycle-menu { border-color: var(--fg); border-radius: var(--r-lg); }
+
+/* Formulas and code inside AI-written text (components/MathText.tsx). KaTeX brings its own fonts and sizes. */
+.math .katex { font-size: 1.16em; }
+.q-text .math .katex { font-size: .92em; letter-spacing: 0; }
+.math-display { display: block; margin: .5em 0; overflow-x: auto; overflow-y: hidden; max-width: 100%; }
+.math-raw { font-family: var(--f-mono); font-size: .9em; }
+.q-code { font-family: var(--f-mono); font-size: .88em; background: var(--sunk); border-radius: 4px; padding: .08em .35em; letter-spacing: 0; text-transform: none; }
+.q-pre { font-family: var(--f-mono); font-size: 14px; line-height: 1.5; font-weight: 400; letter-spacing: 0; text-align: left; background: var(--sunk); border-radius: var(--r-sm); padding: 10px 12px; margin: .6em 0; overflow-x: auto; white-space: pre; }
+.q-pre code { font: inherit; }
+.q-concept .math .katex { text-transform: none; letter-spacing: 0; }

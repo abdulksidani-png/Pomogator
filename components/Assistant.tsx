@@ -1,5 +1,6 @@
 'use client';
-import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { MathText } from './MathText';
 import { motion } from 'motion/react';
 import { useStudy } from '@/lib/store';
 import { MAX_PHOTOS, addPhotos, clearChat, closeAssistant, openAssistant, removePhoto, resolveTasks, sendToAssistant, useChat } from '@/lib/assistant';
@@ -183,7 +184,7 @@ function Bubble({ m }: { m: ChatMessage }) {
   );
 }
 
-/** Light formatting for replies: paragraphs, "- " lists, numbered lists and **bold**. Never raw HTML. */
+/** Light formatting for replies: paragraphs, "- " lists, numbered lists, **bold**, code and math (MathText). */
 export function Rich({ text }: { text: string }) {
   const blocks: ReactNode[] = [];
   let items: string[] = [];
@@ -213,7 +214,7 @@ export function Rich({ text }: { text: string }) {
 
 function inline(t: string): ReactNode {
   return t.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
-    part.startsWith('**') && part.endsWith('**') && part.length > 4 ? <strong key={i}>{part.slice(2, -2)}</strong> : <Fragment key={i}>{part}</Fragment>);
+    part.startsWith('**') && part.endsWith('**') && part.length > 4 ? <strong key={i}><MathText text={part.slice(2, -2)} /></strong> : <MathText key={i} text={part} />);
 }
 
 function autosize(el: HTMLTextAreaElement) { el.style.height = 'auto'; el.style.height = `${Math.min(el.scrollHeight, 160)}px`; }

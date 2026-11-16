@@ -54,6 +54,10 @@ music account of their own.
 
 ## AI pipeline
 
+- **Formulas and code.** The AI is told to write math as LaTeX between dollar signs and code in backticks. `lib/rich.ts`
+  splits the text (a dollar sign next to a number stays money) and `components/MathText.tsx` draws it: formulas with
+  KaTeX, loaded only when one is on screen, with MathML inside for screen readers. No images are generated.
+
 ```
 browser (lib/ai-client.ts) → POST /api/ai/{action} → sign-in + daily allowance (lib/ai/quota.ts)
   → prompt (lib/ai/prompts.ts) → Gemini JSON mode (lib/ai/gemini.ts) → validate (lib/quiz.ts) → browser validates again
